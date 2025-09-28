@@ -39,5 +39,7 @@ add_executable(void_compiler main.cxx)
 # Link LLVM libraries
 target_link_libraries(void_compiler ${llvm_libs})
 
+target_include_directories(void_compiler PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 # Compiler flags
 target_compile_options(void_compiler PRIVATE -Wall -Wextra -Wpedantic)
