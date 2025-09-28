@@ -34,7 +34,10 @@ llvm_map_components_to_libnames(llvm_libs
 list(REMOVE_DUPLICATES llvm_libs)
 
 # Create the executable
-add_executable(void_compiler main.cxx)
+add_executable(void_compiler 
+  src/main.cxx 
+  src/lexer.cxx
+)
 
 # Link LLVM libraries
 target_link_libraries(void_compiler ${llvm_libs})
