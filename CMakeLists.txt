@@ -37,6 +37,8 @@ list(REMOVE_DUPLICATES llvm_libs)
 add_executable(void_compiler 
   src/main.cxx 
   src/lexer.cxx
+  src/parser.cxx
+  src/code_generation.cxx
 )
 
 # Link LLVM libraries
