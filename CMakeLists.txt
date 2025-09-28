@@ -23,18 +23,15 @@ add_definitions(${LLVM_DEFINITIONS_LIST})
 
 # Find required LLVM components (simplified - only what we actually need)
 llvm_map_components_to_libnames(llvm_libs 
-    support 
     core 
     executionengine 
-    interpreter 
     mcjit 
     native
-    analysis
     x86codegen
-    x86asmparser
-    x86desc
-    x86info
 )
+
+# Remove duplicates
+list(REMOVE_DUPLICATES llvm_libs)
 
 # Create the executable
 add_executable(void_compiler main.cxx)

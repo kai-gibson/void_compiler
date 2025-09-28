@@ -15,16 +15,16 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/MC/TargetRegistry.h>
+#include <llvm/Support/FileSystem.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
-#include <llvm/Support/FileSystem.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
-#include <llvm/IR/LegacyPassManager.h>
-#include <llvm/MC/TargetRegistry.h>
 #include <llvm/TargetParser/Host.h>
 #pragma clang diagnostic pop
 
@@ -292,13 +292,12 @@ class CodeGenerator {
   void generate_function(const FunctionDeclaration* func_decl) {
     // Create function type
     llvm::Type* return_type = llvm::Type::getInt32Ty(*context_);
-    llvm::FunctionType* func_type =
-        llvm::FunctionType::get(return_type, false);
+    llvm::FunctionType* func_type = llvm::FunctionType::get(return_type, false);
 
     // Create function
-    llvm::Function* function = llvm::Function::Create(
-        func_type, llvm::Function::ExternalLinkage, func_decl->name(),
-        module_.get());
+    llvm::Function* function =
+        llvm::Function::Create(func_type, llvm::Function::ExternalLinkage,
+                               func_decl->name(), module_.get());
 
     // Create basic block
     llvm::BasicBlock* entry =
@@ -332,7 +331,7 @@ class CodeGenerator {
 
     auto cpu = "generic";
     auto features = "";
-    
+
     llvm::TargetOptions opt;
     std::optional<llvm::Reloc::Model> relocModel;
     auto target_machine = target->createTargetMachine(
@@ -421,7 +420,7 @@ class VoidCompiler {
   int compile_and_run(const std::string& source) {
     try {
       auto ast = compile_source(source);
-      
+
       // Generate code
       CodeGenerator codegen;
       codegen.generate_function(ast.get());
@@ -439,10 +438,11 @@ class VoidCompiler {
     }
   }
 
-  bool compile_to_executable(const std::string& source, const std::string& output_name) {
+  bool compile_to_executable(const std::string& source,
+                             const std::string& output_name) {
     try {
       auto ast = compile_source(source);
-      
+
       // Generate code
       CodeGenerator codegen;
       codegen.generate_function(ast.get());
@@ -460,7 +460,7 @@ class VoidCompiler {
       // Link to executable
       std::string link_cmd = "clang " + obj_file + " -o " + output_name;
       std::cout << "Linking: " << link_cmd << std::endl;
-      
+
       int result = system(link_cmd.c_str());
       if (result != 0) {
         std::cerr << "Linking failed" << std::endl;
@@ -469,7 +469,7 @@ class VoidCompiler {
 
       // Clean up object file
       std::remove(obj_file.c_str());
-      
+
       std::cout << "Executable created: " << output_name << std::endl;
       return true;
 
@@ -480,7 +480,8 @@ class VoidCompiler {
   }
 
  private:
-  std::unique_ptr<FunctionDeclaration> compile_source(const std::string& source) {
+  std::unique_ptr<FunctionDeclaration> compile_source(
+      const std::string& source) {
     // Lex
     Lexer lexer(source);
     std::vector<Token> tokens;
@@ -507,13 +508,13 @@ const main = fn() -> i32 {
 )";
 
   void_compiler::VoidCompiler compiler;
-  
+
   // Compile and run with JIT
   std::cout << "=== JIT Execution ===" << std::endl;
   int result = compiler.compile_and_run(source);
   std::cout << "Program returned: " << result << std::endl;
   std::cout << std::endl;
-  
+
   // Compile to executable
   std::cout << "=== Compiling to Executable ===" << std::endl;
   if (compiler.compile_to_executable(source, "hello_void")) {
