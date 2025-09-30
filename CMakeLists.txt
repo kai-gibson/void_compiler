@@ -39,6 +39,7 @@ add_executable(void_compiler
   src/lexer.cxx
   src/parser.cxx
   src/code_generation.cxx
+  src/compiler.cxx
 )
 
 # Link LLVM libraries
