@@ -5,17 +5,16 @@
 
 int main() {
   std::string source = R"(
-
-const add = fn() -> i32 {
-  return 3
+const get_answer = fn() -> i32 {
+  return 42
 }
 
-const add = fn() -> i32 {
-  return 2
+const get_one = fn() -> i32 {
+  return 1
 }
 
 const main = fn() -> i32 {
-  return 1
+  return get_answer()
 }
 )";
   void_compiler::Compiler compiler;

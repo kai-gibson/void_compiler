@@ -38,6 +38,27 @@ std::unique_ptr<ASTNode> Parser::parse_expression() {
     return std::make_unique<NumberLiteral>(value);
   }
 
+  // Parse function calls
+  if (match(TokenType::Identifier)) {
+    std::string name = consume(TokenType::Identifier).value;
+    if (match(TokenType::LParen)) {
+      consume(TokenType::LParen);
+      std::vector<std::unique_ptr<ASTNode>> arguments;
+
+      // Parse arguments (currently supporting no arguments)
+      if (!match(TokenType::RParen)) {
+        do {
+          arguments.push_back(parse_expression());
+        } while (match(TokenType::Comma) && (consume(TokenType::Comma), true));
+      }
+
+      consume(TokenType::RParen);
+      return std::make_unique<FunctionCall>(name, std::move(arguments));
+    }
+    // If it's just an identifier without parentheses, it's not supported yet
+    throw std::runtime_error("Bare identifiers not supported, use function calls: " + name + "()");
+  }
+
   throw std::runtime_error("Expected expression");
 }
 

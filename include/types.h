@@ -20,6 +20,7 @@ enum class TokenType {
   Return,
   Number,
   I32,
+  Comma,
   EndOfFile
 };
 
@@ -53,6 +54,22 @@ class ReturnStatement : public ASTNode {
 
  private:
   std::unique_ptr<ASTNode> expression_;
+};
+
+class FunctionCall : public ASTNode {
+ public:
+  FunctionCall(const std::string& name,
+               std::vector<std::unique_ptr<ASTNode>> arguments)
+      : function_name_(name), arguments_(std::move(arguments)) {}
+
+  const std::string& function_name() const { return function_name_; }
+  const std::vector<std::unique_ptr<ASTNode>>& arguments() const {
+    return arguments_;
+  }
+
+ private:
+  std::string function_name_;
+  std::vector<std::unique_ptr<ASTNode>> arguments_;
 };
 
 class FunctionDeclaration : public ASTNode {

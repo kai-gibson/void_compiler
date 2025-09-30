@@ -48,6 +48,8 @@ Token Lexer::next_token() {
       return {TokenType::LBrace, "{", line_, start_column};
     case '}':
       return {TokenType::RBrace, "}", line_, start_column};
+    case ',':
+      return {TokenType::Comma, ",", line_, start_column};
     case '-':
       if (current_char() == '>') {
         advance();

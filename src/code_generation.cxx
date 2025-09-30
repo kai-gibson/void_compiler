@@ -122,6 +122,21 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
                                   llvm::APInt(32, num->value(), true));
   }
 
+  if (const auto* call = dynamic_cast<const FunctionCall*>(node)) {
+    llvm::Function* func = module_->getFunction(call->function_name());
+    if (!func) {
+      throw std::runtime_error("Unknown function: " + call->function_name());
+    }
+
+    // Generate arguments
+    std::vector<llvm::Value*> args;
+    for (const auto& arg : call->arguments()) {
+      args.push_back(generate_expression(arg.get()));
+    }
+
+    return builder_->CreateCall(func, args);
+  }
+
   throw std::runtime_error("Unknown expression type");
 }
 
