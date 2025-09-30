@@ -6,11 +6,11 @@ namespace void_compiler {
 
 std::unique_ptr<Program> Parser::parse() {
   auto program = std::make_unique<Program>();
-  
+
   while (!match(TokenType::EndOfFile)) {
     program->add_function(parse_function());
   }
-  
+
   return program;
 }
 Token& Parser::peek() {

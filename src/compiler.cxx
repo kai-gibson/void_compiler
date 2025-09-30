@@ -71,8 +71,7 @@ bool Compiler::compile_to_executable(const std::string& source,
   }
 }
 
-std::unique_ptr<Program> Compiler::compile_source(
-    const std::string& source) {
+std::unique_ptr<Program> Compiler::compile_source(const std::string& source) {
   // Lex
   Lexer lexer(source);
   std::vector<Token> tokens;
