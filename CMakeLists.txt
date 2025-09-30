@@ -63,6 +63,8 @@ FetchContent_MakeAvailable(googletest)
 
 # Enable testing
 enable_testing()
+add_compile_options(-fprofile-instr-generate -fcoverage-mapping -O0 -g)
+add_link_options(-fprofile-instr-generate -fcoverage-mapping)
 
 # Add tests subdirectory
 add_subdirectory(tests)

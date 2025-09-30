@@ -1,2 +1,7 @@
 build/*
 .cache/*
+coverage-html
+coverage.profdata
+hello_void
+test_results.xml
+Testing
