@@ -16,19 +16,40 @@ void CodeGenerator::generate_program(const Program* program) {
 }
 
 void CodeGenerator::generate_function(const FunctionDeclaration* func_decl) {
+  // Create parameter types
+  std::vector<llvm::Type*> param_types;
+  for (const auto& param : func_decl->parameters()) {
+    (void)param; // Mark as used
+    param_types.push_back(llvm::Type::getInt32Ty(*context_));
+  }
+
   // Create function type
   llvm::Type* return_type = llvm::Type::getInt32Ty(*context_);
-  llvm::FunctionType* func_type = llvm::FunctionType::get(return_type, false);
+  llvm::FunctionType* func_type = llvm::FunctionType::get(return_type, param_types, false);
 
   // Create function
   llvm::Function* function =
       llvm::Function::Create(func_type, llvm::Function::ExternalLinkage,
                              func_decl->name(), module_.get());
 
+  // Set parameter names
+  size_t idx = 0;
+  for (auto& arg : function->args()) {
+    arg.setName(func_decl->parameters()[idx++]->name());
+  }
+
   // Create basic block
   llvm::BasicBlock* entry =
       llvm::BasicBlock::Create(*context_, "entry", function);
   builder_->SetInsertPoint(entry);
+
+  // Store parameter values in allocas for later reference
+  function_params_.clear();
+  for (auto& arg : function->args()) {
+    llvm::AllocaInst* alloca = builder_->CreateAlloca(llvm::Type::getInt32Ty(*context_), nullptr, arg.getName());
+    builder_->CreateStore(&arg, alloca);
+    function_params_[std::string(arg.getName())] = alloca;
+  }
 
   // Generate function body
   for (const auto& stmt : func_decl->body()) {
@@ -120,6 +141,32 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
   if (const auto* num = dynamic_cast<const NumberLiteral*>(node)) {
     return llvm::ConstantInt::get(*context_,
                                   llvm::APInt(32, num->value(), true));
+  }
+
+  if (const auto* var = dynamic_cast<const VariableReference*>(node)) {
+    auto it = function_params_.find(var->name());
+    if (it != function_params_.end()) {
+      return builder_->CreateLoad(llvm::Type::getInt32Ty(*context_), it->second, var->name());
+    }
+    throw std::runtime_error("Unknown variable: " + var->name());
+  }
+
+  if (const auto* binop = dynamic_cast<const BinaryOperation*>(node)) {
+    llvm::Value* left = generate_expression(binop->left());
+    llvm::Value* right = generate_expression(binop->right());
+
+    switch (binop->operator_type()) {
+      case TokenType::Plus:
+        return builder_->CreateAdd(left, right, "addtmp");
+      case TokenType::Minus:
+        return builder_->CreateSub(left, right, "subtmp");
+      case TokenType::Multiply:
+        return builder_->CreateMul(left, right, "multmp");
+      case TokenType::Divide:
+        return builder_->CreateSDiv(left, right, "divtmp");
+      default:
+        throw std::runtime_error("Unknown binary operator");
+    }
   }
 
   if (const auto* call = dynamic_cast<const FunctionCall*>(node)) {

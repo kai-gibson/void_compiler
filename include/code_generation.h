@@ -1,6 +1,7 @@
 #ifndef CODE_GENERATOR_H
 #define CODE_GENERATOR_H
 #include <memory>
+#include <unordered_map>
 
 #include "types.h"
 
@@ -45,6 +46,7 @@ class CodeGenerator {
   std::unique_ptr<llvm::LLVMContext> context_;
   std::unique_ptr<llvm::Module> module_;
   std::unique_ptr<llvm::IRBuilder<>> builder_;
+  std::unordered_map<std::string, llvm::AllocaInst*> function_params_;
 };
 
 }  // namespace void_compiler

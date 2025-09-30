@@ -50,12 +50,20 @@ Token Lexer::next_token() {
       return {TokenType::RBrace, "}", line_, start_column};
     case ',':
       return {TokenType::Comma, ",", line_, start_column};
+    case ':':
+      return {TokenType::Colon, ":", line_, start_column};
+    case '+':
+      return {TokenType::Plus, "+", line_, start_column};
+    case '*':
+      return {TokenType::Multiply, "*", line_, start_column};
+    case '/':
+      return {TokenType::Divide, "/", line_, start_column};
     case '-':
       if (current_char() == '>') {
         advance();
         return {TokenType::Arrow, "->", line_, start_column};
       }
-      break;
+      return {TokenType::Minus, "-", line_, start_column};
   }
 
   throw std::runtime_error("Unknown character: " + std::string(1, ch));
