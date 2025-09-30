@@ -32,6 +32,7 @@ namespace void_compiler {
 class CodeGenerator {
  public:
   CodeGenerator();
+  void generate_program(const Program* program);
   void generate_function(const FunctionDeclaration* func_decl);
   void print_ir() const;
   bool compile_to_object(const std::string& filename);

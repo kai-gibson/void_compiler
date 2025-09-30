@@ -4,10 +4,15 @@
 
 namespace void_compiler {
 
-std::unique_ptr<FunctionDeclaration> Parser::parse() {
-  return parse_function();
+std::unique_ptr<Program> Parser::parse() {
+  auto program = std::make_unique<Program>();
+  
+  while (!match(TokenType::EndOfFile)) {
+    program->add_function(parse_function());
+  }
+  
+  return program;
 }
-
 Token& Parser::peek() {
   if (current_ >= tokens_.size()) {
     throw std::runtime_error("Unexpected end of input");

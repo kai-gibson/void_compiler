@@ -15,7 +15,7 @@ int Compiler::compile_and_run(const std::string& source) {
 
     // Generate code
     CodeGenerator codegen;
-    codegen.generate_function(ast.get());
+    codegen.generate_program(ast.get());
 
     std::cout << "Generated LLVM IR:" << std::endl;
     codegen.print_ir();
@@ -37,7 +37,7 @@ bool Compiler::compile_to_executable(const std::string& source,
 
     // Generate code
     CodeGenerator codegen;
-    codegen.generate_function(ast.get());
+    codegen.generate_program(ast.get());
 
     std::cout << "Generated LLVM IR:" << std::endl;
     codegen.print_ir();
@@ -71,7 +71,7 @@ bool Compiler::compile_to_executable(const std::string& source,
   }
 }
 
-std::unique_ptr<FunctionDeclaration> Compiler::compile_source(
+std::unique_ptr<Program> Compiler::compile_source(
     const std::string& source) {
   // Lex
   Lexer lexer(source);

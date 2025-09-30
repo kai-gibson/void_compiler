@@ -11,7 +11,7 @@ class Parser {
   explicit Parser(std::vector<Token> tokens)
       : tokens_(std::move(tokens)), current_(0) {}
 
-  std::unique_ptr<FunctionDeclaration> parse();
+  std::unique_ptr<Program> parse();
 
  private:
   Token& peek();

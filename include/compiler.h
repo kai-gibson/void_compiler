@@ -14,8 +14,7 @@ class Compiler {
                              const std::string& output_name);
 
  private:
-  std::unique_ptr<FunctionDeclaration> compile_source(
-      const std::string& source);
+  std::unique_ptr<Program> compile_source(const std::string& source);
 };
 #endif  // COMPILER_H
 }

@@ -9,6 +9,12 @@ CodeGenerator::CodeGenerator() {
   builder_ = std::make_unique<llvm::IRBuilder<>>(*context_);
 }
 
+void CodeGenerator::generate_program(const Program* program) {
+  for (const auto& func : program->functions()) {
+    generate_function(func.get());
+  }
+}
+
 void CodeGenerator::generate_function(const FunctionDeclaration* func_decl) {
   // Create function type
   llvm::Type* return_type = llvm::Type::getInt32Ty(*context_);

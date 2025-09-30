@@ -73,6 +73,22 @@ class FunctionDeclaration : public ASTNode {
   std::string return_type_;
   std::vector<std::unique_ptr<ASTNode>> body_;
 };
+
+class Program : public ASTNode {
+ public:
+  Program() = default;
+
+  const std::vector<std::unique_ptr<FunctionDeclaration>>& functions() const {
+    return functions_;
+  }
+
+  void add_function(std::unique_ptr<FunctionDeclaration> function) {
+    functions_.push_back(std::move(function));
+  }
+
+ private:
+  std::vector<std::unique_ptr<FunctionDeclaration>> functions_;
+};
 }  // namespace void_compiler
 
 #endif  // TYPES_H
