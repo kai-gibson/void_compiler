@@ -4,10 +4,10 @@
 #include <string>
 #include <vector>
 
+#include "code_generation.h"
 #include "lexer.h"
 #include "parser.h"
 #include "types.h"
-#include "code_generation.h"
 
 namespace void_compiler {
 

@@ -1,6 +1,6 @@
-#include <iostream>
-
 #include "code_generation.h"
+
+#include <iostream>
 
 namespace void_compiler {
 CodeGenerator::CodeGenerator() {
