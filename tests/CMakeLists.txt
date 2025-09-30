@@ -18,6 +18,7 @@ add_executable(void_compiler_tests
   lexer_test.cpp
   parser_test.cpp
   integration_test.cpp
+  code_generation_test.cpp
   test_main.cpp
 )
 

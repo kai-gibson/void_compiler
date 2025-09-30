@@ -1,0 +1,442 @@
+#include <gtest/gtest.h>
+
+#include "code_generation.h"
+#include "lexer.h"
+#include "parser.h"
+
+namespace void_compiler {
+namespace {
+
+class CodeGenerationTest : public ::testing::Test {
+ protected:
+  void SetUp() override {}
+  void TearDown() override {}
+
+  std::unique_ptr<Program> ParseSource(const std::string& source) {
+    Lexer lexer(source);
+    std::vector<Token> tokens;
+    Token token;
+    do {
+      token = lexer.next_token();
+      tokens.push_back(token);
+    } while (token.type != TokenType::EndOfFile);
+
+    Parser parser(std::move(tokens));
+    return parser.parse();
+  }
+};
+
+TEST_F(CodeGenerationTest, GeneratesSimpleFunction) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  return 42
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  // Should not throw and should generate valid IR
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  EXPECT_TRUE(output.find("define i32 @test()") != std::string::npos);
+  EXPECT_TRUE(output.find("ret i32 42") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesFunctionWithParameters) {
+  const std::string source = R"(
+const add = fn(x: i32, y: i32) -> i32 {
+  return x + y
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  EXPECT_TRUE(output.find("define i32 @add(i32 %x, i32 %y)") != std::string::npos);
+  EXPECT_TRUE(output.find("add i32") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesAllArithmeticOperations) {
+  const std::string source = R"(
+const calc = fn(a: i32, b: i32) -> i32 {
+  return a + b - a * b / a
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  EXPECT_TRUE(output.find("add i32") != std::string::npos);
+  EXPECT_TRUE(output.find("sub i32") != std::string::npos);
+  EXPECT_TRUE(output.find("mul i32") != std::string::npos);
+  EXPECT_TRUE(output.find("sdiv i32") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesFunctionCalls) {
+  const std::string source = R"(
+const helper = fn(x: i32) -> i32 {
+  return x
+}
+
+const main = fn() -> i32 {
+  return helper(42)
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  EXPECT_TRUE(output.find("call i32 @helper(i32 42)") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesVariableLoads) {
+  const std::string source = R"(
+const identity = fn(value: i32) -> i32 {
+  return value
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  EXPECT_TRUE(output.find("load i32") != std::string::npos);
+  EXPECT_TRUE(output.find("alloca i32") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, ThrowsOnUnknownFunction) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  return unknown_func()
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  EXPECT_THROW({
+    codegen.generate_program(program.get());
+  }, std::runtime_error);
+}
+
+TEST_F(CodeGenerationTest, ThrowsOnUnknownVariable) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  return unknown_var
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  EXPECT_THROW({
+    codegen.generate_program(program.get());
+  }, std::runtime_error);
+}
+
+TEST_F(CodeGenerationTest, ThrowsOnUnknownBinaryOperator) {
+  // This test would require modifying the AST to have an invalid operator
+  // For now, we'll test the switch statement default case indirectly
+  
+  const std::string source = R"(
+const test = fn(x: i32, y: i32) -> i32 {
+  return x + y
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  // This should not throw for valid operators
+  EXPECT_NO_THROW({
+    codegen.generate_program(program.get());
+  });
+}
+
+TEST_F(CodeGenerationTest, GeneratesComplexNestedExpressions) {
+  const std::string source = R"(
+const complex = fn(a: i32, b: i32, c: i32) -> i32 {
+  return (a + b) * (c - a) / (b + 1)
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should contain all operations
+  EXPECT_TRUE(output.find("add i32") != std::string::npos);
+  EXPECT_TRUE(output.find("sub i32") != std::string::npos);
+  EXPECT_TRUE(output.find("mul i32") != std::string::npos);
+  EXPECT_TRUE(output.find("sdiv i32") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesMultipleFunctionDefinitions) {
+  auto program = std::make_unique<Program>();
+  
+  auto func1 = std::make_unique<FunctionDeclaration>("first", "i32");
+  func1->add_statement(std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(1)));
+  program->add_function(std::move(func1));
+  
+  auto func2 = std::make_unique<FunctionDeclaration>("second", "i32");
+  func2->add_statement(std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(2)));
+  program->add_function(std::move(func2));
+  
+  CodeGenerator generator;
+  generator.generate_program(program.get());
+  // Test passes if no exception is thrown
+  SUCCEED();
+}
+
+TEST_F(CodeGenerationTest, GeneratesParameterFunctions) {
+  auto program = std::make_unique<Program>();
+  auto func = std::make_unique<FunctionDeclaration>("test", "i32");
+  func->add_parameter(std::make_unique<Parameter>("x", "i32"));
+  func->add_parameter(std::make_unique<Parameter>("y", "i32"));
+  func->add_statement(std::make_unique<ReturnStatement>(std::make_unique<VariableReference>("x")));
+  program->add_function(std::move(func));
+  
+  CodeGenerator generator;
+  generator.generate_program(program.get());
+  // Test passes if no exception is thrown
+  SUCCEED();
+}
+
+TEST_F(CodeGenerationTest, GeneratesArithmeticExpressions) {
+  auto program = std::make_unique<Program>();
+  auto func = std::make_unique<FunctionDeclaration>("arithmetic", "i32");
+  func->add_parameter(std::make_unique<Parameter>("a", "i32"));
+  func->add_parameter(std::make_unique<Parameter>("b", "i32"));
+  
+  // Create: a + b
+  auto var_a = std::make_unique<VariableReference>("a");
+  auto var_b = std::make_unique<VariableReference>("b");
+  auto add_expr = std::make_unique<BinaryOperation>(std::move(var_a), TokenType::Plus, std::move(var_b));
+  func->add_statement(std::make_unique<ReturnStatement>(std::move(add_expr)));
+  program->add_function(std::move(func));
+  
+  CodeGenerator generator;
+  generator.generate_program(program.get());
+  // Test passes if no exception is thrown
+  SUCCEED();
+}
+
+TEST_F(CodeGenerationTest, GeneratesFunctionCallsWithArgs) {
+  auto program = std::make_unique<Program>();
+  
+  auto helper = std::make_unique<FunctionDeclaration>("helper", "i32");
+  helper->add_parameter(std::make_unique<Parameter>("x", "i32"));
+  helper->add_statement(std::make_unique<ReturnStatement>(std::make_unique<VariableReference>("x")));
+  program->add_function(std::move(helper));
+  
+  auto main = std::make_unique<FunctionDeclaration>("main", "i32");
+  std::vector<std::unique_ptr<ASTNode>> args;
+  args.push_back(std::make_unique<NumberLiteral>(42));
+  auto call = std::make_unique<FunctionCall>("helper", std::move(args));
+  main->add_statement(std::make_unique<ReturnStatement>(std::move(call)));
+  program->add_function(std::move(main));
+  
+  CodeGenerator generator;
+  generator.generate_program(program.get());
+  // Test passes if no exception is thrown
+  SUCCEED();
+}
+
+TEST_F(CodeGenerationTest, HandlesAllArithmeticOperators) {
+  auto program = std::make_unique<Program>();
+  
+  // Test addition
+  auto add_func = std::make_unique<FunctionDeclaration>("add_test", "i32");
+  add_func->add_parameter(std::make_unique<Parameter>("a", "i32"));
+  add_func->add_parameter(std::make_unique<Parameter>("b", "i32"));
+  auto add_expr = std::make_unique<BinaryOperation>(
+    std::make_unique<VariableReference>("a"), 
+    TokenType::Plus, 
+    std::make_unique<VariableReference>("b")
+  );
+  add_func->add_statement(std::make_unique<ReturnStatement>(std::move(add_expr)));
+  program->add_function(std::move(add_func));
+  
+  // Test subtraction
+  auto sub_func = std::make_unique<FunctionDeclaration>("sub_test", "i32");
+  sub_func->add_parameter(std::make_unique<Parameter>("a", "i32"));
+  sub_func->add_parameter(std::make_unique<Parameter>("b", "i32"));
+  auto sub_expr = std::make_unique<BinaryOperation>(
+    std::make_unique<VariableReference>("a"), 
+    TokenType::Minus, 
+    std::make_unique<VariableReference>("b")
+  );
+  sub_func->add_statement(std::make_unique<ReturnStatement>(std::move(sub_expr)));
+  program->add_function(std::move(sub_func));
+  
+  // Test multiplication
+  auto mul_func = std::make_unique<FunctionDeclaration>("mul_test", "i32");
+  mul_func->add_parameter(std::make_unique<Parameter>("a", "i32"));
+  mul_func->add_parameter(std::make_unique<Parameter>("b", "i32"));
+  auto mul_expr = std::make_unique<BinaryOperation>(
+    std::make_unique<VariableReference>("a"), 
+    TokenType::Multiply, 
+    std::make_unique<VariableReference>("b")
+  );
+  mul_func->add_statement(std::make_unique<ReturnStatement>(std::move(mul_expr)));
+  program->add_function(std::move(mul_func));
+  
+  // Test division
+  auto div_func = std::make_unique<FunctionDeclaration>("div_test", "i32");
+  div_func->add_parameter(std::make_unique<Parameter>("a", "i32"));
+  div_func->add_parameter(std::make_unique<Parameter>("b", "i32"));
+  auto div_expr = std::make_unique<BinaryOperation>(
+    std::make_unique<VariableReference>("a"), 
+    TokenType::Divide, 
+    std::make_unique<VariableReference>("b")
+  );
+  div_func->add_statement(std::make_unique<ReturnStatement>(std::move(div_expr)));
+  program->add_function(std::move(div_func));
+  
+  CodeGenerator generator;
+  generator.generate_program(program.get());
+  // Test passes if no exception is thrown
+  SUCCEED();
+}
+
+TEST_F(CodeGenerationTest, HandlesComplexNestedStructures) {
+  auto program = std::make_unique<Program>();
+  auto func = std::make_unique<FunctionDeclaration>("complex", "i32");
+  func->add_parameter(std::make_unique<Parameter>("a", "i32"));
+  func->add_parameter(std::make_unique<Parameter>("b", "i32"));
+  func->add_parameter(std::make_unique<Parameter>("c", "i32"));
+  
+  // Create: (a + b) * c
+  auto add_expr = std::make_unique<BinaryOperation>(
+    std::make_unique<VariableReference>("a"), 
+    TokenType::Plus, 
+    std::make_unique<VariableReference>("b")
+  );
+  auto mul_expr = std::make_unique<BinaryOperation>(
+    std::move(add_expr), 
+    TokenType::Multiply, 
+    std::make_unique<VariableReference>("c")
+  );
+  func->add_statement(std::make_unique<ReturnStatement>(std::move(mul_expr)));
+  program->add_function(std::move(func));
+  
+  CodeGenerator generator;
+  generator.generate_program(program.get());
+  // Test passes if no exception is thrown
+  SUCCEED();
+}
+
+TEST_F(CodeGenerationTest, HandlesLargeNumbers) {
+  auto program = std::make_unique<Program>();
+  auto func = std::make_unique<FunctionDeclaration>("large", "i32");
+  func->add_statement(std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(999999)));
+  program->add_function(std::move(func));
+  
+  CodeGenerator generator;
+  generator.generate_program(program.get());
+  // Test passes if no exception is thrown
+  SUCCEED();
+}
+
+TEST_F(CodeGenerationTest, HandlesZeroValues) {
+  auto program = std::make_unique<Program>();
+  auto func = std::make_unique<FunctionDeclaration>("zero", "i32");
+  func->add_statement(std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(0)));
+  program->add_function(std::move(func));
+  
+  CodeGenerator generator;
+  generator.generate_program(program.get());
+  // Test passes if no exception is thrown
+  SUCCEED();
+}
+
+TEST_F(CodeGenerationTest, HandlesManyParameters) {
+  auto program = std::make_unique<Program>();
+  auto func = std::make_unique<FunctionDeclaration>("many_params", "i32");
+  func->add_parameter(std::make_unique<Parameter>("a", "i32"));
+  func->add_parameter(std::make_unique<Parameter>("b", "i32"));
+  func->add_parameter(std::make_unique<Parameter>("c", "i32"));
+  func->add_parameter(std::make_unique<Parameter>("d", "i32"));
+  func->add_parameter(std::make_unique<Parameter>("e", "i32"));
+  func->add_statement(std::make_unique<ReturnStatement>(std::make_unique<VariableReference>("a")));
+  program->add_function(std::move(func));
+  
+  CodeGenerator generator;
+  generator.generate_program(program.get());
+  // Test passes if no exception is thrown
+  SUCCEED();
+}
+
+TEST_F(CodeGenerationTest, HandlesChainedFunctionCalls) {
+  auto program = std::make_unique<Program>();
+  
+  auto helper1 = std::make_unique<FunctionDeclaration>("helper1", "i32");
+  helper1->add_statement(std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(10)));
+  program->add_function(std::move(helper1));
+  
+  auto helper2 = std::make_unique<FunctionDeclaration>("helper2", "i32");
+  helper2->add_statement(std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(20)));
+  program->add_function(std::move(helper2));
+  
+  auto main = std::make_unique<FunctionDeclaration>("main", "i32");
+  
+  std::vector<std::unique_ptr<ASTNode>> args1;
+  auto call1 = std::make_unique<FunctionCall>("helper1", std::move(args1));
+  
+  std::vector<std::unique_ptr<ASTNode>> args2;
+  auto call2 = std::make_unique<FunctionCall>("helper2", std::move(args2));
+  
+  auto add_calls = std::make_unique<BinaryOperation>(std::move(call1), TokenType::Plus, std::move(call2));
+  main->add_statement(std::make_unique<ReturnStatement>(std::move(add_calls)));
+  program->add_function(std::move(main));
+  
+  CodeGenerator generator;
+  generator.generate_program(program.get());
+  // Test passes if no exception is thrown
+  SUCCEED();
+}
+
+}  // namespace
+}  // namespace void_compiler

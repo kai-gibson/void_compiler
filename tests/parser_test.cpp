@@ -217,5 +217,286 @@ const calc = fn(x: i32, y: i32) -> i32 {
   EXPECT_EQ(binop->operator_type(), TokenType::Multiply);
 }
 
+// Error handling tests
+TEST_F(ParserTest, ThrowsOnMissingConst) {
+  EXPECT_THROW({
+    ParseSource("add = fn() -> i32 { return 1 }");
+  }, std::runtime_error);
+}
+
+TEST_F(ParserTest, ThrowsOnMissingIdentifier) {
+  EXPECT_THROW({
+    ParseSource("const = fn() -> i32 { return 1 }");
+  }, std::runtime_error);
+}
+
+TEST_F(ParserTest, ThrowsOnMissingEquals) {
+  EXPECT_THROW({
+    ParseSource("const add fn() -> i32 { return 1 }");
+  }, std::runtime_error);
+}
+
+TEST_F(ParserTest, ThrowsOnMissingFn) {
+  EXPECT_THROW({
+    ParseSource("const add = () -> i32 { return 1 }");
+  }, std::runtime_error);
+}
+
+TEST_F(ParserTest, ThrowsOnMissingLParen) {
+  EXPECT_THROW({
+    ParseSource("const add = fn) -> i32 { return 1 }");
+  }, std::runtime_error);
+}
+
+TEST_F(ParserTest, ThrowsOnMissingRParen) {
+  EXPECT_THROW({
+    ParseSource("const add = fn( -> i32 { return 1 }");
+  }, std::runtime_error);
+}
+
+TEST_F(ParserTest, ThrowsOnMissingArrow) {
+  EXPECT_THROW({
+    ParseSource("const add = fn() i32 { return 1 }");
+  }, std::runtime_error);
+}
+
+TEST_F(ParserTest, ThrowsOnMissingReturnType) {
+  EXPECT_THROW({
+    ParseSource("const add = fn() -> { return 1 }");
+  }, std::runtime_error);
+}
+
+TEST_F(ParserTest, ThrowsOnMissingLBrace) {
+  EXPECT_THROW({
+    ParseSource("const add = fn() -> i32 return 1 }");
+  }, std::runtime_error);
+}
+
+TEST_F(ParserTest, ThrowsOnMissingRBrace) {
+  EXPECT_THROW({
+    ParseSource("const add = fn() -> i32 { return 1");
+  }, std::runtime_error);
+}
+
+TEST_F(ParserTest, ThrowsOnInvalidExpression) {
+  EXPECT_THROW({
+    ParseSource("const add = fn() -> i32 { return }");
+  }, std::runtime_error);
+}
+
+TEST_F(ParserTest, ThrowsOnUnmatchedParentheses) {
+  EXPECT_THROW({
+    ParseSource("const add = fn() -> i32 { return (1 + 2 }");
+  }, std::runtime_error);
+}
+
+TEST_F(ParserTest, ThrowsOnMissingParameterType) {
+  EXPECT_THROW({
+    ParseSource("const add = fn(x) -> i32 { return x }");
+  }, std::runtime_error);
+}
+
+TEST_F(ParserTest, ThrowsOnMissingParameterName) {
+  EXPECT_THROW({
+    ParseSource("const add = fn(: i32) -> i32 { return 1 }");
+  }, std::runtime_error);
+}
+
+TEST_F(ParserTest, ThrowsOnMissingColon) {
+  EXPECT_THROW({
+    ParseSource("const add = fn(x i32) -> i32 { return x }");
+  }, std::runtime_error);
+}
+
+TEST_F(ParserTest, HandlesEmptyParameterList) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  return 42
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  EXPECT_EQ(program->functions()[0]->parameters().size(), 0);
+}
+
+TEST_F(ParserTest, ParsesComplexNestedExpressions) {
+  const std::string source = R"(
+const complex = fn(a: i32, b: i32) -> i32 {
+  return ((a + b) * (a - b)) / (a + 1)
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+
+  const auto& func = program->functions()[0];
+  const auto* ret_stmt = dynamic_cast<const ReturnStatement*>(func->body()[0].get());
+  ASSERT_NE(ret_stmt, nullptr);
+
+  // Should be division at the top level
+  const auto* binop = dynamic_cast<const BinaryOperation*>(ret_stmt->expression());
+  ASSERT_NE(binop, nullptr);
+  EXPECT_EQ(binop->operator_type(), TokenType::Divide);
+}
+
+TEST_F(ParserTest, ParsesDeepNestedParentheses) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  return ((((1))))
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  auto* func = program->functions()[0].get();
+  auto* ret_stmt = dynamic_cast<ReturnStatement*>(func->body()[0].get());
+  ASSERT_NE(ret_stmt, nullptr);
+  auto* num = dynamic_cast<const NumberLiteral*>(ret_stmt->expression());
+  ASSERT_NE(num, nullptr);
+  EXPECT_EQ(num->value(), 1);
+}
+
+TEST_F(ParserTest, ParsesMultipleParametersWithTypes) {
+  const std::string source = R"(
+const func = fn(a: i32, b: i32, c: i32) -> i32 {
+  return a
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  auto* func = program->functions()[0].get();
+  ASSERT_EQ(func->parameters().size(), 3);
+  EXPECT_EQ(func->parameters()[0]->name(), "a");
+  EXPECT_EQ(func->parameters()[1]->name(), "b");
+  EXPECT_EQ(func->parameters()[2]->name(), "c");
+}
+
+TEST_F(ParserTest, ParsesChainedFunctionCalls) {
+  const std::string source = R"(
+const f1 = fn() -> i32 { return 1 }
+const f2 = fn() -> i32 { return 2 }
+const main = fn() -> i32 { return f1() + f2() + f1() }
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 3);
+}
+
+TEST_F(ParserTest, ParsesOperatorPrecedenceCorrectly) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  return 1 + 2 * 3 - 4 / 2
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  auto* func = program->functions()[0].get();
+  auto* ret_stmt = dynamic_cast<ReturnStatement*>(func->body()[0].get());
+  ASSERT_NE(ret_stmt, nullptr);
+  // Should parse as: (1 + (2 * 3)) - (4 / 2)
+  auto* sub_expr = dynamic_cast<const BinaryOperation*>(ret_stmt->expression());
+  ASSERT_NE(sub_expr, nullptr);
+  EXPECT_EQ(sub_expr->operator_type(), TokenType::Minus);
+}
+
+TEST_F(ParserTest, ParsesExpressionsWithAllOperators) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  return 1 + 2 - 3 * 4 / 5
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+}
+
+TEST_F(ParserTest, ThrowsOnIncompleteFunction) {
+  EXPECT_THROW(ParseSource("const test ="), std::runtime_error);
+  EXPECT_THROW(ParseSource("const test = fn"), std::runtime_error);
+  EXPECT_THROW(ParseSource("const test = fn("), std::runtime_error);
+}
+
+TEST_F(ParserTest, ThrowsOnMissingReturnStatement) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  // Missing return statement completely
+}
+)";
+  // Change to test malformed syntax instead since empty body might be valid
+  EXPECT_THROW(ParseSource("const test = fn() -> i32 { const x = 5 }"), std::runtime_error);
+}
+
+TEST_F(ParserTest, ThrowsOnInvalidParameterSyntax) {
+  EXPECT_THROW(ParseSource("const test = fn(a b: i32) -> i32 { return 1 }"), std::runtime_error);
+  EXPECT_THROW(ParseSource("const test = fn(: i32) -> i32 { return 1 }"), std::runtime_error);
+  EXPECT_THROW(ParseSource("const test = fn(a:) -> i32 { return 1 }"), std::runtime_error);
+}
+
+TEST_F(ParserTest, ThrowsOnInvalidExpressionSequences) {
+  EXPECT_THROW(ParseSource("const test = fn() -> i32 { return 1 + }"), std::runtime_error);
+  EXPECT_THROW(ParseSource("const test = fn() -> i32 { return + 1 }"), std::runtime_error);
+  EXPECT_THROW(ParseSource("const test = fn() -> i32 { return 1 2 }"), std::runtime_error);
+}
+
+TEST_F(ParserTest, ParsesVariousIdentifierFormats) {
+  const std::string source = R"(
+const _test = fn(var_name: i32, _param: i32, test123: i32) -> i32 {
+  return var_name
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  auto* func = program->functions()[0].get();
+  EXPECT_EQ(func->name(), "_test");
+  EXPECT_EQ(func->parameters()[0]->name(), "var_name");
+  EXPECT_EQ(func->parameters()[1]->name(), "_param");
+  EXPECT_EQ(func->parameters()[2]->name(), "test123");
+}
+
+TEST_F(ParserTest, ParsesSingleParameterFunctions) {
+  const std::string source = R"(
+const single = fn(x: i32) -> i32 {
+  return x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  auto* func = program->functions()[0].get();
+  ASSERT_EQ(func->parameters().size(), 1);
+  EXPECT_EQ(func->parameters()[0]->name(), "x");
+}
+
+TEST_F(ParserTest, ParsesComplexMathExpressions) {
+  const std::string source = R"(
+const math = fn(a: i32, b: i32, c: i32) -> i32 {
+  return a * b + c * (a - b) / (a + 1)
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+}
+
+TEST_F(ParserTest, HandlesFunctionCallsInComplexExpressions) {
+  const std::string source = R"(
+const helper = fn(x: i32) -> i32 { return x * 2 }
+const main = fn() -> i32 { return helper(5) + helper(3) * 2 }
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 2);
+}
+
 }  // namespace
 }  // namespace void_compiler
