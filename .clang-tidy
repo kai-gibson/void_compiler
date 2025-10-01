@@ -1,0 +1,10 @@
+Checks: >
+  performance-*,
+  modernize-*,
+  bugprone-*,
+  -clang-analyzer-alpha.*,
+  -fuchsia-*,
+  -llvm-*,
+  -modernize-use-trailing-return-type
+WarningsAsErrors: '*'
+
