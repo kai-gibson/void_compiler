@@ -32,9 +32,7 @@ bool Parser::match(TokenType type) const {
   return tokens_[current_].type == type;
 }
 
-std::unique_ptr<ASTNode> Parser::parse_expression() {
-  return parse_additive();
-}
+std::unique_ptr<ASTNode> Parser::parse_expression() { return parse_additive(); }
 
 std::unique_ptr<ASTNode> Parser::parse_additive() {
   auto left = parse_multiplicative();
@@ -43,7 +41,8 @@ std::unique_ptr<ASTNode> Parser::parse_additive() {
     TokenType op = peek().type;
     consume(op);
     auto right = parse_multiplicative();
-    left = std::make_unique<BinaryOperation>(std::move(left), op, std::move(right));
+    left = std::make_unique<BinaryOperation>(std::move(left), op,
+                                             std::move(right));
   }
 
   return left;
@@ -56,7 +55,8 @@ std::unique_ptr<ASTNode> Parser::parse_multiplicative() {
     TokenType op = peek().type;
     consume(op);
     auto right = parse_primary();
-    left = std::make_unique<BinaryOperation>(std::move(left), op, std::move(right));
+    left = std::make_unique<BinaryOperation>(std::move(left), op,
+                                             std::move(right));
   }
 
   return left;
@@ -134,7 +134,7 @@ std::unique_ptr<FunctionDeclaration> Parser::parse_function() {
 
   // Create function with return type
   auto func = std::make_unique<FunctionDeclaration>(name, return_type);
-  
+
   // Add all parameters
   for (auto& param : parameters) {
     func->add_parameter(std::move(param));

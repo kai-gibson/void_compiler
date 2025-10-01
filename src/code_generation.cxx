@@ -19,13 +19,14 @@ void CodeGenerator::generate_function(const FunctionDeclaration* func_decl) {
   // Create parameter types
   std::vector<llvm::Type*> param_types;
   for (const auto& param : func_decl->parameters()) {
-    (void)param; // Mark as used
+    (void)param;  // Mark as used
     param_types.push_back(llvm::Type::getInt32Ty(*context_));
   }
 
   // Create function type
   llvm::Type* return_type = llvm::Type::getInt32Ty(*context_);
-  llvm::FunctionType* func_type = llvm::FunctionType::get(return_type, param_types, false);
+  llvm::FunctionType* func_type =
+      llvm::FunctionType::get(return_type, param_types, false);
 
   // Create function
   llvm::Function* function =
@@ -46,7 +47,8 @@ void CodeGenerator::generate_function(const FunctionDeclaration* func_decl) {
   // Store parameter values in allocas for later reference
   function_params_.clear();
   for (auto& arg : function->args()) {
-    llvm::AllocaInst* alloca = builder_->CreateAlloca(llvm::Type::getInt32Ty(*context_), nullptr, arg.getName());
+    llvm::AllocaInst* alloca = builder_->CreateAlloca(
+        llvm::Type::getInt32Ty(*context_), nullptr, arg.getName());
     builder_->CreateStore(&arg, alloca);
     function_params_[std::string(arg.getName())] = alloca;
   }
@@ -146,7 +148,8 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
   if (const auto* var = dynamic_cast<const VariableReference*>(node)) {
     auto it = function_params_.find(var->name());
     if (it != function_params_.end()) {
-      return builder_->CreateLoad(llvm::Type::getInt32Ty(*context_), it->second, var->name());
+      return builder_->CreateLoad(llvm::Type::getInt32Ty(*context_), it->second,
+                                  var->name());
     }
     throw std::runtime_error("Unknown variable: " + var->name());
   }
