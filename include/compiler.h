@@ -7,11 +7,11 @@
 namespace void_compiler {
 // Compiler class that ties everything together
 
-struct SourcePath{
+struct SourcePath {
   std::string path;
 };
 
-struct OutputPath{
+struct OutputPath {
   std::string path;
 };
 

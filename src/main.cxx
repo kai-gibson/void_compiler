@@ -23,8 +23,9 @@ const main = fn() -> i32 {
 
   // Compile to executable
   std::cout << "=== Compiling to Executable ===" << '\n';
-  auto source_code = void_compiler::SourcePath{.path=source};
-  if (compiler.compile_to_executable(source_code, void_compiler::OutputPath{"hello_void"})) {
+  auto source_code = void_compiler::SourcePath{.path = source};
+  if (compiler.compile_to_executable(source_code,
+                                     void_compiler::OutputPath{"hello_void"})) {
     std::cout << "Success! Run with: ./hello_void" << '\n';
   }
 }

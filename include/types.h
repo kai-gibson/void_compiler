@@ -93,7 +93,9 @@ class FunctionCall : public ASTNode {
                std::vector<std::unique_ptr<ASTNode>> arguments)
       : function_name_(std::move(name)), arguments_(std::move(arguments)) {}
 
-  [[nodiscard]] const std::string& function_name() const { return function_name_; }
+  [[nodiscard]] const std::string& function_name() const {
+    return function_name_;
+  }
   [[nodiscard]] const std::vector<std::unique_ptr<ASTNode>>& arguments() const {
     return arguments_;
   }
@@ -123,8 +125,11 @@ class FunctionDeclaration : public ASTNode {
 
   [[nodiscard]] const std::string& name() const { return name_; }
   [[nodiscard]] const std::string& return_type() const { return return_type_; }
-  [[nodiscard]] const std::vector<std::unique_ptr<ASTNode>>& body() const { return body_; }
-  [[nodiscard]] const std::vector<std::unique_ptr<Parameter>>& parameters() const {
+  [[nodiscard]] const std::vector<std::unique_ptr<ASTNode>>& body() const {
+    return body_;
+  }
+  [[nodiscard]] const std::vector<std::unique_ptr<Parameter>>& parameters()
+      const {
     return parameters_;
   }
 
@@ -147,7 +152,8 @@ class Program : public ASTNode {
  public:
   Program() = default;
 
-  [[nodiscard]] const std::vector<std::unique_ptr<FunctionDeclaration>>& functions() const {
+  [[nodiscard]] const std::vector<std::unique_ptr<FunctionDeclaration>>&
+  functions() const {
     return functions_;
   }
 

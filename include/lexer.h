@@ -10,8 +10,7 @@ namespace void_compiler {
 // Lexer
 class Lexer {
  public:
-  explicit Lexer(std::string source)
-      : source_(std::move(source)) {}
+  explicit Lexer(std::string source) : source_(std::move(source)) {}
 
   Token next_token();
 
