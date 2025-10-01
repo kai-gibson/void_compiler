@@ -74,7 +74,7 @@ bool CodeGenerator::compile_to_object(const std::string& filename) {
   std::string error;
   auto target = llvm::TargetRegistry::lookupTarget(target_triple, error);
   if (!target) {
-    std::cerr << "Error: " << error << std::endl;
+    std::cerr << "Error: " << error << '\n';
     return false;
   }
 
@@ -92,7 +92,7 @@ bool CodeGenerator::compile_to_object(const std::string& filename) {
   std::error_code error_code;
   llvm::raw_fd_ostream dest(filename, error_code, llvm::sys::fs::OF_None);
   if (error_code) {
-    std::cerr << "Could not open file: " << error_code.message() << std::endl;
+    std::cerr << "Could not open file: " << error_code.message() << '\n';
     return false;
   }
 
@@ -101,14 +101,14 @@ bool CodeGenerator::compile_to_object(const std::string& filename) {
   auto file_type = llvm::CodeGenFileType::ObjectFile;
 
   if (target_machine->addPassesToEmitFile(pass, dest, nullptr, file_type)) {
-    std::cerr << "TargetMachine can't emit a file of this type" << std::endl;
+    std::cerr << "TargetMachine can't emit a file of this type" << '\n';
     return false;
   }
 
   pass.run(*module_);
   dest.flush();
 
-  std::cout << "Object file written to " << filename << std::endl;
+  std::cout << "Object file written to " << filename << '\n';
   return true;
 }
 

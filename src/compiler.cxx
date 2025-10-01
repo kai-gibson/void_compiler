@@ -30,10 +30,10 @@ int Compiler::compile_and_run(const std::string& source) {
   }
 }
 
-bool Compiler::compile_to_executable(const std::string& source,
-                                     const std::string& output_name) {
+bool Compiler::compile_to_executable(const SourcePath& source,
+                                     const OutputPath& output_name) {
   try {
-    auto ast = compile_source(source);
+    auto ast = compile_source(source.path);
 
     // Generate code
     CodeGenerator codegen;
@@ -44,13 +44,13 @@ bool Compiler::compile_to_executable(const std::string& source,
     std::cout << '\n';
 
     // Compile to object file
-    std::string obj_file = output_name + ".o";
+    std::string obj_file = output_name.path + ".o";
     if (!codegen.compile_to_object(obj_file)) {
       return false;
     }
 
     // Link to executable
-    std::string link_cmd = "clang " + obj_file + " -o " + output_name;
+    std::string link_cmd = "clang " + obj_file + " -o " + output_name.path;
     std::cout << "Linking: " << link_cmd << '\n';
 
     int result = system(link_cmd.c_str());
@@ -62,7 +62,7 @@ bool Compiler::compile_to_executable(const std::string& source,
     // Clean up object file
     std::remove(obj_file.c_str());
 
-    std::cout << "Executable created: " << output_name << '\n';
+    std::cout << "Executable created: " << output_name.path << '\n';
     return true;
 
   } catch (const std::exception& e) {

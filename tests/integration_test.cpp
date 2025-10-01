@@ -150,14 +150,14 @@ const main = fn() -> i32 {
 }
 
 TEST_F(IntegrationTest, CompileToExecutableSucceeds) {
-  const std::string source = R"(
+  const auto source = void_compiler::SourcePath{R"(
 const main = fn() -> i32 {
   return 123
 }
-)";
+)"};
 
   // Test that compilation to executable succeeds
-  bool success = compiler_.compile_to_executable(source, "test_executable");
+  bool success = compiler_.compile_to_executable(source, void_compiler::OutputPath{"test_executable"});
   EXPECT_TRUE(success);
   
   // Clean up the generated executable
