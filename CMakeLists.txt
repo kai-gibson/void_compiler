@@ -22,10 +22,10 @@ separate_arguments(LLVM_DEFINITIONS_LIST UNIX_COMMAND "${LLVM_DEFINITIONS}")
 add_definitions(${LLVM_DEFINITIONS_LIST})
 
 # Find required LLVM components (simplified - only what we actually need)
-llvm_map_components_to_libnames(llvm_libs 
-    core 
-    executionengine 
-    mcjit 
+llvm_map_components_to_libnames(llvm_libs
+    core
+    executionengine
+    mcjit
     native
     x86codegen
 )
@@ -63,8 +63,12 @@ FetchContent_MakeAvailable(googletest)
 
 # Enable testing
 enable_testing()
-add_compile_options(-fprofile-instr-generate -fcoverage-mapping -O0 -g)
-add_link_options(-fprofile-instr-generate -fcoverage-mapping)
+
+# Enable coverage flags only in Debug/coverage builds
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options(-fprofile-instr-generate -fcoverage-mapping -O0 -g)
+    add_link_options(-fprofile-instr-generate -fcoverage-mapping)
+endif()
 
 # Add tests subdirectory
 add_subdirectory(tests)
