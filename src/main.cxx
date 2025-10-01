@@ -16,14 +16,14 @@ const main = fn() -> i32 {
   void_compiler::Compiler compiler;
 
   // Compile and run with JIT
-  std::cout << "=== JIT Execution ===" << std::endl;
+  std::cout << "=== JIT Execution ===" << '\n';
   int result = compiler.compile_and_run(source);
-  std::cout << "Program returned: " << result << std::endl;
-  std::cout << std::endl;
+  std::cout << "Program returned: " << result << '\n';
+  std::cout << '\n';
 
   // Compile to executable
-  std::cout << "=== Compiling to Executable ===" << std::endl;
+  std::cout << "=== Compiling to Executable ===" << '\n';
   if (compiler.compile_to_executable(source, "hello_void")) {
-    std::cout << "Success! Run with: ./hello_void" << std::endl;
+    std::cout << "Success! Run with: ./hello_void" << '\n';
   }
 }

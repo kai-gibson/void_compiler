@@ -7,7 +7,7 @@
 
 namespace void_compiler {
 // Token types
-enum class TokenType {
+enum class TokenType : uint8_t {
   Const,
   Identifier,
   Equals,
@@ -45,7 +45,7 @@ class ASTNode {
 class NumberLiteral : public ASTNode {
  public:
   explicit NumberLiteral(int value) : value_(value) {}
-  int value() const { return value_; }
+  [[nodiscard]] int value() const { return value_; }
 
  private:
   int value_;
@@ -53,8 +53,8 @@ class NumberLiteral : public ASTNode {
 
 class VariableReference : public ASTNode {
  public:
-  explicit VariableReference(const std::string& name) : name_(name) {}
-  const std::string& name() const { return name_; }
+  explicit VariableReference(std::string name) : name_(std::move(name)) {}
+  [[nodiscard]] const std::string& name() const { return name_; }
 
  private:
   std::string name_;
@@ -66,9 +66,9 @@ class BinaryOperation : public ASTNode {
                   std::unique_ptr<ASTNode> right)
       : left_(std::move(left)), operator_(op), right_(std::move(right)) {}
 
-  const ASTNode* left() const { return left_.get(); }
-  TokenType operator_type() const { return operator_; }
-  const ASTNode* right() const { return right_.get(); }
+  [[nodiscard]] const ASTNode* left() const { return left_.get(); }
+  [[nodiscard]] TokenType operator_type() const { return operator_; }
+  [[nodiscard]] const ASTNode* right() const { return right_.get(); }
 
  private:
   std::unique_ptr<ASTNode> left_;
@@ -80,7 +80,8 @@ class ReturnStatement : public ASTNode {
  public:
   explicit ReturnStatement(std::unique_ptr<ASTNode> expression)
       : expression_(std::move(expression)) {}
-  const ASTNode* expression() const { return expression_.get(); }
+
+  [[nodiscard]] const ASTNode* expression() const { return expression_.get(); }
 
  private:
   std::unique_ptr<ASTNode> expression_;
@@ -88,12 +89,12 @@ class ReturnStatement : public ASTNode {
 
 class FunctionCall : public ASTNode {
  public:
-  FunctionCall(const std::string& name,
+  FunctionCall(std::string name,
                std::vector<std::unique_ptr<ASTNode>> arguments)
-      : function_name_(name), arguments_(std::move(arguments)) {}
+      : function_name_(std::move(name)), arguments_(std::move(arguments)) {}
 
-  const std::string& function_name() const { return function_name_; }
-  const std::vector<std::unique_ptr<ASTNode>>& arguments() const {
+  [[nodiscard]] const std::string& function_name() const { return function_name_; }
+  [[nodiscard]] const std::vector<std::unique_ptr<ASTNode>>& arguments() const {
     return arguments_;
   }
 
@@ -104,11 +105,11 @@ class FunctionCall : public ASTNode {
 
 class Parameter : public ASTNode {
  public:
-  Parameter(const std::string& name, const std::string& type)
-      : name_(name), type_(type) {}
+  Parameter(std::string name, std::string type)
+      : name_(std::move(name)), type_(std::move(type)) {}
 
-  const std::string& name() const { return name_; }
-  const std::string& type() const { return type_; }
+  [[nodiscard]] const std::string& name() const { return name_; }
+  [[nodiscard]] const std::string& type() const { return type_; }
 
  private:
   std::string name_;
@@ -117,13 +118,13 @@ class Parameter : public ASTNode {
 
 class FunctionDeclaration : public ASTNode {
  public:
-  FunctionDeclaration(const std::string& name, const std::string& return_type)
-      : name_(name), return_type_(return_type) {}
+  FunctionDeclaration(std::string name, std::string return_type)
+      : name_(std::move(name)), return_type_(std::move(return_type)) {}
 
-  const std::string& name() const { return name_; }
-  const std::string& return_type() const { return return_type_; }
-  const std::vector<std::unique_ptr<ASTNode>>& body() const { return body_; }
-  const std::vector<std::unique_ptr<Parameter>>& parameters() const {
+  [[nodiscard]] const std::string& name() const { return name_; }
+  [[nodiscard]] const std::string& return_type() const { return return_type_; }
+  [[nodiscard]] const std::vector<std::unique_ptr<ASTNode>>& body() const { return body_; }
+  [[nodiscard]] const std::vector<std::unique_ptr<Parameter>>& parameters() const {
     return parameters_;
   }
 
@@ -146,7 +147,7 @@ class Program : public ASTNode {
  public:
   Program() = default;
 
-  const std::vector<std::unique_ptr<FunctionDeclaration>>& functions() const {
+  [[nodiscard]] const std::vector<std::unique_ptr<FunctionDeclaration>>& functions() const {
     return functions_;
   }
 

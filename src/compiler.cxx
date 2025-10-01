@@ -17,15 +17,15 @@ int Compiler::compile_and_run(const std::string& source) {
     CodeGenerator codegen;
     codegen.generate_program(ast.get());
 
-    std::cout << "Generated LLVM IR:" << std::endl;
+    std::cout << "Generated LLVM IR:" << '\n';
     codegen.print_ir();
-    std::cout << std::endl;
+    std::cout << '\n';
 
     // Run with JIT
     return codegen.run_jit();
 
   } catch (const std::exception& e) {
-    std::cerr << "Error: " << e.what() << std::endl;
+    std::cerr << "Error: " << e.what() << '\n';
     return -1;
   }
 }
@@ -39,9 +39,9 @@ bool Compiler::compile_to_executable(const std::string& source,
     CodeGenerator codegen;
     codegen.generate_program(ast.get());
 
-    std::cout << "Generated LLVM IR:" << std::endl;
+    std::cout << "Generated LLVM IR:" << '\n';
     codegen.print_ir();
-    std::cout << std::endl;
+    std::cout << '\n';
 
     // Compile to object file
     std::string obj_file = output_name + ".o";
@@ -51,22 +51,22 @@ bool Compiler::compile_to_executable(const std::string& source,
 
     // Link to executable
     std::string link_cmd = "clang " + obj_file + " -o " + output_name;
-    std::cout << "Linking: " << link_cmd << std::endl;
+    std::cout << "Linking: " << link_cmd << '\n';
 
     int result = system(link_cmd.c_str());
     if (result != 0) {
-      std::cerr << "Linking failed" << std::endl;
+      std::cerr << "Linking failed" << '\n';
       return false;
     }
 
     // Clean up object file
     std::remove(obj_file.c_str());
 
-    std::cout << "Executable created: " << output_name << std::endl;
+    std::cout << "Executable created: " << output_name << '\n';
     return true;
 
   } catch (const std::exception& e) {
-    std::cerr << "Error: " << e.what() << std::endl;
+    std::cerr << "Error: " << e.what() << '\n';
     return false;
   }
 }

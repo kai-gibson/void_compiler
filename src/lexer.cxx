@@ -6,11 +6,17 @@ Token Lexer::next_token() {
   skip_whitespace();
 
   if (current_char() == '\0') {
-    return {TokenType::EndOfFile, "", line_, column_};
+    return Token{.type = TokenType::EndOfFile,
+                 .value = "",
+                 .line = line_,
+                 .column = column_};
   }
 
   if (std::isdigit(current_char())) {
-    return {TokenType::Number, read_number(), line_, column_};
+    return Token{.type = TokenType::Number,
+                 .value = read_number(),
+                 .line = line_,
+                 .column = column_};
   }
 
   if (std::isalpha(current_char()) || current_char() == '_') {
@@ -18,19 +24,34 @@ Token Lexer::next_token() {
 
     // Keywords
     if (identifier == "const") {
-      return {TokenType::Const, identifier, line_, column_};
+      return Token{.type = TokenType::Const,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
     }
     if (identifier == "fn") {
-      return {TokenType::Fn, identifier, line_, column_};
+      return Token{.type = TokenType::Fn,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
     }
     if (identifier == "return") {
-      return {TokenType::Return, identifier, line_, column_};
+      return Token{.type = TokenType::Return,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
     }
     if (identifier == "i32") {
-      return {TokenType::I32, identifier, line_, column_};
+      return Token{.type = TokenType::I32,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
     }
 
-    return {TokenType::Identifier, identifier, line_, column_};
+    return Token{.type = TokenType::Identifier,
+                 .value = identifier,
+                 .line = line_,
+                 .column = column_};
   }
 
   char ch = current_char();
@@ -39,31 +60,69 @@ Token Lexer::next_token() {
 
   switch (ch) {
     case '=':
-      return {TokenType::Equals, "=", line_, start_column};
+      return Token{.type = TokenType::Equals,
+                   .value = "=",
+                   .line = line_,
+                   .column = start_column};
     case '(':
-      return {TokenType::LParen, "(", line_, start_column};
+      return Token{.type = TokenType::LParen,
+                   .value = "(",
+                   .line = line_,
+                   .column = start_column};
     case ')':
-      return {TokenType::RParen, ")", line_, start_column};
+      return Token{.type = TokenType::RParen,
+                   .value = ")",
+                   .line = line_,
+                   .column = start_column};
     case '{':
-      return {TokenType::LBrace, "{", line_, start_column};
+      return Token{.type = TokenType::LBrace,
+                   .value = "{",
+                   .line = line_,
+                   .column = start_column};
     case '}':
-      return {TokenType::RBrace, "}", line_, start_column};
+      return Token{.type = TokenType::RBrace,
+                   .value = "}",
+                   .line = line_,
+                   .column = start_column};
     case ',':
-      return {TokenType::Comma, ",", line_, start_column};
+      return Token{.type = TokenType::Comma,
+                   .value = ",",
+                   .line = line_,
+                   .column = start_column};
     case ':':
-      return {TokenType::Colon, ":", line_, start_column};
+      return Token{.type = TokenType::Colon,
+                   .value = ":",
+                   .line = line_,
+                   .column = start_column};
     case '+':
-      return {TokenType::Plus, "+", line_, start_column};
+      return Token{.type = TokenType::Plus,
+                   .value = "+",
+                   .line = line_,
+                   .column = start_column};
     case '*':
-      return {TokenType::Multiply, "*", line_, start_column};
+      return Token{.type = TokenType::Multiply,
+                   .value = "*",
+                   .line = line_,
+                   .column = start_column};
     case '/':
-      return {TokenType::Divide, "/", line_, start_column};
+      return Token{.type = TokenType::Divide,
+                   .value = "/",
+                   .line = line_,
+                   .column = start_column};
     case '-':
       if (current_char() == '>') {
         advance();
-        return {TokenType::Arrow, "->", line_, start_column};
+        return Token{.type = TokenType::Arrow,
+                     .value = "->",
+                     .line = line_,
+                     .column = start_column};
       }
-      return {TokenType::Minus, "-", line_, start_column};
+      return Token{.type = TokenType::Minus,
+                   .value = "-",
+                   .line = line_,
+                   .column = start_column};
+    default:
+      throw std::runtime_error("Unknown character: " + std::string(1, ch));
   }
 
   throw std::runtime_error("Unknown character: " + std::string(1, ch));
