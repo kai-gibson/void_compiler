@@ -1,0 +1,6 @@
+x :i32 = 10
+y :i32 = 5
+
+const main = fn() -> i32 {
+  return x + y * 2
+}

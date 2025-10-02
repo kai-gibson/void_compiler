@@ -8,7 +8,11 @@ std::unique_ptr<Program> Parser::parse() {
   auto program = std::make_unique<Program>();
 
   while (!match(TokenType::EndOfFile)) {
-    program->add_function(parse_function());
+    if (match(TokenType::Const)) {
+      program->add_function(parse_function());
+    } else {
+      throw std::runtime_error("Expected function declaration");
+    }
   }
 
   return program;
@@ -105,8 +109,36 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
     auto expr = parse_expression();
     return std::make_unique<ReturnStatement>(std::move(expr));
   }
+  
+  // Check for variable declaration: identifier : type = value
+  if (match(TokenType::Identifier) && current_ + 1 < tokens_.size() && 
+      tokens_[current_ + 1].type == TokenType::Colon) {
+    return parse_variable_declaration();
+  }
+  
+  // Check for variable assignment: identifier = value
+  if (match(TokenType::Identifier) && current_ + 1 < tokens_.size() && 
+      tokens_[current_ + 1].type == TokenType::Equals) {
+    return parse_variable_assignment();
+  }
 
   throw std::runtime_error("Expected statement");
+}
+
+std::unique_ptr<VariableDeclaration> Parser::parse_variable_declaration() {
+  std::string name = consume(TokenType::Identifier).value;
+  consume(TokenType::Colon);
+  std::string type = consume(TokenType::I32).value;  // For now, only support i32
+  consume(TokenType::Equals);
+  auto value = parse_expression();
+  return std::make_unique<VariableDeclaration>(std::move(name), std::move(type), std::move(value));
+}
+
+std::unique_ptr<VariableAssignment> Parser::parse_variable_assignment() {
+  std::string name = consume(TokenType::Identifier).value;
+  consume(TokenType::Equals);
+  auto value = parse_expression();
+  return std::make_unique<VariableAssignment>(std::move(name), std::move(value));
 }
 
 std::unique_ptr<FunctionDeclaration> Parser::parse_function() {

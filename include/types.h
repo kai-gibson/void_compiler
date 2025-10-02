@@ -76,6 +76,34 @@ class BinaryOperation : public ASTNode {
   std::unique_ptr<ASTNode> right_;
 };
 
+class VariableDeclaration : public ASTNode {
+ public:
+  VariableDeclaration(std::string name, std::string type, std::unique_ptr<ASTNode> value)
+      : name_(std::move(name)), type_(std::move(type)), value_(std::move(value)) {}
+
+  [[nodiscard]] const std::string& name() const { return name_; }
+  [[nodiscard]] const std::string& type() const { return type_; }
+  [[nodiscard]] const ASTNode* value() const { return value_.get(); }
+
+ private:
+  std::string name_;
+  std::string type_;
+  std::unique_ptr<ASTNode> value_;
+};
+
+class VariableAssignment : public ASTNode {
+ public:
+  VariableAssignment(std::string name, std::unique_ptr<ASTNode> value)
+      : name_(std::move(name)), value_(std::move(value)) {}
+
+  [[nodiscard]] const std::string& name() const { return name_; }
+  [[nodiscard]] const ASTNode* value() const { return value_.get(); }
+
+ private:
+  std::string name_;
+  std::unique_ptr<ASTNode> value_;
+};
+
 class ReturnStatement : public ASTNode {
  public:
   explicit ReturnStatement(std::unique_ptr<ASTNode> expression)
@@ -157,12 +185,22 @@ class Program : public ASTNode {
     return functions_;
   }
 
+  [[nodiscard]] const std::vector<std::unique_ptr<VariableDeclaration>>&
+  variables() const {
+    return variables_;
+  }
+
   void add_function(std::unique_ptr<FunctionDeclaration> function) {
     functions_.push_back(std::move(function));
   }
 
+  void add_variable(std::unique_ptr<VariableDeclaration> variable) {
+    variables_.push_back(std::move(variable));
+  }
+
  private:
   std::vector<std::unique_ptr<FunctionDeclaration>> functions_;
+  std::vector<std::unique_ptr<VariableDeclaration>> variables_;
 };
 }  // namespace void_compiler
 

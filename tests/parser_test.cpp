@@ -498,5 +498,167 @@ const main = fn() -> i32 { return helper(5) + helper(3) * 2 }
   ASSERT_EQ(program->functions().size(), 2);
 }
 
+TEST_F(ParserTest, ParsesLocalVariableDeclaration) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 42
+  return x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 2);  // variable declaration + return statement
+  
+  // Check variable declaration
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+  ASSERT_EQ(var_decl->name(), "x");
+  ASSERT_EQ(var_decl->type(), "i32");
+}
+
+TEST_F(ParserTest, ParsesMultipleLocalVariables) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 10
+  y :i32 = 20
+  z :i32 = x + y
+  return z
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 4);  // 3 variable declarations + return statement
+  
+  // Check all variable declarations
+  const auto* var_x = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_x, nullptr);
+  ASSERT_EQ(var_x->name(), "x");
+  
+  const auto* var_y = dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
+  ASSERT_NE(var_y, nullptr);
+  ASSERT_EQ(var_y->name(), "y");
+  
+  const auto* var_z = dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
+  ASSERT_NE(var_z, nullptr);
+  ASSERT_EQ(var_z->name(), "z");
+}
+
+TEST_F(ParserTest, ParsesVariableWithExpressionValue) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  result :i32 = 5 * 3 + 2
+  return result
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+  ASSERT_EQ(var_decl->name(), "result");
+  
+  // Check that the value is a binary operation
+  const auto* binop = dynamic_cast<const BinaryOperation*>(var_decl->value());
+  ASSERT_NE(binop, nullptr);
+}
+
+TEST_F(ParserTest, ParsesVariablesWithParameterReferences) {
+  const std::string source = R"(
+const compute = fn(a: i32, b: i32) -> i32 {
+  sum :i32 = a + b
+  product :i32 = a * b
+  return sum + product
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 3);  // 2 variable declarations + return statement
+  ASSERT_EQ(func->parameters().size(), 2);  // a and b parameters
+}
+
+TEST_F(ParserTest, ParsesVariableAssignment) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 100
+  x = x * 2
+  return x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 3);  // declaration + assignment + return
+  
+  // Check variable assignment
+  const auto* var_assign = dynamic_cast<const VariableAssignment*>(func->body()[1].get());
+  ASSERT_NE(var_assign, nullptr);
+  ASSERT_EQ(var_assign->name(), "x");
+}
+
+TEST_F(ParserTest, ParsesMultipleVariableAssignments) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 10
+  y :i32 = 20
+  x = y + 5
+  y = x * 2
+  return x + y
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 5);  // 2 declarations + 2 assignments + return
+  
+  // Check both assignments
+  const auto* assign1 = dynamic_cast<const VariableAssignment*>(func->body()[2].get());
+  ASSERT_NE(assign1, nullptr);
+  ASSERT_EQ(assign1->name(), "x");
+  
+  const auto* assign2 = dynamic_cast<const VariableAssignment*>(func->body()[3].get());
+  ASSERT_NE(assign2, nullptr);
+  ASSERT_EQ(assign2->name(), "y");
+}
+
+TEST_F(ParserTest, ParsesAssignmentWithComplexExpression) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  result :i32 = 0
+  result = (5 + 3) * 2 - 1
+  return result
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  const auto* var_assign = dynamic_cast<const VariableAssignment*>(func->body()[1].get());
+  ASSERT_NE(var_assign, nullptr);
+  ASSERT_EQ(var_assign->name(), "result");
+}
+
 }  // namespace
 }  // namespace void_compiler

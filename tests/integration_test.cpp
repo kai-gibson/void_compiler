@@ -164,5 +164,126 @@ const main = fn() -> i32 {
   std::remove("test_executable");
 }
 
+TEST_F(IntegrationTest, CompileAndRunLocalVariable) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 42
+  return x
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 42);
+}
+
+TEST_F(IntegrationTest, CompileAndRunMultipleLocalVariables) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 10
+  y :i32 = 20
+  z :i32 = x + y
+  return z
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 30);
+}
+
+TEST_F(IntegrationTest, CompileAndRunVariablesWithComplexExpressions) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  a :i32 = 5
+  b :i32 = 3
+  sum :i32 = a + b
+  product :i32 = a * b
+  result :i32 = sum + product
+  return result
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 23); // (5+3) + (5*3) = 8 + 15 = 23
+}
+
+TEST_F(IntegrationTest, CompileAndRunVariablesWithParameters) {
+  const std::string source = R"(
+const calculate = fn(x: i32, y: i32) -> i32 {
+  doubled_x :i32 = x * 2
+  halved_y :i32 = y / 2
+  result :i32 = doubled_x + halved_y
+  return result
+}
+
+const main = fn() -> i32 {
+  return calculate(10, 8)
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 24); // (10*2) + (8/2) = 20 + 4 = 24
+}
+
+TEST_F(IntegrationTest, CompileAndRunVariableReassignment) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 100
+  x = x * 2
+  return x
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 200); // 100 * 2 = 200
+}
+
+TEST_F(IntegrationTest, CompileAndRunMultipleReassignments) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 10
+  y :i32 = 5
+  x = x + y
+  y = x - 3
+  x = y * 2
+  return x + y
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 36); // x=15, y=12, x=24, return 24+12=36
+}
+
+TEST_F(IntegrationTest, CompileAndRunParameterReassignment) {
+  const std::string source = R"(
+const modify = fn(x: i32, y: i32) -> i32 {
+  x = x + 10
+  y = y * 2
+  return x + y
+}
+
+const main = fn() -> i32 {
+  return modify(5, 3)
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 21); // (5+10) + (3*2) = 15 + 6 = 21
+}
+
+TEST_F(IntegrationTest, CompileAndRunComplexReassignmentPattern) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  counter :i32 = 0
+  counter = counter + 1
+  counter = counter * 5
+  counter = counter - 2
+  return counter
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 3); // ((0+1)*5)-2 = 3
+}
+
 }  // namespace
 }  // namespace void_compiler

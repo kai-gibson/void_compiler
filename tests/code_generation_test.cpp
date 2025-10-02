@@ -438,5 +438,148 @@ TEST_F(CodeGenerationTest, HandlesChainedFunctionCalls) {
   SUCCEED();
 }
 
+TEST_F(CodeGenerationTest, GeneratesLocalVariableDeclaration) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 42
+  return x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  CodeGenerator generator;
+  ASSERT_NO_THROW(generator.generate_program(program.get()));
+}
+
+TEST_F(CodeGenerationTest, GeneratesMultipleLocalVariables) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 10
+  y :i32 = 20
+  z :i32 = x + y
+  return z
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  CodeGenerator generator;
+  ASSERT_NO_THROW(generator.generate_program(program.get()));
+}
+
+TEST_F(CodeGenerationTest, GeneratesVariableReferencesInExpressions) {
+  const std::string source = R"(
+const calculate = fn(a: i32) -> i32 {
+  doubled :i32 = a * 2
+  result :i32 = doubled + 5
+  return result
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  CodeGenerator generator;
+  ASSERT_NO_THROW(generator.generate_program(program.get()));
+}
+
+TEST_F(CodeGenerationTest, GeneratesVariablesWithComplexExpressions) {
+  const std::string source = R"(
+const complex = fn(x: i32, y: i32) -> i32 {
+  temp1 :i32 = x + y
+  temp2 :i32 = x - y
+  result :i32 = temp1 * temp2
+  return result
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  CodeGenerator generator;
+  ASSERT_NO_THROW(generator.generate_program(program.get()));
+}
+
+TEST_F(CodeGenerationTest, ThrowsOnUndefinedVariableReference) {
+  // Manually create AST with undefined variable reference
+  auto program = std::make_unique<Program>();
+  auto func = std::make_unique<FunctionDeclaration>("main", "i32");
+  
+  // Create a return statement that references an undefined variable
+  auto undefined_var = std::make_unique<VariableReference>("undefined_var");
+  func->add_statement(std::make_unique<ReturnStatement>(std::move(undefined_var)));
+  program->add_function(std::move(func));
+  
+  CodeGenerator generator;
+  ASSERT_THROW(generator.generate_program(program.get()), std::runtime_error);
+}
+
+TEST_F(CodeGenerationTest, GeneratesVariableAssignment) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 100
+  x = x * 2
+  return x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  CodeGenerator generator;
+  ASSERT_NO_THROW(generator.generate_program(program.get()));
+}
+
+TEST_F(CodeGenerationTest, GeneratesMultipleVariableAssignments) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 10
+  y :i32 = 20
+  x = y + 5
+  y = x * 2
+  return x + y
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  CodeGenerator generator;
+  ASSERT_NO_THROW(generator.generate_program(program.get()));
+}
+
+TEST_F(CodeGenerationTest, GeneratesParameterReassignment) {
+  const std::string source = R"(
+const modify = fn(x: i32) -> i32 {
+  x = x + 10
+  return x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  CodeGenerator generator;
+  ASSERT_NO_THROW(generator.generate_program(program.get()));
+}
+
+TEST_F(CodeGenerationTest, ThrowsOnUndefinedVariableAssignment) {
+  // Manually create AST with assignment to undefined variable
+  auto program = std::make_unique<Program>();
+  auto func = std::make_unique<FunctionDeclaration>("main", "i32");
+  
+  // Create assignment to undefined variable
+  auto undefined_assign = std::make_unique<VariableAssignment>("undefined_var", std::make_unique<NumberLiteral>(42));
+  func->add_statement(std::move(undefined_assign));
+  func->add_statement(std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(0)));
+  program->add_function(std::move(func));
+  
+  CodeGenerator generator;
+  ASSERT_THROW(generator.generate_program(program.get()), std::runtime_error);
+}
+
 }  // namespace
 }  // namespace void_compiler

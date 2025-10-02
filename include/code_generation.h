@@ -47,6 +47,7 @@ class CodeGenerator {
   std::unique_ptr<llvm::Module> module_;
   std::unique_ptr<llvm::IRBuilder<>> builder_;
   std::unordered_map<std::string, llvm::AllocaInst*> function_params_;
+  std::unordered_map<std::string, llvm::AllocaInst*> local_variables_;
 };
 
 }  // namespace void_compiler

@@ -46,6 +46,7 @@ void CodeGenerator::generate_function(const FunctionDeclaration* func_decl) {
 
   // Store parameter values in allocas for later reference
   function_params_.clear();
+  local_variables_.clear();
   for (auto& arg : function->args()) {
     llvm::AllocaInst* alloca = builder_->CreateAlloca(
         llvm::Type::getInt32Ty(*context_), nullptr, arg.getName());
@@ -146,11 +147,20 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
   }
 
   if (const auto* var = dynamic_cast<const VariableReference*>(node)) {
+    // Check function parameters first
     auto it = function_params_.find(var->name());
     if (it != function_params_.end()) {
       return builder_->CreateLoad(llvm::Type::getInt32Ty(*context_), it->second,
                                   var->name());
     }
+    
+    // Check local variables
+    auto local_it = local_variables_.find(var->name());
+    if (local_it != local_variables_.end()) {
+      return builder_->CreateLoad(llvm::Type::getInt32Ty(*context_), local_it->second,
+                                  var->name());
+    }
+    
     throw std::runtime_error("Unknown variable: " + var->name());
   }
 
@@ -192,11 +202,50 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
 
 void CodeGenerator::generate_statement(const ASTNode* node,
                                        llvm::Function* function) {
-  (void)function;
+  (void)function;  // Mark as used
   if (const auto* ret = dynamic_cast<const ReturnStatement*>(node)) {
     llvm::Value* ret_val = generate_expression(ret->expression());
     builder_->CreateRet(ret_val);
+    return;
   }
+  
+  if (const auto* var_decl = dynamic_cast<const VariableDeclaration*>(node)) {
+    // Generate the initial value
+    llvm::Value* init_value = generate_expression(var_decl->value());
+    
+    // Create local variable (alloca)
+    llvm::AllocaInst* alloca = builder_->CreateAlloca(
+        llvm::Type::getInt32Ty(*context_), nullptr, var_decl->name());
+    
+    // Store the initial value
+    builder_->CreateStore(init_value, alloca);
+    
+    // Add to local variables map for later reference
+    local_variables_[var_decl->name()] = alloca;
+    return;
+  }
+  
+  if (const auto* var_assign = dynamic_cast<const VariableAssignment*>(node)) {
+    // Generate the new value
+    llvm::Value* new_value = generate_expression(var_assign->value());
+    
+    // Find the variable (check local variables first, then function parameters)
+    auto local_it = local_variables_.find(var_assign->name());
+    if (local_it != local_variables_.end()) {
+      builder_->CreateStore(new_value, local_it->second);
+      return;
+    }
+    
+    auto param_it = function_params_.find(var_assign->name());
+    if (param_it != function_params_.end()) {
+      builder_->CreateStore(new_value, param_it->second);
+      return;
+    }
+    
+    throw std::runtime_error("Unknown variable for assignment: " + var_assign->name());
+  }
+  
+  throw std::runtime_error("Unknown statement type");
 }
 
 }  // namespace void_compiler
