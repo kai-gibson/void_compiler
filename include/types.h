@@ -26,6 +26,9 @@ enum class TokenType : uint8_t {
   Minus,
   Multiply,
   Divide,
+  Import,
+  Dot,
+  StringLiteral,
   EndOfFile
 };
 
@@ -40,6 +43,43 @@ struct Token {
 class ASTNode {
  public:
   virtual ~ASTNode() = default;
+};
+
+class StringLiteral : public ASTNode {
+ public:
+  explicit StringLiteral(std::string value) : value_(std::move(value)) {}
+  [[nodiscard]] const std::string& value() const { return value_; }
+
+ private:
+  std::string value_;
+};
+
+class ImportStatement : public ASTNode {
+ public:
+  explicit ImportStatement(std::string module_name) : module_name_(std::move(module_name)) {}
+  [[nodiscard]] const std::string& module_name() const { return module_name_; }
+
+ private:
+  std::string module_name_;
+};
+
+class MemberAccess : public ASTNode {
+ public:
+  MemberAccess(std::string object_name, std::string member_name,
+               std::vector<std::unique_ptr<ASTNode>> arguments)
+      : object_name_(std::move(object_name)), member_name_(std::move(member_name)), 
+        arguments_(std::move(arguments)) {}
+
+  [[nodiscard]] const std::string& object_name() const { return object_name_; }
+  [[nodiscard]] const std::string& member_name() const { return member_name_; }
+  [[nodiscard]] const std::vector<std::unique_ptr<ASTNode>>& arguments() const {
+    return arguments_;
+  }
+
+ private:
+  std::string object_name_;
+  std::string member_name_;
+  std::vector<std::unique_ptr<ASTNode>> arguments_;
 };
 
 class NumberLiteral : public ASTNode {
@@ -180,6 +220,11 @@ class Program : public ASTNode {
  public:
   Program() = default;
 
+  [[nodiscard]] const std::vector<std::unique_ptr<ImportStatement>>&
+  imports() const {
+    return imports_;
+  }
+
   [[nodiscard]] const std::vector<std::unique_ptr<FunctionDeclaration>>&
   functions() const {
     return functions_;
@@ -188,6 +233,10 @@ class Program : public ASTNode {
   [[nodiscard]] const std::vector<std::unique_ptr<VariableDeclaration>>&
   variables() const {
     return variables_;
+  }
+
+  void add_import(std::unique_ptr<ImportStatement> import) {
+    imports_.push_back(std::move(import));
   }
 
   void add_function(std::unique_ptr<FunctionDeclaration> function) {
@@ -199,6 +248,7 @@ class Program : public ASTNode {
   }
 
  private:
+  std::vector<std::unique_ptr<ImportStatement>> imports_;
   std::vector<std::unique_ptr<FunctionDeclaration>> functions_;
   std::vector<std::unique_ptr<VariableDeclaration>> variables_;
 };

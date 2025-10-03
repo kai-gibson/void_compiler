@@ -1,0 +1,7 @@
+
+import fmt
+
+const main = fn() {
+    fmt.println("{:d}", 123)
+}
+

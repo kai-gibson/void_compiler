@@ -8,10 +8,12 @@ std::unique_ptr<Program> Parser::parse() {
   auto program = std::make_unique<Program>();
 
   while (!match(TokenType::EndOfFile)) {
-    if (match(TokenType::Const)) {
+    if (match(TokenType::Import)) {
+      program->add_import(parse_import());
+    } else if (match(TokenType::Const)) {
       program->add_function(parse_function());
     } else {
-      throw std::runtime_error("Expected function declaration");
+      throw std::runtime_error("Expected import or function declaration");
     }
   }
 
@@ -72,6 +74,11 @@ std::unique_ptr<ASTNode> Parser::parse_primary() {
     return std::make_unique<NumberLiteral>(value);
   }
 
+  if (match(TokenType::StringLiteral)) {
+    std::string value = consume(TokenType::StringLiteral).value;
+    return std::make_unique<StringLiteral>(value);
+  }
+
   if (match(TokenType::LParen)) {
     consume(TokenType::LParen);
     auto expr = parse_expression();
@@ -82,6 +89,31 @@ std::unique_ptr<ASTNode> Parser::parse_primary() {
   // Parse function calls and variable references
   if (match(TokenType::Identifier)) {
     std::string name = consume(TokenType::Identifier).value;
+    
+    // Check for member access (e.g., fmt.println)
+    if (match(TokenType::Dot)) {
+      consume(TokenType::Dot);
+      std::string member_name = consume(TokenType::Identifier).value;
+      
+      // Member function call
+      if (match(TokenType::LParen)) {
+        consume(TokenType::LParen);
+        std::vector<std::unique_ptr<ASTNode>> arguments;
+
+        // Parse arguments
+        if (!match(TokenType::RParen)) {
+          do {
+            arguments.push_back(parse_expression());
+          } while (match(TokenType::Comma) && (consume(TokenType::Comma), true));
+        }
+
+        consume(TokenType::RParen);
+        return std::make_unique<MemberAccess>(name, member_name, std::move(arguments));
+      }
+      
+      throw std::runtime_error("Expected function call after member access");
+    }
+    
     if (match(TokenType::LParen)) {
       consume(TokenType::LParen);
       std::vector<std::unique_ptr<ASTNode>> arguments;
@@ -121,6 +153,12 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
       tokens_[current_ + 1].type == TokenType::Equals) {
     return parse_variable_assignment();
   }
+  
+  // Check for member access: identifier . member(...)
+  if (match(TokenType::Identifier) && current_ + 1 < tokens_.size() && 
+      tokens_[current_ + 1].type == TokenType::Dot) {
+    return parse_expression();  // Parse as expression, it will be handled as MemberAccess
+  }
 
   throw std::runtime_error("Expected statement");
 }
@@ -139,6 +177,12 @@ std::unique_ptr<VariableAssignment> Parser::parse_variable_assignment() {
   consume(TokenType::Equals);
   auto value = parse_expression();
   return std::make_unique<VariableAssignment>(std::move(name), std::move(value));
+}
+
+std::unique_ptr<ImportStatement> Parser::parse_import() {
+  consume(TokenType::Import);
+  std::string module_name = consume(TokenType::Identifier).value;
+  return std::make_unique<ImportStatement>(std::move(module_name));
 }
 
 std::unique_ptr<FunctionDeclaration> Parser::parse_function() {
@@ -160,8 +204,15 @@ std::unique_ptr<FunctionDeclaration> Parser::parse_function() {
   }
 
   consume(TokenType::RParen);
-  consume(TokenType::Arrow);
-  std::string return_type = consume(TokenType::I32).value;
+  
+  std::string return_type;
+  if (match(TokenType::Arrow)) {
+    consume(TokenType::Arrow);
+    return_type = consume(TokenType::I32).value;
+  } else {
+    return_type = "void";  // Default to void if no return type specified
+  }
+  
   consume(TokenType::LBrace);
 
   // Create function with return type

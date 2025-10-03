@@ -1,6 +1,7 @@
 #include "code_generation.h"
 
 #include <iostream>
+#include <string>
 
 namespace void_compiler {
 CodeGenerator::CodeGenerator() {
@@ -10,6 +11,11 @@ CodeGenerator::CodeGenerator() {
 }
 
 void CodeGenerator::generate_program(const Program* program) {
+  // Process imports (for now, we'll just ignore them since fmt is built-in)
+  for (const auto& import : program->imports()) {
+    (void)import;  // Mark as used - imports are implicitly handled
+  }
+  
   for (const auto& func : program->functions()) {
     generate_function(func.get());
   }
@@ -24,7 +30,13 @@ void CodeGenerator::generate_function(const FunctionDeclaration* func_decl) {
   }
 
   // Create function type
-  llvm::Type* return_type = llvm::Type::getInt32Ty(*context_);
+  llvm::Type* return_type;
+  if (func_decl->return_type() == "void") {
+    return_type = llvm::Type::getVoidTy(*context_);
+  } else {
+    return_type = llvm::Type::getInt32Ty(*context_);
+  }
+  
   llvm::FunctionType* func_type =
       llvm::FunctionType::get(return_type, param_types, false);
 
@@ -57,6 +69,11 @@ void CodeGenerator::generate_function(const FunctionDeclaration* func_decl) {
   // Generate function body
   for (const auto& stmt : func_decl->body()) {
     generate_statement(stmt.get(), function);
+  }
+  
+  // If this is a void function and there's no terminator, add a void return
+  if (func_decl->return_type() == "void" && !builder_->GetInsertBlock()->getTerminator()) {
+    builder_->CreateRetVoid();
   }
 }
 
@@ -146,6 +163,10 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
                                   llvm::APInt(32, num->value(), true));
   }
 
+  if (const auto* str = dynamic_cast<const StringLiteral*>(node)) {
+    return builder_->CreateGlobalStringPtr(str->value());
+  }
+
   if (const auto* var = dynamic_cast<const VariableReference*>(node)) {
     // Check function parameters first
     auto it = function_params_.find(var->name());
@@ -188,6 +209,16 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
       throw std::runtime_error("Unknown function: " + call->function_name());
     }
 
+    // Validate argument count matches parameter count
+    size_t expected_args = func->arg_size();
+    size_t provided_args = call->arguments().size();
+    if (provided_args != expected_args) {
+      throw std::runtime_error("Function '" + call->function_name() + 
+                              "' expects " + std::to_string(expected_args) + 
+                              " arguments, but " + std::to_string(provided_args) + 
+                              " were provided");
+    }
+
     // Generate arguments
     std::vector<llvm::Value*> args;
     for (const auto& arg : call->arguments()) {
@@ -195,6 +226,69 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
     }
 
     return builder_->CreateCall(func, args);
+  }
+
+  if (const auto* member = dynamic_cast<const MemberAccess*>(node)) {
+    // Handle fmt.println specifically
+    if (member->object_name() == "fmt" && member->member_name() == "println") {
+      // Get or create printf function
+      llvm::Function* printf_func = module_->getFunction("printf");
+      if (!printf_func) {
+        // Create printf function type: int printf(char*, ...)
+        llvm::Type* char_ptr_type = llvm::PointerType::get(llvm::Type::getInt8Ty(*context_), 0);
+        llvm::FunctionType* printf_type = 
+            llvm::FunctionType::get(llvm::Type::getInt32Ty(*context_), 
+                                  {char_ptr_type}, true);
+        printf_func = llvm::Function::Create(printf_type, 
+                                           llvm::Function::ExternalLinkage, 
+                                           "printf", module_.get());
+      }
+
+      // Generate arguments for printf
+      std::vector<llvm::Value*> printf_args;
+      
+      if (member->arguments().size() >= 1) {
+        // First argument should be the format string - convert from Rust-style to C-style
+        if (const auto* format_str_node = dynamic_cast<const StringLiteral*>(member->arguments()[0].get())) {
+          std::string format_str = format_str_node->value();
+          
+          // Convert Rust-style format placeholders to C-style
+          // {:d} -> %d, {:s} -> %s, etc.
+          size_t pos = 0;
+          while ((pos = format_str.find("{:d}", pos)) != std::string::npos) {
+            format_str.replace(pos, 4, "%d");
+            pos += 2;
+          }
+          while ((pos = format_str.find("{:s}", pos)) != std::string::npos) {
+            format_str.replace(pos, 4, "%s");
+            pos += 2;
+          }
+          
+          // Add newline for println
+          format_str += "\n";
+          
+          // Create the modified format string
+          llvm::Value* c_format_str = builder_->CreateGlobalStringPtr(format_str);
+          printf_args.push_back(c_format_str);
+        } else {
+          // If it's not a string literal, use it as-is
+          printf_args.push_back(generate_expression(member->arguments()[0].get()));
+        }
+        
+        // Process additional arguments
+        for (size_t i = 1; i < member->arguments().size(); ++i) {
+          printf_args.push_back(generate_expression(member->arguments()[i].get()));
+        }
+      }
+      
+      // Add newline to format string (modify the format string to include \n)
+      // For now, we'll assume the format string already includes formatting
+      
+      return builder_->CreateCall(printf_func, printf_args);
+    }
+    
+    throw std::runtime_error("Unknown member access: " + member->object_name() + 
+                            "." + member->member_name());
   }
 
   throw std::runtime_error("Unknown expression type");
@@ -243,6 +337,12 @@ void CodeGenerator::generate_statement(const ASTNode* node,
     }
     
     throw std::runtime_error("Unknown variable for assignment: " + var_assign->name());
+  }
+  
+  // Handle member access as a statement (e.g., fmt.println calls)
+  if (const auto* member = dynamic_cast<const MemberAccess*>(node)) {
+    generate_expression(member);  // Generate the call and discard the return value
+    return;
   }
   
   throw std::runtime_error("Unknown statement type");

@@ -19,6 +19,13 @@ Token Lexer::next_token() {
                  .column = column_};
   }
 
+  if (current_char() == '"') {
+    return Token{.type = TokenType::StringLiteral,
+                 .value = read_string(),
+                 .line = line_,
+                 .column = column_};
+  }
+
   if (std::isalpha(current_char()) || current_char() == '_') {
     std::string identifier = read_identifier();
 
@@ -43,6 +50,12 @@ Token Lexer::next_token() {
     }
     if (identifier == "i32") {
       return Token{.type = TokenType::I32,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
+    if (identifier == "import") {
+      return Token{.type = TokenType::Import,
                    .value = identifier,
                    .line = line_,
                    .column = column_};
@@ -109,6 +122,11 @@ Token Lexer::next_token() {
                    .value = "/",
                    .line = line_,
                    .column = start_column};
+    case '.':
+      return Token{.type = TokenType::Dot,
+                   .value = ".",
+                   .line = line_,
+                   .column = start_column};
     case '-':
       if (current_char() == '>') {
         advance();
@@ -165,6 +183,36 @@ std::string Lexer::read_number() {
     result += current_char();
     advance();
   }
+  return result;
+}
+
+std::string Lexer::read_string() {
+  std::string result;
+  advance(); // Skip opening quote
+  
+  while (current_char() != '"' && current_char() != '\0') {
+    if (current_char() == '\\') {
+      advance(); // Skip escape character
+      switch (current_char()) {
+        case 'n': result += '\n'; break;
+        case 't': result += '\t'; break;
+        case 'r': result += '\r'; break;
+        case '\\': result += '\\'; break;
+        case '"': result += '"'; break;
+        default: result += current_char(); break;
+      }
+    } else {
+      result += current_char();
+    }
+    advance();
+  }
+  
+  if (current_char() == '"') {
+    advance(); // Skip closing quote
+  } else {
+    throw std::runtime_error("Unterminated string literal");
+  }
+  
   return result;
 }
 

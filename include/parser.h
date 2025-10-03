@@ -22,6 +22,7 @@ class Parser {
   std::unique_ptr<ASTNode> parse_multiplicative();
   std::unique_ptr<ASTNode> parse_primary();
   std::unique_ptr<ASTNode> parse_statement();
+  std::unique_ptr<ImportStatement> parse_import();
   std::unique_ptr<FunctionDeclaration> parse_function();
   std::unique_ptr<VariableDeclaration> parse_variable_declaration();
   std::unique_ptr<VariableAssignment> parse_variable_assignment();

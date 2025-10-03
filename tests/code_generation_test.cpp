@@ -581,5 +581,50 @@ TEST_F(CodeGenerationTest, ThrowsOnUndefinedVariableAssignment) {
   ASSERT_THROW(generator.generate_program(program.get()), std::runtime_error);
 }
 
+TEST_F(CodeGenerationTest, ThrowsOnFunctionCallWithIncorrectArgumentCount) {
+  const std::string source = R"(
+const helper = fn(x: i32) -> i32 { return x + 10 }
+const main = fn() -> i32 {
+  return helper()
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  CodeGenerator generator;
+  ASSERT_THROW(generator.generate_program(program.get()), std::runtime_error);
+}
+
+TEST_F(CodeGenerationTest, ThrowsOnFunctionCallWithTooManyArguments) {
+  const std::string source = R"(
+const helper = fn(x: i32) -> i32 { return x * 2 }
+const main = fn() -> i32 {
+  return helper(5, 10)
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  CodeGenerator generator;
+  ASSERT_THROW(generator.generate_program(program.get()), std::runtime_error);
+}
+
+TEST_F(CodeGenerationTest, ThrowsOnFunctionCallWithTooFewArguments) {
+  const std::string source = R"(
+const helper = fn(x: i32, y: i32) -> i32 { return x + y }
+const main = fn() -> i32 {
+  return helper(5)
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  CodeGenerator generator;
+  ASSERT_THROW(generator.generate_program(program.get()), std::runtime_error);
+}
+
 }  // namespace
 }  // namespace void_compiler

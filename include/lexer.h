@@ -20,6 +20,7 @@ class Lexer {
   void skip_whitespace();
   std::string read_identifier();
   std::string read_number();
+  std::string read_string();
 
   std::string source_;
   size_t position_{0};
