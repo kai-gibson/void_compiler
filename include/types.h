@@ -43,6 +43,7 @@ enum class TokenType : uint8_t {
   Loop,
   In,
   DotDot,
+  Do,
   EndOfFile
 };
 

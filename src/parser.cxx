@@ -246,14 +246,21 @@ std::unique_ptr<VariableAssignment> Parser::parse_variable_assignment() {
 std::unique_ptr<IfStatement> Parser::parse_if_statement() {
   consume(TokenType::If);
   auto condition = parse_expression();
-  consume(TokenType::LBrace);
   
-  // Parse then body
+  // Parse then body - check for 'do' or block syntax
   std::vector<std::unique_ptr<ASTNode>> then_body;
-  while (!match(TokenType::RBrace)) {
+  if (match(TokenType::Do)) {
+    consume(TokenType::Do);
+    // Single expression after 'do'
     then_body.push_back(parse_statement());
+  } else {
+    consume(TokenType::LBrace);
+    // Multiple statements in block
+    while (!match(TokenType::RBrace)) {
+      then_body.push_back(parse_statement());
+    }
+    consume(TokenType::RBrace);
   }
-  consume(TokenType::RBrace);
   
   // Parse optional else clause
   std::vector<std::unique_ptr<ASTNode>> else_body;
@@ -264,12 +271,18 @@ std::unique_ptr<IfStatement> Parser::parse_if_statement() {
     if (match(TokenType::If)) {
       else_body.push_back(parse_if_statement());
     } else {
-      // Handle regular else clause
-      consume(TokenType::LBrace);
-      while (!match(TokenType::RBrace)) {
+      // Handle regular else clause - check for 'do' or block syntax
+      if (match(TokenType::Do)) {
+        consume(TokenType::Do);
+        // Single expression after 'do'
         else_body.push_back(parse_statement());
+      } else {
+        consume(TokenType::LBrace);
+        while (!match(TokenType::RBrace)) {
+          else_body.push_back(parse_statement());
+        }
+        consume(TokenType::RBrace);
       }
-      consume(TokenType::RBrace);
     }
   }
   
@@ -310,8 +323,6 @@ std::unique_ptr<FunctionDeclaration> Parser::parse_function() {
     return_type = "void";  // Default to void if no return type specified
   }
   
-  consume(TokenType::LBrace);
-
   // Create function with return type
   auto func = std::make_unique<FunctionDeclaration>(name, return_type);
 
@@ -320,12 +331,20 @@ std::unique_ptr<FunctionDeclaration> Parser::parse_function() {
     func->add_parameter(std::move(param));
   }
 
-  // Parse function body
-  while (!match(TokenType::RBrace)) {
+  // Parse function body - check for 'do' or block syntax
+  if (match(TokenType::Do)) {
+    consume(TokenType::Do);
+    // Single statement after 'do'
     func->add_statement(parse_statement());
+  } else {
+    consume(TokenType::LBrace);
+    // Multiple statements in block
+    while (!match(TokenType::RBrace)) {
+      func->add_statement(parse_statement());
+    }
+    consume(TokenType::RBrace);
   }
 
-  consume(TokenType::RBrace);
   return func;
 }
 
@@ -336,13 +355,19 @@ std::unique_ptr<LoopStatement> Parser::parse_loop_statement() {
   if (match(TokenType::If)) {
     consume(TokenType::If);
     auto condition = parse_expression();
-    consume(TokenType::LBrace);
     
     std::vector<std::unique_ptr<ASTNode>> body;
-    while (!match(TokenType::RBrace)) {
+    if (match(TokenType::Do)) {
+      consume(TokenType::Do);
+      // Single statement after 'do'
       body.push_back(parse_statement());
+    } else {
+      consume(TokenType::LBrace);
+      while (!match(TokenType::RBrace)) {
+        body.push_back(parse_statement());
+      }
+      consume(TokenType::RBrace);
     }
-    consume(TokenType::RBrace);
     
     return std::make_unique<LoopStatement>(std::move(condition), std::move(body));
   }
@@ -351,13 +376,19 @@ std::unique_ptr<LoopStatement> Parser::parse_loop_statement() {
   std::string variable_name = consume(TokenType::Identifier).value;
   consume(TokenType::In);
   auto range = parse_range_expression();
-  consume(TokenType::LBrace);
   
   std::vector<std::unique_ptr<ASTNode>> body;
-  while (!match(TokenType::RBrace)) {
+  if (match(TokenType::Do)) {
+    consume(TokenType::Do);
+    // Single statement after 'do'
     body.push_back(parse_statement());
+  } else {
+    consume(TokenType::LBrace);
+    while (!match(TokenType::RBrace)) {
+      body.push_back(parse_statement());
+    }
+    consume(TokenType::RBrace);
   }
-  consume(TokenType::RBrace);
   
   return std::make_unique<LoopStatement>(variable_name, std::move(range), std::move(body));
 }

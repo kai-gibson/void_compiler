@@ -1150,5 +1150,130 @@ const test = fn(start: i32, end: i32) -> i32 {
   EXPECT_EQ(end_var->name(), "end");
 }
 
+// Do syntax tests
+TEST_F(ParserTest, ParsesFunctionWithDoSyntax) {
+  const std::string source = R"(
+const simple = fn() -> i32 do return 42
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  EXPECT_EQ(func->name(), "simple");
+  EXPECT_EQ(func->return_type(), "i32");
+  EXPECT_EQ(func->parameters().size(), 0);
+  
+  // Should have exactly one statement (return 42)
+  EXPECT_EQ(func->body().size(), 1);
+  
+  const auto* return_stmt = dynamic_cast<const ReturnStatement*>(func->body()[0].get());
+  ASSERT_NE(return_stmt, nullptr);
+}
+
+TEST_F(ParserTest, ParsesIfStatementWithDoSyntax) {
+  const std::string source = R"(
+const test = fn(x: i32) -> i32 {
+  if x > 10 do return 1
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  EXPECT_EQ(func->body().size(), 2);  // if statement + return
+  
+  const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
+  ASSERT_NE(if_stmt, nullptr);
+  
+  // Then body should have exactly one statement
+  EXPECT_EQ(if_stmt->then_body().size(), 1);
+  EXPECT_EQ(if_stmt->else_body().size(), 0);
+  
+  const auto* return_stmt = dynamic_cast<const ReturnStatement*>(if_stmt->then_body()[0].get());
+  ASSERT_NE(return_stmt, nullptr);
+}
+
+TEST_F(ParserTest, ParsesRangeLoopWithDoSyntax) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  sum :i32 = 0
+  loop i in 0..5 do sum = sum + i
+  return sum
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  EXPECT_EQ(func->body().size(), 3);  // variable declaration, loop, return
+  
+  const auto* loop_stmt = dynamic_cast<const LoopStatement*>(func->body()[1].get());
+  ASSERT_NE(loop_stmt, nullptr);
+  
+  // Loop body should have exactly one statement
+  EXPECT_EQ(loop_stmt->body().size(), 1);
+  EXPECT_TRUE(loop_stmt->is_range_loop());
+  
+  const auto* assignment = dynamic_cast<const VariableAssignment*>(loop_stmt->body()[0].get());
+  ASSERT_NE(assignment, nullptr);
+}
+
+TEST_F(ParserTest, ParsesConditionalLoopWithDoSyntax) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  x :i32 = 0
+  loop if x < 5 do x = x + 1
+  return x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  EXPECT_EQ(func->body().size(), 3);  // variable declaration, loop, return
+  
+  const auto* loop_stmt = dynamic_cast<const LoopStatement*>(func->body()[1].get());
+  ASSERT_NE(loop_stmt, nullptr);
+  
+  // Loop body should have exactly one statement
+  EXPECT_EQ(loop_stmt->body().size(), 1);
+  EXPECT_FALSE(loop_stmt->is_range_loop());
+  
+  const auto* assignment = dynamic_cast<const VariableAssignment*>(loop_stmt->body()[0].get());
+  ASSERT_NE(assignment, nullptr);
+}
+
+TEST_F(ParserTest, ParsesIfElseWithDoSyntax) {
+  const std::string source = R"(
+const test = fn(x: i32) -> i32 {
+  if x > 10 do return 1
+  else do return 2
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  EXPECT_EQ(func->body().size(), 1);  // if-else statement
+  
+  const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
+  ASSERT_NE(if_stmt, nullptr);
+  
+  // Both then and else bodies should have exactly one statement
+  EXPECT_EQ(if_stmt->then_body().size(), 1);
+  EXPECT_EQ(if_stmt->else_body().size(), 1);
+}
+
 }  // namespace
 }  // namespace void_compiler

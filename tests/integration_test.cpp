@@ -714,5 +714,86 @@ const main = fn() -> i32 {
   EXPECT_EQ(result, 10); // Condition is false from start, so x remains 10
 }
 
+// Do syntax integration tests
+TEST_F(IntegrationTest, CompileAndRunFunctionWithDoSyntax) {
+  const std::string source = R"(
+const simple = fn() -> i32 do return 42
+
+const main = fn() -> i32 {
+  return simple()
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 42);
+}
+
+TEST_F(IntegrationTest, CompileAndRunIfWithDoSyntax) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 15
+  if x > 10 do return 1
+  return 0
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 1);
+}
+
+TEST_F(IntegrationTest, CompileAndRunIfElseWithDoSyntax) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 5
+  if x > 10 do return 1
+  else do return 2
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 2);
+}
+
+TEST_F(IntegrationTest, CompileAndRunRangeLoopWithDoSyntax) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  sum :i32 = 0
+  loop i in 0..5 do sum = sum + i
+  return sum
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 10); // 0+1+2+3+4 = 10
+}
+
+TEST_F(IntegrationTest, CompileAndRunConditionalLoopWithDoSyntax) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 0
+  loop if x < 5 do x = x + 1
+  return x
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 5);
+}
+
+TEST_F(IntegrationTest, CompileAndRunNestedDoSyntax) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  total :i32 = 0
+  loop i in 0..3 {
+    if i > 1 do total = total + i
+  }
+  return total
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 2); // Only adds 2 (i=2), since i=0,1 don't satisfy i>1
+}
+
 }  // namespace
 }  // namespace void_compiler

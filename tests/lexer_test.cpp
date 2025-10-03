@@ -438,5 +438,45 @@ TEST_F(LexerTest, HandlesDotVsDotDotDistinction) {
   EXPECT_EQ(tokens[3].type, TokenType::EndOfFile);
 }
 
+// Do keyword tests
+TEST_F(LexerTest, TokenizesDoKeyword) {
+  auto tokens = TokenizeSource("do");
+  
+  ASSERT_EQ(tokens.size(), 2);  // do, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Do);
+  EXPECT_EQ(tokens[0].value, "do");
+  EXPECT_EQ(tokens[1].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, TokenizesDoWithOtherKeywords) {
+  auto tokens = TokenizeSource("if condition do return");
+  
+  ASSERT_EQ(tokens.size(), 5);  // if, condition, do, return, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::If);
+  EXPECT_EQ(tokens[1].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[1].value, "condition");
+  EXPECT_EQ(tokens[2].type, TokenType::Do);
+  EXPECT_EQ(tokens[2].value, "do");
+  EXPECT_EQ(tokens[3].type, TokenType::Return);
+  EXPECT_EQ(tokens[4].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, TokenizesFunctionDoSyntax) {
+  auto tokens = TokenizeSource("fn() -> i32 do return 42");
+  
+  ASSERT_EQ(tokens.size(), 9);  // fn, (, ), ->, i32, do, return, 42, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Fn);
+  EXPECT_EQ(tokens[1].type, TokenType::LParen);
+  EXPECT_EQ(tokens[2].type, TokenType::RParen);
+  EXPECT_EQ(tokens[3].type, TokenType::Arrow);
+  EXPECT_EQ(tokens[4].type, TokenType::I32);
+  EXPECT_EQ(tokens[5].type, TokenType::Do);
+  EXPECT_EQ(tokens[5].value, "do");
+  EXPECT_EQ(tokens[6].type, TokenType::Return);
+  EXPECT_EQ(tokens[7].type, TokenType::Number);
+  EXPECT_EQ(tokens[7].value, "42");
+  EXPECT_EQ(tokens[8].type, TokenType::EndOfFile);
+}
+
 }  // namespace
 }  // namespace void_compiler

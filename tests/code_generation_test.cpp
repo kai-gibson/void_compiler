@@ -1048,5 +1048,107 @@ const test = fn(start: i32, end: i32) -> i32 {
   EXPECT_TRUE(output.find("icmp") != std::string::npos);
 }
 
+// Do syntax code generation tests
+TEST_F(CodeGenerationTest, GeneratesFunctionWithDoSyntax) {
+  const std::string source = R"(
+const simple = fn() -> i32 do return 42
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate function with simple return
+  EXPECT_TRUE(output.find("define i32 @simple()") != std::string::npos);
+  EXPECT_TRUE(output.find("ret i32 42") != std::string::npos);
+  
+  // Should be minimal IR - no unnecessary basic blocks
+  EXPECT_TRUE(output.find("entry:") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesIfWithDoSyntax) {
+  const std::string source = R"(
+const test = fn(x: i32) -> i32 {
+  if x > 10 do return 1
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate conditional branch structure
+  EXPECT_TRUE(output.find("icmp sgt") != std::string::npos);
+  EXPECT_TRUE(output.find("br i1") != std::string::npos);
+  EXPECT_TRUE(output.find("ret i32 1") != std::string::npos);
+  EXPECT_TRUE(output.find("ret i32 0") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesRangeLoopWithDoSyntax) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  sum :i32 = 0
+  loop i in 0..3 do sum = sum + i
+  return sum
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate loop structure
+  EXPECT_TRUE(output.find("loop.cond:") != std::string::npos);
+  EXPECT_TRUE(output.find("loop.body:") != std::string::npos);
+  EXPECT_TRUE(output.find("loop.end:") != std::string::npos);
+  EXPECT_TRUE(output.find("add i32") != std::string::npos);  // sum = sum + i
+}
+
+TEST_F(CodeGenerationTest, GeneratesConditionalLoopWithDoSyntax) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  x :i32 = 0
+  loop if x < 5 do x = x + 1
+  return x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate conditional loop structure
+  EXPECT_TRUE(output.find("loop.cond:") != std::string::npos);
+  EXPECT_TRUE(output.find("loop.body:") != std::string::npos);
+  EXPECT_TRUE(output.find("loop.end:") != std::string::npos);
+  EXPECT_TRUE(output.find("icmp slt") != std::string::npos);  // x < 5
+  EXPECT_TRUE(output.find("add i32") != std::string::npos);   // x = x + 1
+}
+
 }  // namespace
 }  // namespace void_compiler
