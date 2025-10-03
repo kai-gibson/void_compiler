@@ -410,7 +410,101 @@ void CodeGenerator::generate_statement(const ASTNode* node,
     return;
   }
   
+  // Handle loop statements
+  if (const auto* loop_stmt = dynamic_cast<const LoopStatement*>(node)) {
+    if (loop_stmt->is_range_loop()) {
+      generate_range_loop(loop_stmt, function);
+    } else {
+      generate_conditional_loop(loop_stmt, function);
+    }
+    return;
+  }
+  
   throw std::runtime_error("Unknown statement type");
+}
+
+void CodeGenerator::generate_range_loop(const LoopStatement* loop_stmt, llvm::Function* function) {
+  // Get the range expression
+  const auto* range = dynamic_cast<const RangeExpression*>(loop_stmt->range());
+  if (!range) {
+    throw std::runtime_error("Expected range expression in range loop");
+  }
+  
+  // Generate start and end values
+  llvm::Value* start_val = generate_expression(range->start());
+  llvm::Value* end_val = generate_expression(range->end());
+  
+  // Create basic blocks
+  llvm::BasicBlock* loop_cond = llvm::BasicBlock::Create(*context_, "loop.cond", function);
+  llvm::BasicBlock* loop_body = llvm::BasicBlock::Create(*context_, "loop.body", function);
+  llvm::BasicBlock* loop_end = llvm::BasicBlock::Create(*context_, "loop.end", function);
+  
+  // Create loop variable (allocate space for iterator)
+  llvm::AllocaInst* loop_var = builder_->CreateAlloca(
+      llvm::Type::getInt32Ty(*context_), nullptr, loop_stmt->variable_name());
+  
+  // Initialize loop variable with start value
+  builder_->CreateStore(start_val, loop_var);
+  
+  // Store the loop variable for use in the loop body
+  local_variables_[loop_stmt->variable_name()] = loop_var;
+  
+  // Jump to condition check
+  builder_->CreateBr(loop_cond);
+  
+  // Generate condition block: check if i < end
+  builder_->SetInsertPoint(loop_cond);
+  llvm::Value* current_val = builder_->CreateLoad(llvm::Type::getInt32Ty(*context_), loop_var);
+  llvm::Value* condition = builder_->CreateICmpSLT(current_val, end_val, "loopcond");
+  builder_->CreateCondBr(condition, loop_body, loop_end);
+  
+  // Generate loop body
+  builder_->SetInsertPoint(loop_body);
+  for (const auto& stmt : loop_stmt->body()) {
+    generate_statement(stmt.get(), function);
+  }
+  
+  // Increment loop variable: i = i + 1
+  llvm::Value* current_val_body = builder_->CreateLoad(llvm::Type::getInt32Ty(*context_), loop_var);
+  llvm::Value* one = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context_), 1);
+  llvm::Value* incremented = builder_->CreateAdd(current_val_body, one, "inc");
+  builder_->CreateStore(incremented, loop_var);
+  
+  // Jump back to condition
+  builder_->CreateBr(loop_cond);
+  
+  // Continue after loop
+  builder_->SetInsertPoint(loop_end);
+  
+  // Remove loop variable from scope
+  local_variables_.erase(loop_stmt->variable_name());
+}
+
+void CodeGenerator::generate_conditional_loop(const LoopStatement* loop_stmt, llvm::Function* function) {
+  // Create basic blocks
+  llvm::BasicBlock* loop_cond = llvm::BasicBlock::Create(*context_, "loop.cond", function);
+  llvm::BasicBlock* loop_body = llvm::BasicBlock::Create(*context_, "loop.body", function);
+  llvm::BasicBlock* loop_end = llvm::BasicBlock::Create(*context_, "loop.end", function);
+  
+  // Jump to condition check
+  builder_->CreateBr(loop_cond);
+  
+  // Generate condition block
+  builder_->SetInsertPoint(loop_cond);
+  llvm::Value* condition = generate_expression(loop_stmt->condition());
+  builder_->CreateCondBr(condition, loop_body, loop_end);
+  
+  // Generate loop body
+  builder_->SetInsertPoint(loop_body);
+  for (const auto& stmt : loop_stmt->body()) {
+    generate_statement(stmt.get(), function);
+  }
+  
+  // Jump back to condition
+  builder_->CreateBr(loop_cond);
+  
+  // Continue after loop
+  builder_->SetInsertPoint(loop_end);
 }
 
 }  // namespace void_compiler

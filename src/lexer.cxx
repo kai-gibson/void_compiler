@@ -90,6 +90,18 @@ Token Lexer::next_token() {
                    .line = line_,
                    .column = column_};
     }
+    if (identifier == "loop") {
+      return Token{.type = TokenType::Loop,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
+    if (identifier == "in") {
+      return Token{.type = TokenType::In,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
 
     return Token{.type = TokenType::Identifier,
                  .value = identifier,
@@ -193,6 +205,13 @@ Token Lexer::next_token() {
                    .line = line_,
                    .column = start_column};
     case '.':
+      if (current_char() == '.') {
+        advance();
+        return Token{.type = TokenType::DotDot,
+                     .value = "..",
+                     .line = line_,
+                     .column = start_column};
+      }
       return Token{.type = TokenType::Dot,
                    .value = ".",
                    .line = line_,

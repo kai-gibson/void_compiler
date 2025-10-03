@@ -371,5 +371,72 @@ TEST_F(LexerTest, TokenizesComplexControlFlowExpression) {
   EXPECT_EQ(tokens[12].value, "5");
 }
 
+TEST_F(LexerTest, TokenizesLoopKeywords) {
+  auto tokens = TokenizeSource("loop in");
+  
+  ASSERT_EQ(tokens.size(), 3);  // loop, in, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Loop);
+  EXPECT_EQ(tokens[0].value, "loop");
+  EXPECT_EQ(tokens[1].type, TokenType::In);
+  EXPECT_EQ(tokens[1].value, "in");
+  EXPECT_EQ(tokens[2].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, TokenizesRangeOperator) {
+  auto tokens = TokenizeSource("0..10");
+  
+  ASSERT_EQ(tokens.size(), 4);  // 0, .., 10, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Number);
+  EXPECT_EQ(tokens[0].value, "0");
+  EXPECT_EQ(tokens[1].type, TokenType::DotDot);
+  EXPECT_EQ(tokens[1].value, "..");
+  EXPECT_EQ(tokens[2].type, TokenType::Number);
+  EXPECT_EQ(tokens[2].value, "10");
+  EXPECT_EQ(tokens[3].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, TokenizesRangeLoopExpression) {
+  auto tokens = TokenizeSource("loop i in 0..10");
+  
+  ASSERT_EQ(tokens.size(), 7);  // loop, i, in, 0, .., 10, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Loop);
+  EXPECT_EQ(tokens[1].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[1].value, "i");
+  EXPECT_EQ(tokens[2].type, TokenType::In);
+  EXPECT_EQ(tokens[3].type, TokenType::Number);
+  EXPECT_EQ(tokens[3].value, "0");
+  EXPECT_EQ(tokens[4].type, TokenType::DotDot);
+  EXPECT_EQ(tokens[5].type, TokenType::Number);
+  EXPECT_EQ(tokens[5].value, "10");
+  EXPECT_EQ(tokens[6].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, TokenizesConditionalLoopExpression) {
+  auto tokens = TokenizeSource("loop if x < 10");
+  
+  ASSERT_EQ(tokens.size(), 6);  // loop, if, x, <, 10, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Loop);
+  EXPECT_EQ(tokens[1].type, TokenType::If);
+  EXPECT_EQ(tokens[2].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[2].value, "x");
+  EXPECT_EQ(tokens[3].type, TokenType::LessThan);
+  EXPECT_EQ(tokens[4].type, TokenType::Number);
+  EXPECT_EQ(tokens[4].value, "10");
+  EXPECT_EQ(tokens[5].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, HandlesDotVsDotDotDistinction) {
+  auto tokens = TokenizeSource(". .. .");
+  
+  ASSERT_EQ(tokens.size(), 4);  // ., .., ., EOF  
+  EXPECT_EQ(tokens[0].type, TokenType::Dot);
+  EXPECT_EQ(tokens[0].value, ".");
+  EXPECT_EQ(tokens[1].type, TokenType::DotDot);
+  EXPECT_EQ(tokens[1].value, "..");
+  EXPECT_EQ(tokens[2].type, TokenType::Dot);
+  EXPECT_EQ(tokens[2].value, ".");
+  EXPECT_EQ(tokens[3].type, TokenType::EndOfFile);
+}
+
 }  // namespace
 }  // namespace void_compiler

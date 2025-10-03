@@ -523,5 +523,196 @@ const main = fn() -> i32 {
   EXPECT_EQ(result, 3); // score=85 >= 80 but < 90, so grade = 3
 }
 
+TEST_F(IntegrationTest, CompileAndRunSimpleRangeLoop) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  sum :i32 = 0
+  loop i in 0..5 {
+    sum = sum + i
+  }
+  return sum
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 10); // 0+1+2+3+4 = 10
+}
+
+TEST_F(IntegrationTest, CompileAndRunConditionalLoop) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 0
+  loop if x < 5 {
+    x = x + 1
+  }
+  return x
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 5); // Loop increments x until x < 5 is false
+}
+
+TEST_F(IntegrationTest, CompileAndRunRangeLoopWithReturn) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  loop i in 0..10 {
+    if i == 7 {
+      return i
+    }
+  }
+  return 99
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 7); // Should return when i reaches 7
+}
+
+TEST_F(IntegrationTest, CompileAndRunNestedRangeLoops) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  result :i32 = 0
+  loop i in 0..3 {
+    loop j in 0..3 {
+      result = result + 1
+    }
+  }
+  return result
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 9); // 3 * 3 = 9 iterations
+}
+
+TEST_F(IntegrationTest, CompileAndRunConditionalLoopWithComplexCondition) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 0
+  y :i32 = 10
+  loop if x < 5 and y > 5 {
+    x = x + 1
+    y = y - 1
+  }
+  return x + y
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 10); // x=5, y=5, so 5+5=10
+}
+
+TEST_F(IntegrationTest, CompileAndRunRangeLoopWithVariableRange) {
+  const std::string source = R"(
+const calculate = fn(start: i32, end: i32) -> i32 {
+  sum :i32 = 0
+  loop i in start..end {
+    sum = sum + i
+  }
+  return sum
+}
+
+const main = fn() -> i32 {
+  return calculate(1, 4)
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 6); // 1+2+3 = 6
+}
+
+TEST_F(IntegrationTest, CompileAndRunLoopWithEarlyReturn) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  product :i32 = 1
+  loop i in 1..10 {
+    product = product * i
+    if product > 100 {
+      return product
+    }
+  }
+  return 0
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 120); // 1*2*3*4*5 = 120 (first to exceed 100)
+}
+
+TEST_F(IntegrationTest, CompileAndRunComplexLoopLogic) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  count :i32 = 0
+  loop i in 0..20 {
+    if i > 5 and i < 15 {
+      if i == 10 {
+        count = count + 5
+      } else {
+        count = count + 1
+      }
+    }
+  }
+  return count
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 13); // Numbers 6,7,8,9,11,12,13,14 count as 1 each (8), plus 10 counts as 5, so 8+5=13
+}
+
+TEST_F(IntegrationTest, CompileAndRunMixedLoopTypes) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  total :i32 = 0
+  
+  loop i in 0..3 {
+    total = total + i
+  }
+  
+  x :i32 = 0
+  loop if x < 3 {
+    total = total + x
+    x = x + 1
+  }
+  
+  return total
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 6); // Range loop: 0+1+2=3, Conditional loop: 0+1+2=3, Total: 3+3=6
+}
+
+TEST_F(IntegrationTest, CompileAndRunZeroIterationLoop) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  sum :i32 = 42
+  loop i in 5..5 {
+    sum = sum + i
+  }
+  return sum
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 42); // Loop should not execute (5 not < 5), so sum remains 42
+}
+
+TEST_F(IntegrationTest, CompileAndRunConditionalLoopNeverExecutes) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 10
+  loop if x < 5 {
+    x = x + 1
+  }
+  return x
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 10); // Condition is false from start, so x remains 10
+}
+
 }  // namespace
 }  // namespace void_compiler

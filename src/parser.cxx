@@ -202,6 +202,10 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
     return parse_if_statement();
   }
   
+  if (match(TokenType::Loop)) {
+    return parse_loop_statement();
+  }
+  
   // Check for variable declaration: identifier : type = value
   if (match(TokenType::Identifier) && current_ + 1 < tokens_.size() && 
       tokens_[current_ + 1].type == TokenType::Colon) {
@@ -323,6 +327,47 @@ std::unique_ptr<FunctionDeclaration> Parser::parse_function() {
 
   consume(TokenType::RBrace);
   return func;
+}
+
+std::unique_ptr<LoopStatement> Parser::parse_loop_statement() {
+  consume(TokenType::Loop);
+  
+  // Check if it's a conditional loop: loop if condition { ... }
+  if (match(TokenType::If)) {
+    consume(TokenType::If);
+    auto condition = parse_expression();
+    consume(TokenType::LBrace);
+    
+    std::vector<std::unique_ptr<ASTNode>> body;
+    while (!match(TokenType::RBrace)) {
+      body.push_back(parse_statement());
+    }
+    consume(TokenType::RBrace);
+    
+    return std::make_unique<LoopStatement>(std::move(condition), std::move(body));
+  }
+  
+  // Otherwise it's a range loop: loop i in 0..10 { ... }
+  std::string variable_name = consume(TokenType::Identifier).value;
+  consume(TokenType::In);
+  auto range = parse_range_expression();
+  consume(TokenType::LBrace);
+  
+  std::vector<std::unique_ptr<ASTNode>> body;
+  while (!match(TokenType::RBrace)) {
+    body.push_back(parse_statement());
+  }
+  consume(TokenType::RBrace);
+  
+  return std::make_unique<LoopStatement>(variable_name, std::move(range), std::move(body));
+}
+
+std::unique_ptr<RangeExpression> Parser::parse_range_expression() {
+  auto start = parse_additive();  // Parse the start expression
+  consume(TokenType::DotDot);
+  auto end = parse_additive();    // Parse the end expression
+  
+  return std::make_unique<RangeExpression>(std::move(start), std::move(end));
 }
 
 }  // namespace void_compiler

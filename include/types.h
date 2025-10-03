@@ -40,6 +40,9 @@ enum class TokenType : uint8_t {
   And,
   Or,
   Not,
+  Loop,
+  In,
+  DotDot,
   EndOfFile
 };
 
@@ -200,6 +203,54 @@ class IfStatement : public ASTNode {
   std::unique_ptr<ASTNode> condition_;
   std::vector<std::unique_ptr<ASTNode>> then_body_;
   std::vector<std::unique_ptr<ASTNode>> else_body_;
+};
+
+class RangeExpression : public ASTNode {
+ public:
+  RangeExpression(std::unique_ptr<ASTNode> start, std::unique_ptr<ASTNode> end)
+      : start_(std::move(start)), end_(std::move(end)) {}
+
+  [[nodiscard]] const ASTNode* start() const { return start_.get(); }
+  [[nodiscard]] const ASTNode* end() const { return end_.get(); }
+
+ private:
+  std::unique_ptr<ASTNode> start_;
+  std::unique_ptr<ASTNode> end_;
+};
+
+class LoopStatement : public ASTNode {
+ public:
+  // Range-based loop: loop i in 0..10 { ... }
+  LoopStatement(std::string variable_name, std::unique_ptr<ASTNode> range,
+                std::vector<std::unique_ptr<ASTNode>> body)
+      : variable_name_(std::move(variable_name)), 
+        range_(std::move(range)), 
+        condition_(nullptr),
+        body_(std::move(body)), 
+        is_range_loop_(true) {}
+
+  // Conditional loop: loop if condition { ... }
+  LoopStatement(std::unique_ptr<ASTNode> condition,
+                std::vector<std::unique_ptr<ASTNode>> body)
+      : range_(nullptr),
+        condition_(std::move(condition)), 
+        body_(std::move(body)), 
+        is_range_loop_(false) {}
+
+  [[nodiscard]] bool is_range_loop() const { return is_range_loop_; }
+  [[nodiscard]] const std::string& variable_name() const { return variable_name_; }
+  [[nodiscard]] const ASTNode* range() const { return range_.get(); }
+  [[nodiscard]] const ASTNode* condition() const { return condition_.get(); }
+  [[nodiscard]] const std::vector<std::unique_ptr<ASTNode>>& body() const {
+    return body_;
+  }
+
+ private:
+  std::string variable_name_;  // For range loops
+  std::unique_ptr<ASTNode> range_;  // For range loops  
+  std::unique_ptr<ASTNode> condition_;  // For conditional loops
+  std::vector<std::unique_ptr<ASTNode>> body_;
+  bool is_range_loop_;
 };
 
 class FunctionCall : public ASTNode {

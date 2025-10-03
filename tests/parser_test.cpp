@@ -958,5 +958,197 @@ const test = fn(a: i32, b: i32, c: i32) -> i32 {
   EXPECT_EQ(comp_op->operator_type(), TokenType::EqualEqual);
 }
 
+TEST_F(ParserTest, ParsesSimpleRangeLoop) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  loop i in 0..10 {
+    return i
+  }
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 2);  // loop + return
+  
+  const auto* loop_stmt = dynamic_cast<const LoopStatement*>(func->body()[0].get());
+  ASSERT_NE(loop_stmt, nullptr);
+  EXPECT_TRUE(loop_stmt->is_range_loop());
+  EXPECT_EQ(loop_stmt->variable_name(), "i");
+  
+  // Check the range expression
+  const auto* range = dynamic_cast<const RangeExpression*>(loop_stmt->range());
+  ASSERT_NE(range, nullptr);
+  
+  // Check loop body
+  ASSERT_EQ(loop_stmt->body().size(), 1);
+  const auto* ret_stmt = dynamic_cast<const ReturnStatement*>(loop_stmt->body()[0].get());
+  ASSERT_NE(ret_stmt, nullptr);
+}
+
+TEST_F(ParserTest, ParsesConditionalLoop) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  x :i32 = 0
+  loop if x < 10 {
+    x = x + 1
+  }
+  return x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 3);  // variable declaration + loop + return
+  
+  const auto* loop_stmt = dynamic_cast<const LoopStatement*>(func->body()[1].get());
+  ASSERT_NE(loop_stmt, nullptr);
+  EXPECT_FALSE(loop_stmt->is_range_loop());
+  
+  // Check condition
+  const auto* condition = dynamic_cast<const BinaryOperation*>(loop_stmt->condition());
+  ASSERT_NE(condition, nullptr);
+  EXPECT_EQ(condition->operator_type(), TokenType::LessThan);
+  
+  // Check loop body
+  ASSERT_EQ(loop_stmt->body().size(), 1);
+  const auto* assign = dynamic_cast<const VariableAssignment*>(loop_stmt->body()[0].get());
+  ASSERT_NE(assign, nullptr);
+  EXPECT_EQ(assign->name(), "x");
+}
+
+TEST_F(ParserTest, ParsesComplexRangeLoop) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  sum :i32 = 0
+  loop i in 1..100 {
+    sum = sum + i
+  }
+  return sum
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  const auto* loop_stmt = dynamic_cast<const LoopStatement*>(func->body()[1].get());
+  ASSERT_NE(loop_stmt, nullptr);
+  EXPECT_TRUE(loop_stmt->is_range_loop());
+  EXPECT_EQ(loop_stmt->variable_name(), "i");
+  
+  // Check range with different start/end
+  const auto* range = dynamic_cast<const RangeExpression*>(loop_stmt->range());
+  ASSERT_NE(range, nullptr);
+  
+  const auto* start = dynamic_cast<const NumberLiteral*>(range->start());
+  ASSERT_NE(start, nullptr);
+  EXPECT_EQ(start->value(), 1);
+  
+  const auto* end = dynamic_cast<const NumberLiteral*>(range->end());
+  ASSERT_NE(end, nullptr);
+  EXPECT_EQ(end->value(), 100);
+}
+
+TEST_F(ParserTest, ParsesNestedLoops) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  loop i in 0..3 {
+    loop j in 0..3 {
+      if i == j {
+        return i
+      }
+    }
+  }
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  const auto* outer_loop = dynamic_cast<const LoopStatement*>(func->body()[0].get());
+  ASSERT_NE(outer_loop, nullptr);
+  EXPECT_TRUE(outer_loop->is_range_loop());
+  EXPECT_EQ(outer_loop->variable_name(), "i");
+  
+  // Check inner loop
+  ASSERT_EQ(outer_loop->body().size(), 1);
+  const auto* inner_loop = dynamic_cast<const LoopStatement*>(outer_loop->body()[0].get());
+  ASSERT_NE(inner_loop, nullptr);
+  EXPECT_TRUE(inner_loop->is_range_loop());
+  EXPECT_EQ(inner_loop->variable_name(), "j");
+}
+
+TEST_F(ParserTest, ParsesLoopWithComplexCondition) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  x :i32 = 0
+  y :i32 = 10
+  loop if x < y and x > 0 or not x == 5 {
+    x = x + 1
+  }
+  return x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  const auto* loop_stmt = dynamic_cast<const LoopStatement*>(func->body()[2].get());
+  ASSERT_NE(loop_stmt, nullptr);
+  EXPECT_FALSE(loop_stmt->is_range_loop());
+  
+  // Check complex condition is parsed correctly
+  const auto* condition = dynamic_cast<const BinaryOperation*>(loop_stmt->condition());
+  ASSERT_NE(condition, nullptr);
+  EXPECT_EQ(condition->operator_type(), TokenType::Or);  // Top level should be OR
+}
+
+TEST_F(ParserTest, ParsesRangeWithVariableExpressions) {
+  const std::string source = R"(
+const test = fn(start: i32, end: i32) -> i32 {
+  sum :i32 = 0
+  loop i in start..end {
+    sum = sum + i
+  }
+  return sum
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  const auto* loop_stmt = dynamic_cast<const LoopStatement*>(func->body()[1].get());
+  ASSERT_NE(loop_stmt, nullptr);
+  EXPECT_TRUE(loop_stmt->is_range_loop());
+  
+  // Check range uses variable references
+  const auto* range = dynamic_cast<const RangeExpression*>(loop_stmt->range());
+  ASSERT_NE(range, nullptr);
+  
+  const auto* start_var = dynamic_cast<const VariableReference*>(range->start());
+  ASSERT_NE(start_var, nullptr);
+  EXPECT_EQ(start_var->name(), "start");
+  
+  const auto* end_var = dynamic_cast<const VariableReference*>(range->end());
+  ASSERT_NE(end_var, nullptr);
+  EXPECT_EQ(end_var->name(), "end");
+}
+
 }  // namespace
 }  // namespace void_compiler

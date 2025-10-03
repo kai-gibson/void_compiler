@@ -866,5 +866,187 @@ const test = fn(x: i32, y: i32) -> i32 {
   EXPECT_GE(else_count, 2);  // At least 2 else blocks
 }
 
+TEST_F(CodeGenerationTest, GeneratesSimpleRangeLoop) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  sum :i32 = 0
+  loop i in 0..5 {
+    sum = sum + i
+  }
+  return sum
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate loop structure with basic blocks
+  EXPECT_TRUE(output.find("loop.cond:") != std::string::npos);  // Loop condition block
+  EXPECT_TRUE(output.find("loop.body:") != std::string::npos);  // Loop body block
+  EXPECT_TRUE(output.find("loop.end:") != std::string::npos);   // Loop end block
+  EXPECT_TRUE(output.find("br i1") != std::string::npos);       // Conditional branch
+  EXPECT_TRUE(output.find("icmp") != std::string::npos);        // Comparison instruction
+}
+
+TEST_F(CodeGenerationTest, GeneratesConditionalLoop) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  x :i32 = 0
+  loop if x < 10 {
+    x = x + 1
+  }
+  return x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate conditional loop structure
+  EXPECT_TRUE(output.find("loop.cond:") != std::string::npos);
+  EXPECT_TRUE(output.find("loop.body:") != std::string::npos);
+  EXPECT_TRUE(output.find("loop.end:") != std::string::npos);
+  EXPECT_TRUE(output.find("icmp slt") != std::string::npos);    // Less than comparison
+}
+
+TEST_F(CodeGenerationTest, GeneratesLoopVariableAllocation) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  loop i in 0..3 {
+    return i
+  }
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should allocate space for loop variable
+  EXPECT_TRUE(output.find("alloca i32") != std::string::npos);
+  EXPECT_TRUE(output.find("store i32") != std::string::npos);
+  EXPECT_TRUE(output.find("load i32") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesNestedLoops) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  loop i in 0..2 {
+    loop j in 0..2 {
+      if i == j {
+        return i
+      }
+    }
+  }
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate multiple loop structures
+  size_t loop_cond_count = 0;
+  size_t loop_body_count = 0;
+  size_t pos = 0;
+  
+  while ((pos = output.find("loop.cond", pos)) != std::string::npos) {
+    loop_cond_count++;
+    pos += 9;  // length of "loop.cond"
+  }
+  
+  pos = 0;
+  while ((pos = output.find("loop.body", pos)) != std::string::npos) {
+    loop_body_count++;
+    pos += 9;  // length of "loop.body"
+  }
+  
+  EXPECT_GE(loop_cond_count, 2);  // At least 2 loop condition blocks
+  EXPECT_GE(loop_body_count, 2);  // At least 2 loop body blocks
+}
+
+TEST_F(CodeGenerationTest, GeneratesLoopWithComplexCondition) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  x :i32 = 0
+  y :i32 = 5
+  loop if x < y and y > 0 {
+    x = x + 1
+  }
+  return x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate logical operations in loop condition
+  EXPECT_TRUE(output.find("and i1") != std::string::npos);
+  EXPECT_TRUE(output.find("icmp slt") != std::string::npos);
+  EXPECT_TRUE(output.find("icmp sgt") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesRangeWithVariableExpressions) {
+  const std::string source = R"(
+const test = fn(start: i32, end: i32) -> i32 {
+  sum :i32 = 0
+  loop i in start..end {
+    sum = sum + i
+  }
+  return sum
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should load start and end variables for range
+  EXPECT_TRUE(output.find("loop.cond:") != std::string::npos);
+  EXPECT_TRUE(output.find("load i32") != std::string::npos);
+  EXPECT_TRUE(output.find("icmp") != std::string::npos);
+}
+
 }  // namespace
 }  // namespace void_compiler

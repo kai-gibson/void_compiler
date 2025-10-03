@@ -42,6 +42,8 @@ class CodeGenerator {
  private:
   llvm::Value* generate_expression(const ASTNode* node);
   void generate_statement(const ASTNode* node, llvm::Function* function);
+  void generate_range_loop(const LoopStatement* loop_stmt, llvm::Function* function);
+  void generate_conditional_loop(const LoopStatement* loop_stmt, llvm::Function* function);
 
   std::unique_ptr<llvm::LLVMContext> context_;
   std::unique_ptr<llvm::Module> module_;
