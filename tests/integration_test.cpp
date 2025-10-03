@@ -285,5 +285,243 @@ const main = fn() -> i32 {
   EXPECT_EQ(result, 3); // ((0+1)*5)-2 = 3
 }
 
+TEST_F(IntegrationTest, CompileAndRunSimpleIfStatement) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x :i32 = 15
+  if x > 10 {
+    return 1
+  }
+  return 0
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 1);
+}
+
+TEST_F(IntegrationTest, CompileAndRunIfElseStatement) {
+  const std::string source = R"(
+const test = fn(x: i32) -> i32 {
+  if x > 10 {
+    return 1
+  } else {
+    return 2
+  }
+}
+
+const main = fn() -> i32 {
+  return test(5)
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 2); // 5 is not > 10, so returns 2
+}
+
+TEST_F(IntegrationTest, CompileAndRunIfElseIfElseChain) {
+  const std::string source = R"(
+const classify = fn(x: i32) -> i32 {
+  if x > 20 {
+    return 3
+  } else if x > 10 {
+    return 2
+  } else {
+    return 1
+  }
+}
+
+const main = fn() -> i32 {
+  return classify(15)
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 2); // 15 is > 10 but not > 20
+}
+
+TEST_F(IntegrationTest, CompileAndRunAllComparisonOperators) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  a :i32 = 10
+  b :i32 = 5
+  
+  if a > b {
+    return 1
+  } else if a < b {
+    return 2  
+  } else if a >= b {
+    return 3
+  } else if a <= b {
+    return 4
+  } else if a == b {
+    return 5
+  } else if a != b {
+    return 6
+  }
+  return 0
+}
+
+const main = fn() -> i32 {
+  return test()
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 1); // 10 > 5 is true
+}
+
+TEST_F(IntegrationTest, CompileAndRunLogicalAndExpression) {
+  const std::string source = R"(
+const test = fn(a: i32, b: i32) -> i32 {
+  if a > 10 and b < 100 {
+    return 1
+  } else {
+    return 2
+  }
+}
+
+const main = fn() -> i32 {
+  return test(15, 50)
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 1); // 15 > 10 AND 50 < 100 = true AND true = true
+}
+
+TEST_F(IntegrationTest, CompileAndRunLogicalOrExpression) {
+  const std::string source = R"(
+const test = fn(a: i32, b: i32) -> i32 {
+  if a > 100 or b < 10 {
+    return 1
+  } else {
+    return 2
+  }
+}
+
+const main = fn() -> i32 {
+  return test(15, 5)
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 1); // 15 > 100 OR 5 < 10 = false OR true = true
+}
+
+TEST_F(IntegrationTest, CompileAndRunLogicalNotExpression) {
+  const std::string source = R"(
+const test = fn(a: i32) -> i32 {
+  if not a > 20 {
+    return 1
+  } else {
+    return 2
+  }
+}
+
+const main = fn() -> i32 {
+  return test(15)
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 1); // NOT(15 > 20) = NOT(false) = true
+}
+
+TEST_F(IntegrationTest, CompileAndRunComplexLogicalExpression) {
+  const std::string source = R"(
+const test = fn(a: i32, b: i32, c: i32) -> i32 {
+  if a > 10 and b < 100 or not c == 0 {
+    return 1
+  } else {
+    return 2
+  }
+}
+
+const main = fn() -> i32 {
+  return test(5, 50, 10)
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 1); // (5>10 AND 50<100) OR NOT(10==0) = (false AND true) OR NOT(false) = false OR true = true
+}
+
+TEST_F(IntegrationTest, CompileAndRunLogicalOperatorPrecedence) {
+  const std::string source = R"(
+const test = fn(a: i32, b: i32, c: i32) -> i32 {
+  if a > 0 and b > 0 or c > 0 {
+    return 1
+  } else {
+    return 2
+  }
+}
+
+const main = fn() -> i32 {
+  neg_a :i32 = 0 - 1
+  neg_b :i32 = 0 - 2  
+  pos_c :i32 = 5
+  return test(neg_a, neg_b, pos_c)
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 1); // (-1>0 AND -2>0) OR 5>0 = (false AND false) OR true = false OR true = true
+}
+
+TEST_F(IntegrationTest, CompileAndRunNestedIfStatements) {
+  const std::string source = R"(
+const test = fn(x: i32, y: i32) -> i32 {
+  if x > 0 {
+    if y > 0 {
+      return 1
+    } else {
+      return 2
+    }
+  } else {
+    if y > 0 {
+      return 3
+    } else {
+      return 4
+    }
+  }
+}
+
+const main = fn() -> i32 {
+  neg_y :i32 = 0 - 3
+  return test(5, neg_y)
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 2); // x=5>0 is true, y=-3>0 is false, so return 2
+}
+
+TEST_F(IntegrationTest, CompileAndRunControlFlowWithVariables) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  score :i32 = 85
+  grade :i32 = 0
+  
+  if score >= 90 {
+    grade = 4
+  } else if score >= 80 {
+    grade = 3
+  } else if score >= 70 {
+    grade = 2
+  } else if score >= 60 {
+    grade = 1
+  } else {
+    grade = 0
+  }
+  
+  return grade
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 3); // score=85 >= 80 but < 90, so grade = 3
+}
+
 }  // namespace
 }  // namespace void_compiler

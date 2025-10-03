@@ -296,5 +296,80 @@ TEST_F(LexerTest, HandlesCarriageReturnAndMixedLineEndings) {
   EXPECT_EQ(tokens[2].type, TokenType::Return);
 }
 
+TEST_F(LexerTest, TokenizesControlFlowKeywords) {
+  auto tokens = TokenizeSource("if else and or not");
+  
+  ASSERT_EQ(tokens.size(), 6);  // 5 keywords + EOF
+  EXPECT_EQ(tokens[0].type, TokenType::If);
+  EXPECT_EQ(tokens[0].value, "if");
+  EXPECT_EQ(tokens[1].type, TokenType::Else);
+  EXPECT_EQ(tokens[1].value, "else");
+  EXPECT_EQ(tokens[2].type, TokenType::And);
+  EXPECT_EQ(tokens[2].value, "and");
+  EXPECT_EQ(tokens[3].type, TokenType::Or);
+  EXPECT_EQ(tokens[3].value, "or");
+  EXPECT_EQ(tokens[4].type, TokenType::Not);
+  EXPECT_EQ(tokens[4].value, "not");
+  EXPECT_EQ(tokens[5].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, TokenizesComparisonOperators) {
+  auto tokens = TokenizeSource("> < >= <= == !=");
+  
+  ASSERT_EQ(tokens.size(), 7);  // 6 operators + EOF
+  EXPECT_EQ(tokens[0].type, TokenType::GreaterThan);
+  EXPECT_EQ(tokens[0].value, ">");
+  EXPECT_EQ(tokens[1].type, TokenType::LessThan);
+  EXPECT_EQ(tokens[1].value, "<");
+  EXPECT_EQ(tokens[2].type, TokenType::GreaterEqual);
+  EXPECT_EQ(tokens[2].value, ">=");
+  EXPECT_EQ(tokens[3].type, TokenType::LessEqual);
+  EXPECT_EQ(tokens[3].value, "<=");
+  EXPECT_EQ(tokens[4].type, TokenType::EqualEqual);
+  EXPECT_EQ(tokens[4].value, "==");
+  EXPECT_EQ(tokens[5].type, TokenType::NotEqual);
+  EXPECT_EQ(tokens[5].value, "!=");
+  EXPECT_EQ(tokens[6].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, HandlesComparisonOperatorEdgeCases) {
+  auto tokens = TokenizeSource("=== !== >>= <<=");
+  
+  ASSERT_EQ(tokens.size(), 9);  // ==, =, !=, =, >, >=, <, <=, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::EqualEqual);
+  EXPECT_EQ(tokens[1].type, TokenType::Equals);
+  EXPECT_EQ(tokens[2].type, TokenType::NotEqual);
+  EXPECT_EQ(tokens[3].type, TokenType::Equals);
+  EXPECT_EQ(tokens[4].type, TokenType::GreaterThan);
+  EXPECT_EQ(tokens[5].type, TokenType::GreaterEqual);
+  EXPECT_EQ(tokens[6].type, TokenType::LessThan);
+  EXPECT_EQ(tokens[7].type, TokenType::LessEqual);
+}
+
+TEST_F(LexerTest, TokenizesComplexControlFlowExpression) {
+  auto tokens = TokenizeSource("if x > 10 and y <= 20 or not z == 5");
+  
+  // Verify key tokens in the expression
+  EXPECT_EQ(tokens[0].type, TokenType::If);
+  EXPECT_EQ(tokens[1].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[1].value, "x");
+  EXPECT_EQ(tokens[2].type, TokenType::GreaterThan);
+  EXPECT_EQ(tokens[3].type, TokenType::Number);
+  EXPECT_EQ(tokens[3].value, "10");
+  EXPECT_EQ(tokens[4].type, TokenType::And);
+  EXPECT_EQ(tokens[5].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[5].value, "y");
+  EXPECT_EQ(tokens[6].type, TokenType::LessEqual);
+  EXPECT_EQ(tokens[7].type, TokenType::Number);
+  EXPECT_EQ(tokens[7].value, "20");
+  EXPECT_EQ(tokens[8].type, TokenType::Or);
+  EXPECT_EQ(tokens[9].type, TokenType::Not);
+  EXPECT_EQ(tokens[10].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[10].value, "z");
+  EXPECT_EQ(tokens[11].type, TokenType::EqualEqual);
+  EXPECT_EQ(tokens[12].type, TokenType::Number);
+  EXPECT_EQ(tokens[12].value, "5");
+}
+
 }  // namespace
 }  // namespace void_compiler

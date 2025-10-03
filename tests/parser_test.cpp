@@ -660,5 +660,303 @@ const main = fn() -> i32 {
   ASSERT_EQ(var_assign->name(), "result");
 }
 
+TEST_F(ParserTest, ParsesSimpleIfStatement) {
+  const std::string source = R"(
+const test = fn(x: i32) -> i32 {
+  if x > 10 {
+    return 1
+  }
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 2);  // if statement + return
+  
+  const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
+  ASSERT_NE(if_stmt, nullptr);
+  
+  // Check condition is a comparison
+  const auto* condition = dynamic_cast<const BinaryOperation*>(if_stmt->condition());
+  ASSERT_NE(condition, nullptr);
+  EXPECT_EQ(condition->operator_type(), TokenType::GreaterThan);
+  
+  // Check then body has one return statement
+  ASSERT_EQ(if_stmt->then_body().size(), 1);
+  const auto* ret_stmt = dynamic_cast<const ReturnStatement*>(if_stmt->then_body()[0].get());
+  ASSERT_NE(ret_stmt, nullptr);
+  
+  // Check else body is empty
+  EXPECT_EQ(if_stmt->else_body().size(), 0);
+}
+
+TEST_F(ParserTest, ParsesIfElseStatement) {
+  const std::string source = R"(
+const test = fn(x: i32) -> i32 {
+  if x > 10 {
+    return 1
+  } else {
+    return 0
+  }
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 1);  // just if-else statement
+  
+  const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
+  ASSERT_NE(if_stmt, nullptr);
+  
+  // Check then body
+  ASSERT_EQ(if_stmt->then_body().size(), 1);
+  const auto* then_ret = dynamic_cast<const ReturnStatement*>(if_stmt->then_body()[0].get());
+  ASSERT_NE(then_ret, nullptr);
+  
+  // Check else body
+  ASSERT_EQ(if_stmt->else_body().size(), 1);
+  const auto* else_ret = dynamic_cast<const ReturnStatement*>(if_stmt->else_body()[0].get());
+  ASSERT_NE(else_ret, nullptr);
+}
+
+TEST_F(ParserTest, ParsesIfElseIfElseStatement) {
+  const std::string source = R"(
+const test = fn(x: i32) -> i32 {
+  if x > 20 {
+    return 3
+  } else if x > 10 {
+    return 2
+  } else {
+    return 1
+  }
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 1);  // if-else-if-else chain
+  
+  const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
+  ASSERT_NE(if_stmt, nullptr);
+  
+  // Check condition
+  const auto* condition = dynamic_cast<const BinaryOperation*>(if_stmt->condition());
+  ASSERT_NE(condition, nullptr);
+  EXPECT_EQ(condition->operator_type(), TokenType::GreaterThan);
+  
+  // Check then body
+  ASSERT_EQ(if_stmt->then_body().size(), 1);
+  
+  // Check else body contains another if statement (else-if)
+  ASSERT_EQ(if_stmt->else_body().size(), 1);
+  const auto* nested_if = dynamic_cast<const IfStatement*>(if_stmt->else_body()[0].get());
+  ASSERT_NE(nested_if, nullptr);
+  
+  // Check nested if has both then and else
+  EXPECT_EQ(nested_if->then_body().size(), 1);
+  EXPECT_EQ(nested_if->else_body().size(), 1);
+}
+
+TEST_F(ParserTest, ParsesAllComparisonOperators) {
+  const std::string source = R"(
+const test = fn(a: i32, b: i32) -> i32 {
+  if a > b {
+    return 1
+  } else if a < b {
+    return 2
+  } else if a >= b {
+    return 3
+  } else if a <= b {
+    return 4
+  } else if a == b {
+    return 5
+  } else if a != b {
+    return 6
+  }
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 2);  // if chain + final return
+  
+  const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
+  ASSERT_NE(if_stmt, nullptr);
+  
+  // Check first condition (a > b)
+  const auto* condition = dynamic_cast<const BinaryOperation*>(if_stmt->condition());
+  ASSERT_NE(condition, nullptr);
+  EXPECT_EQ(condition->operator_type(), TokenType::GreaterThan);
+}
+
+TEST_F(ParserTest, ParsesLogicalAndExpression) {
+  const std::string source = R"(
+const test = fn(a: i32, b: i32) -> i32 {
+  if a > 10 and b < 20 {
+    return 1
+  }
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
+  ASSERT_NE(if_stmt, nullptr);
+  
+  // Check condition is an AND operation
+  const auto* and_op = dynamic_cast<const BinaryOperation*>(if_stmt->condition());
+  ASSERT_NE(and_op, nullptr);
+  EXPECT_EQ(and_op->operator_type(), TokenType::And);
+  
+  // Check left side is a > 10
+  const auto* left_comp = dynamic_cast<const BinaryOperation*>(and_op->left());
+  ASSERT_NE(left_comp, nullptr);
+  EXPECT_EQ(left_comp->operator_type(), TokenType::GreaterThan);
+  
+  // Check right side is b < 20
+  const auto* right_comp = dynamic_cast<const BinaryOperation*>(and_op->right());
+  ASSERT_NE(right_comp, nullptr);
+  EXPECT_EQ(right_comp->operator_type(), TokenType::LessThan);
+}
+
+TEST_F(ParserTest, ParsesLogicalOrExpression) {
+  const std::string source = R"(
+const test = fn(a: i32, b: i32) -> i32 {
+  if a > 100 or b < 5 {
+    return 1
+  }
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
+  ASSERT_NE(if_stmt, nullptr);
+  
+  // Check condition is an OR operation
+  const auto* or_op = dynamic_cast<const BinaryOperation*>(if_stmt->condition());
+  ASSERT_NE(or_op, nullptr);
+  EXPECT_EQ(or_op->operator_type(), TokenType::Or);
+}
+
+TEST_F(ParserTest, ParsesLogicalNotExpression) {
+  const std::string source = R"(
+const test = fn(a: i32) -> i32 {
+  if not a > 10 {
+    return 1
+  }
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
+  ASSERT_NE(if_stmt, nullptr);
+  
+  // Check condition is a NOT operation
+  const auto* not_op = dynamic_cast<const UnaryOperation*>(if_stmt->condition());
+  ASSERT_NE(not_op, nullptr);
+  EXPECT_EQ(not_op->operator_type(), TokenType::Not);
+  
+  // Check operand is a > 10
+  const auto* comparison = dynamic_cast<const BinaryOperation*>(not_op->operand());
+  ASSERT_NE(comparison, nullptr);
+  EXPECT_EQ(comparison->operator_type(), TokenType::GreaterThan);
+}
+
+TEST_F(ParserTest, ParsesComplexLogicalExpression) {
+  const std::string source = R"(
+const test = fn(a: i32, b: i32, c: i32) -> i32 {
+  if a > 10 and b < 20 or not c == 5 {
+    return 1
+  }
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
+  ASSERT_NE(if_stmt, nullptr);
+  
+  // Check condition is an OR operation (lowest precedence)
+  const auto* or_op = dynamic_cast<const BinaryOperation*>(if_stmt->condition());
+  ASSERT_NE(or_op, nullptr);
+  EXPECT_EQ(or_op->operator_type(), TokenType::Or);
+  
+  // Check left side is AND operation
+  const auto* and_op = dynamic_cast<const BinaryOperation*>(or_op->left());
+  ASSERT_NE(and_op, nullptr);
+  EXPECT_EQ(and_op->operator_type(), TokenType::And);
+  
+  // Check right side is NOT operation
+  const auto* not_op = dynamic_cast<const UnaryOperation*>(or_op->right());
+  ASSERT_NE(not_op, nullptr);
+  EXPECT_EQ(not_op->operator_type(), TokenType::Not);
+}
+
+TEST_F(ParserTest, ParsesLogicalOperatorPrecedence) {
+  const std::string source = R"(
+const test = fn(a: i32, b: i32, c: i32) -> i32 {
+  if a > 5 and b < 10 or c == 0 {
+    return 1
+  }
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  const auto& func = program->functions()[0];
+  const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
+  ASSERT_NE(if_stmt, nullptr);
+  
+  // Should parse as: (a > 5 and b < 10) or (c == 0)
+  // Top level should be OR
+  const auto* or_op = dynamic_cast<const BinaryOperation*>(if_stmt->condition());
+  ASSERT_NE(or_op, nullptr);
+  EXPECT_EQ(or_op->operator_type(), TokenType::Or);
+  
+  // Left side should be AND
+  const auto* and_op = dynamic_cast<const BinaryOperation*>(or_op->left());
+  ASSERT_NE(and_op, nullptr);
+  EXPECT_EQ(and_op->operator_type(), TokenType::And);
+  
+  // Right side should be comparison
+  const auto* comp_op = dynamic_cast<const BinaryOperation*>(or_op->right());
+  ASSERT_NE(comp_op, nullptr);
+  EXPECT_EQ(comp_op->operator_type(), TokenType::EqualEqual);
+}
+
 }  // namespace
 }  // namespace void_compiler

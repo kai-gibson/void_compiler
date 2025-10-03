@@ -37,6 +37,9 @@ enum class TokenType : uint8_t {
   LessEqual,
   EqualEqual,
   NotEqual,
+  And,
+  Or,
+  Not,
   EndOfFile
 };
 
@@ -122,6 +125,19 @@ class BinaryOperation : public ASTNode {
   std::unique_ptr<ASTNode> left_;
   TokenType operator_;
   std::unique_ptr<ASTNode> right_;
+};
+
+class UnaryOperation : public ASTNode {
+ public:
+  UnaryOperation(TokenType op, std::unique_ptr<ASTNode> operand)
+      : operator_(op), operand_(std::move(operand)) {}
+
+  [[nodiscard]] TokenType operator_type() const { return operator_; }
+  [[nodiscard]] const ASTNode* operand() const { return operand_.get(); }
+
+ private:
+  TokenType operator_;
+  std::unique_ptr<ASTNode> operand_;
 };
 
 class VariableDeclaration : public ASTNode {

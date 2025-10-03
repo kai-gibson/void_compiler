@@ -38,9 +38,44 @@ bool Parser::match(TokenType type) const {
   return tokens_[current_].type == type;
 }
 
-std::unique_ptr<ASTNode> Parser::parse_expression() { return parse_comparison(); }
+std::unique_ptr<ASTNode> Parser::parse_expression() { return parse_logical_or(); }
+
+std::unique_ptr<ASTNode> Parser::parse_logical_or() {
+  auto left = parse_logical_and();
+
+  while (match(TokenType::Or)) {
+    TokenType op = peek().type;
+    consume(op);
+    auto right = parse_logical_and();
+    left = std::make_unique<BinaryOperation>(std::move(left), op,
+                                             std::move(right));
+  }
+
+  return left;
+}
+
+std::unique_ptr<ASTNode> Parser::parse_logical_and() {
+  auto left = parse_comparison();
+
+  while (match(TokenType::And)) {
+    TokenType op = peek().type;
+    consume(op);
+    auto right = parse_comparison();
+    left = std::make_unique<BinaryOperation>(std::move(left), op,
+                                             std::move(right));
+  }
+
+  return left;
+}
 
 std::unique_ptr<ASTNode> Parser::parse_comparison() {
+  // Handle 'not' at comparison level for proper precedence
+  if (match(TokenType::Not)) {
+    TokenType op = consume(TokenType::Not).type;
+    auto operand = parse_comparison(); // Parse the comparison after 'not'
+    return std::make_unique<UnaryOperation>(op, std::move(operand));
+  }
+
   auto left = parse_additive();
 
   while (match(TokenType::GreaterThan) || match(TokenType::LessThan) ||
@@ -71,17 +106,22 @@ std::unique_ptr<ASTNode> Parser::parse_additive() {
 }
 
 std::unique_ptr<ASTNode> Parser::parse_multiplicative() {
-  auto left = parse_primary();
+  auto left = parse_unary();
 
   while (match(TokenType::Multiply) || match(TokenType::Divide)) {
     TokenType op = peek().type;
     consume(op);
-    auto right = parse_primary();
+    auto right = parse_unary();
     left = std::make_unique<BinaryOperation>(std::move(left), op,
                                              std::move(right));
   }
 
   return left;
+}
+
+std::unique_ptr<ASTNode> Parser::parse_unary() {
+  // Currently no unary operators at this level
+  return parse_primary();
 }
 
 std::unique_ptr<ASTNode> Parser::parse_primary() {

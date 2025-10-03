@@ -210,8 +210,23 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
         return builder_->CreateICmpEQ(left, right, "eqtmp");
       case TokenType::NotEqual:
         return builder_->CreateICmpNE(left, right, "netmp");
+      case TokenType::And:
+        return builder_->CreateAnd(left, right, "andtmp");
+      case TokenType::Or:
+        return builder_->CreateOr(left, right, "ortmp");
       default:
         throw std::runtime_error("Unknown binary operator");
+    }
+  }
+
+  if (const auto* unary = dynamic_cast<const UnaryOperation*>(node)) {
+    llvm::Value* operand = generate_expression(unary->operand());
+
+    switch (unary->operator_type()) {
+      case TokenType::Not:
+        return builder_->CreateNot(operand, "nottmp");
+      default:
+        throw std::runtime_error("Unknown unary operator");
     }
   }
 

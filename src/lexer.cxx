@@ -72,6 +72,24 @@ Token Lexer::next_token() {
                    .line = line_,
                    .column = column_};
     }
+    if (identifier == "and") {
+      return Token{.type = TokenType::And,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
+    if (identifier == "or") {
+      return Token{.type = TokenType::Or,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
+    if (identifier == "not") {
+      return Token{.type = TokenType::Not,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
 
     return Token{.type = TokenType::Identifier,
                  .value = identifier,

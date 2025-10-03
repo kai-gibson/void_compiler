@@ -626,5 +626,245 @@ const main = fn() -> i32 {
   ASSERT_THROW(generator.generate_program(program.get()), std::runtime_error);
 }
 
+TEST_F(CodeGenerationTest, GeneratesSimpleIfStatement) {
+  const std::string source = R"(
+const test = fn(x: i32) -> i32 {
+  if x > 10 {
+    return 1
+  }
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate basic blocks for conditional branching
+  EXPECT_TRUE(output.find("br i1") != std::string::npos);  // conditional branch
+  EXPECT_TRUE(output.find("icmp") != std::string::npos);   // comparison instruction
+  EXPECT_TRUE(output.find("then:") != std::string::npos);  // then label
+}
+
+TEST_F(CodeGenerationTest, GeneratesIfElseStatement) {
+  const std::string source = R"(
+const test = fn(x: i32) -> i32 {
+  if x > 10 {
+    return 1
+  } else {
+    return 0
+  }
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate both then and else blocks
+  EXPECT_TRUE(output.find("then:") != std::string::npos);
+  EXPECT_TRUE(output.find("else:") != std::string::npos);
+  EXPECT_TRUE(output.find("br i1") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesAllComparisonOperators) {
+  const std::string source = R"(
+const test = fn(a: i32, b: i32) -> i32 {
+  if a > b {
+    return 1
+  } else if a < b {
+    return 2
+  } else if a >= b {
+    return 3
+  } else if a <= b {
+    return 4
+  } else if a == b {
+    return 5
+  } else if a != b {
+    return 6
+  }
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate icmp instructions for all comparison types
+  EXPECT_TRUE(output.find("icmp sgt") != std::string::npos);  // >
+  EXPECT_TRUE(output.find("icmp slt") != std::string::npos);  // <
+  EXPECT_TRUE(output.find("icmp sge") != std::string::npos);  // >=
+  EXPECT_TRUE(output.find("icmp sle") != std::string::npos);  // <=
+  EXPECT_TRUE(output.find("icmp eq") != std::string::npos);   // ==
+  EXPECT_TRUE(output.find("icmp ne") != std::string::npos);   // !=
+}
+
+TEST_F(CodeGenerationTest, GeneratesLogicalAndOperation) {
+  const std::string source = R"(
+const test = fn(a: i32, b: i32) -> i32 {
+  if a > 10 and b < 20 {
+    return 1
+  }
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate logical AND instruction
+  EXPECT_TRUE(output.find("and i1") != std::string::npos);
+  EXPECT_TRUE(output.find("icmp") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesLogicalOrOperation) {
+  const std::string source = R"(
+const test = fn(a: i32, b: i32) -> i32 {
+  if a > 100 or b < 5 {
+    return 1
+  }
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate logical OR instruction
+  EXPECT_TRUE(output.find("or i1") != std::string::npos);
+  EXPECT_TRUE(output.find("icmp") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesLogicalNotOperation) {
+  const std::string source = R"(
+const test = fn(a: i32) -> i32 {
+  if not a > 10 {
+    return 1
+  }
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate logical NOT instruction (XOR with true)
+  EXPECT_TRUE(output.find("xor i1") != std::string::npos);
+  EXPECT_TRUE(output.find(", true") != std::string::npos);
+  EXPECT_TRUE(output.find("icmp") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesComplexLogicalExpression) {
+  const std::string source = R"(
+const test = fn(a: i32, b: i32, c: i32) -> i32 {
+  if a > 10 and b < 20 or not c == 5 {
+    return 1
+  }
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate all logical operations in correct order
+  EXPECT_TRUE(output.find("and i1") != std::string::npos);
+  EXPECT_TRUE(output.find("or i1") != std::string::npos);
+  EXPECT_TRUE(output.find("xor i1") != std::string::npos);
+  EXPECT_TRUE(output.find("icmp") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesNestedIfStatements) {
+  const std::string source = R"(
+const test = fn(x: i32, y: i32) -> i32 {
+  if x > 0 {
+    if y > 0 {
+      return 1
+    } else {
+      return 2
+    }
+  } else {
+    return 3
+  }
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate multiple conditional branches and blocks
+  size_t then_count = 0;
+  size_t else_count = 0;
+  size_t pos = 0;
+  
+  while ((pos = output.find("then", pos)) != std::string::npos) {
+    then_count++;
+    pos += 4;
+  }
+  
+  pos = 0;
+  while ((pos = output.find("else", pos)) != std::string::npos) {
+    else_count++;
+    pos += 4;
+  }
+  
+  EXPECT_GE(then_count, 2);  // At least 2 then blocks
+  EXPECT_GE(else_count, 2);  // At least 2 else blocks
+}
+
 }  // namespace
 }  // namespace void_compiler
