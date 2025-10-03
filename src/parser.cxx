@@ -38,7 +38,23 @@ bool Parser::match(TokenType type) const {
   return tokens_[current_].type == type;
 }
 
-std::unique_ptr<ASTNode> Parser::parse_expression() { return parse_additive(); }
+std::unique_ptr<ASTNode> Parser::parse_expression() { return parse_comparison(); }
+
+std::unique_ptr<ASTNode> Parser::parse_comparison() {
+  auto left = parse_additive();
+
+  while (match(TokenType::GreaterThan) || match(TokenType::LessThan) ||
+         match(TokenType::GreaterEqual) || match(TokenType::LessEqual) ||
+         match(TokenType::EqualEqual) || match(TokenType::NotEqual)) {
+    TokenType op = peek().type;
+    consume(op);
+    auto right = parse_additive();
+    left = std::make_unique<BinaryOperation>(std::move(left), op,
+                                             std::move(right));
+  }
+
+  return left;
+}
 
 std::unique_ptr<ASTNode> Parser::parse_additive() {
   auto left = parse_multiplicative();
@@ -142,6 +158,10 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
     return std::make_unique<ReturnStatement>(std::move(expr));
   }
   
+  if (match(TokenType::If)) {
+    return parse_if_statement();
+  }
+  
   // Check for variable declaration: identifier : type = value
   if (match(TokenType::Identifier) && current_ + 1 < tokens_.size() && 
       tokens_[current_ + 1].type == TokenType::Colon) {
@@ -177,6 +197,39 @@ std::unique_ptr<VariableAssignment> Parser::parse_variable_assignment() {
   consume(TokenType::Equals);
   auto value = parse_expression();
   return std::make_unique<VariableAssignment>(std::move(name), std::move(value));
+}
+
+std::unique_ptr<IfStatement> Parser::parse_if_statement() {
+  consume(TokenType::If);
+  auto condition = parse_expression();
+  consume(TokenType::LBrace);
+  
+  // Parse then body
+  std::vector<std::unique_ptr<ASTNode>> then_body;
+  while (!match(TokenType::RBrace)) {
+    then_body.push_back(parse_statement());
+  }
+  consume(TokenType::RBrace);
+  
+  // Parse optional else clause
+  std::vector<std::unique_ptr<ASTNode>> else_body;
+  if (match(TokenType::Else)) {
+    consume(TokenType::Else);
+    
+    // Handle "else if" by recursively parsing another if statement
+    if (match(TokenType::If)) {
+      else_body.push_back(parse_if_statement());
+    } else {
+      // Handle regular else clause
+      consume(TokenType::LBrace);
+      while (!match(TokenType::RBrace)) {
+        else_body.push_back(parse_statement());
+      }
+      consume(TokenType::RBrace);
+    }
+  }
+  
+  return std::make_unique<IfStatement>(std::move(condition), std::move(then_body), std::move(else_body));
 }
 
 std::unique_ptr<ImportStatement> Parser::parse_import() {

@@ -198,6 +198,18 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
         return builder_->CreateMul(left, right, "multmp");
       case TokenType::Divide:
         return builder_->CreateSDiv(left, right, "divtmp");
+      case TokenType::GreaterThan:
+        return builder_->CreateICmpSGT(left, right, "gttmp");
+      case TokenType::LessThan:
+        return builder_->CreateICmpSLT(left, right, "lttmp");
+      case TokenType::GreaterEqual:
+        return builder_->CreateICmpSGE(left, right, "getmp");
+      case TokenType::LessEqual:
+        return builder_->CreateICmpSLE(left, right, "letmp");
+      case TokenType::EqualEqual:
+        return builder_->CreateICmpEQ(left, right, "eqtmp");
+      case TokenType::NotEqual:
+        return builder_->CreateICmpNE(left, right, "netmp");
       default:
         throw std::runtime_error("Unknown binary operator");
     }
@@ -342,6 +354,44 @@ void CodeGenerator::generate_statement(const ASTNode* node,
   // Handle member access as a statement (e.g., fmt.println calls)
   if (const auto* member = dynamic_cast<const MemberAccess*>(node)) {
     generate_expression(member);  // Generate the call and discard the return value
+    return;
+  }
+  
+  // Handle if statements
+  if (const auto* if_stmt = dynamic_cast<const IfStatement*>(node)) {
+    // Generate condition expression
+    llvm::Value* condition = generate_expression(if_stmt->condition());
+    
+    // Create basic blocks for then, else, and merge
+    llvm::BasicBlock* then_block = llvm::BasicBlock::Create(*context_, "then", function);
+    llvm::BasicBlock* else_block = llvm::BasicBlock::Create(*context_, "else", function);
+    llvm::BasicBlock* merge_block = llvm::BasicBlock::Create(*context_, "ifcont", function);
+    
+    // Create conditional branch
+    builder_->CreateCondBr(condition, then_block, else_block);
+    
+    // Generate then block
+    builder_->SetInsertPoint(then_block);
+    for (const auto& stmt : if_stmt->then_body()) {
+      generate_statement(stmt.get(), function);
+    }
+    // Only add branch if the block doesn't already have a terminator (e.g., return)
+    if (!builder_->GetInsertBlock()->getTerminator()) {
+      builder_->CreateBr(merge_block);
+    }
+    
+    // Generate else block
+    builder_->SetInsertPoint(else_block);
+    for (const auto& stmt : if_stmt->else_body()) {
+      generate_statement(stmt.get(), function);
+    }
+    // Only add branch if the block doesn't already have a terminator
+    if (!builder_->GetInsertBlock()->getTerminator()) {
+      builder_->CreateBr(merge_block);
+    }
+    
+    // Continue with merge block
+    builder_->SetInsertPoint(merge_block);
     return;
   }
   

@@ -1,7 +1,19 @@
 
 import fmt
 
+const test_ifs = fn(condition: i32) -> i32 {
+    if condition > 100 {
+        return condition * 10
+    } else if condition > 50 {
+        return condition * 20
+    } else {
+        return condition
+    }
+}
+
 const main = fn() {
-    fmt.println("{:d}", 123)
+    fmt.println("Testing: {:d}", test_ifs(150))
+    fmt.println("Testing: {:d}", test_ifs(75))
+    fmt.println("Testing: {:d}", test_ifs(25))
 }
 

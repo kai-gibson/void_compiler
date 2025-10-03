@@ -60,6 +60,18 @@ Token Lexer::next_token() {
                    .line = line_,
                    .column = column_};
     }
+    if (identifier == "if") {
+      return Token{.type = TokenType::If,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
+    if (identifier == "else") {
+      return Token{.type = TokenType::Else,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
 
     return Token{.type = TokenType::Identifier,
                  .value = identifier,
@@ -73,10 +85,50 @@ Token Lexer::next_token() {
 
   switch (ch) {
     case '=':
+      if (current_char() == '=') {
+        advance();
+        return Token{.type = TokenType::EqualEqual,
+                     .value = "==",
+                     .line = line_,
+                     .column = start_column};
+      }
       return Token{.type = TokenType::Equals,
                    .value = "=",
                    .line = line_,
                    .column = start_column};
+    case '>':
+      if (current_char() == '=') {
+        advance();
+        return Token{.type = TokenType::GreaterEqual,
+                     .value = ">=",
+                     .line = line_,
+                     .column = start_column};
+      }
+      return Token{.type = TokenType::GreaterThan,
+                   .value = ">",
+                   .line = line_,
+                   .column = start_column};
+    case '<':
+      if (current_char() == '=') {
+        advance();
+        return Token{.type = TokenType::LessEqual,
+                     .value = "<=",
+                     .line = line_,
+                     .column = start_column};
+      }
+      return Token{.type = TokenType::LessThan,
+                   .value = "<",
+                   .line = line_,
+                   .column = start_column};
+    case '!':
+      if (current_char() == '=') {
+        advance();
+        return Token{.type = TokenType::NotEqual,
+                     .value = "!=",
+                     .line = line_,
+                     .column = start_column};
+      }
+      throw std::runtime_error("Unknown character: !");
     case '(':
       return Token{.type = TokenType::LParen,
                    .value = "(",

@@ -29,6 +29,14 @@ enum class TokenType : uint8_t {
   Import,
   Dot,
   StringLiteral,
+  If,
+  Else,
+  GreaterThan,
+  LessThan,
+  GreaterEqual,
+  LessEqual,
+  EqualEqual,
+  NotEqual,
   EndOfFile
 };
 
@@ -153,6 +161,29 @@ class ReturnStatement : public ASTNode {
 
  private:
   std::unique_ptr<ASTNode> expression_;
+};
+
+class IfStatement : public ASTNode {
+ public:
+  IfStatement(std::unique_ptr<ASTNode> condition,
+              std::vector<std::unique_ptr<ASTNode>> then_body,
+              std::vector<std::unique_ptr<ASTNode>> else_body = {})
+      : condition_(std::move(condition)), 
+        then_body_(std::move(then_body)), 
+        else_body_(std::move(else_body)) {}
+
+  [[nodiscard]] const ASTNode* condition() const { return condition_.get(); }
+  [[nodiscard]] const std::vector<std::unique_ptr<ASTNode>>& then_body() const {
+    return then_body_;
+  }
+  [[nodiscard]] const std::vector<std::unique_ptr<ASTNode>>& else_body() const {
+    return else_body_;
+  }
+
+ private:
+  std::unique_ptr<ASTNode> condition_;
+  std::vector<std::unique_ptr<ASTNode>> then_body_;
+  std::vector<std::unique_ptr<ASTNode>> else_body_;
 };
 
 class FunctionCall : public ASTNode {

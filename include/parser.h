@@ -18,10 +18,12 @@ class Parser {
   Token consume(TokenType expected);
   bool match(TokenType type) const;
   std::unique_ptr<ASTNode> parse_expression();
+  std::unique_ptr<ASTNode> parse_comparison();
   std::unique_ptr<ASTNode> parse_additive();
   std::unique_ptr<ASTNode> parse_multiplicative();
   std::unique_ptr<ASTNode> parse_primary();
   std::unique_ptr<ASTNode> parse_statement();
+  std::unique_ptr<IfStatement> parse_if_statement();
   std::unique_ptr<ImportStatement> parse_import();
   std::unique_ptr<FunctionDeclaration> parse_function();
   std::unique_ptr<VariableDeclaration> parse_variable_declaration();
