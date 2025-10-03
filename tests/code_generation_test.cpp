@@ -1150,5 +1150,89 @@ const test = fn() -> i32 {
   EXPECT_TRUE(output.find("add i32") != std::string::npos);   // x = x + 1
 }
 
+// Nil function code generation tests
+TEST_F(CodeGenerationTest, GeneratesNilFunctionExplicit) {
+  const std::string source = R"(
+const nil_func = fn() -> nil {
+  return
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  EXPECT_TRUE(output.find("define void @nil_func()") != std::string::npos);
+  EXPECT_TRUE(output.find("ret void") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesNilFunctionImplicit) {
+  const std::string source = R"(
+const nil_func = fn() {
+  return
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  EXPECT_TRUE(output.find("define void @nil_func()") != std::string::npos);
+  EXPECT_TRUE(output.find("ret void") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesNilFunctionWithDoSyntax) {
+  const std::string source = R"(
+const nil_func = fn() do return
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  EXPECT_TRUE(output.find("define void @nil_func()") != std::string::npos);
+  EXPECT_TRUE(output.find("ret void") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, RejectsValueReturnFromNilFunction) {
+  const std::string source = R"(
+const nil_func = fn() -> nil {
+  return 42
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  
+  // This should throw an error due to validation
+  try {
+    codegen.generate_program(program.get());
+    FAIL() << "Expected exception to be thrown";
+  } catch (const std::runtime_error& e) {
+    std::string error_message = e.what();
+    EXPECT_TRUE(error_message.find("Cannot return a value from a nil function") != std::string::npos);
+  }
+}
+
 }  // namespace
 }  // namespace void_compiler

@@ -1,19 +1,16 @@
 
 import fmt
 
-const test_ifs = fn(condition: i32) -> i32 {
-    if condition > 100 {
-        return condition * 10
-    } else if condition > 50 {
-        return condition * 20
-    } else {
-        return condition
-    }
+const test_ifs = fn() -> i32 {
+  loop i in 0..100 do fmt.println("iteration number: {:d}", i)
+
+  count: i32 = 20
+  loop if count > 0 {
+    fmt.println("count: {:d}", count)
+    count = count - 1
+  }
+  return 1
 }
 
-const main = fn() {
-    fmt.println("Testing: {:d}", test_ifs(150))
-    fmt.println("Testing: {:d}", test_ifs(75))
-    fmt.println("Testing: {:d}", test_ifs(25))
-}
+const main = fn() do return test_ifs()
 

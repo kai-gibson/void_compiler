@@ -278,10 +278,26 @@ TEST_F(ParserTest, ThrowsOnMissingRBrace) {
   }, std::runtime_error);
 }
 
-TEST_F(ParserTest, ThrowsOnInvalidExpression) {
-  EXPECT_THROW({
-    ParseSource("const add = fn() -> i32 { return }");
-  }, std::runtime_error);
+TEST_F(ParserTest, ParsesReturnWithoutExpressionForTypeValidation) {
+  // Parser should accept return without expression and let code generation validate types
+  const std::string source = R"(
+const add = fn() -> i32 {
+  return
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  EXPECT_EQ(func->name(), "add");
+  EXPECT_EQ(func->return_type(), "i32");
+  EXPECT_EQ(func->body().size(), 1);
+  
+  const auto* return_stmt = dynamic_cast<const ReturnStatement*>(func->body()[0].get());
+  ASSERT_NE(return_stmt, nullptr);
+  EXPECT_EQ(return_stmt->expression(), nullptr);  // Return without value
 }
 
 TEST_F(ParserTest, ThrowsOnUnmatchedParentheses) {
@@ -1273,6 +1289,79 @@ const test = fn(x: i32) -> i32 {
   // Both then and else bodies should have exactly one statement
   EXPECT_EQ(if_stmt->then_body().size(), 1);
   EXPECT_EQ(if_stmt->else_body().size(), 1);
+}
+
+// Nil function tests
+TEST_F(ParserTest, ParsesNilFunctionExplicit) {
+  const std::string source = R"(
+const nil_func = fn() -> nil {
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  EXPECT_EQ(func->name(), "nil_func");
+  EXPECT_EQ(func->return_type(), "nil");
+  EXPECT_EQ(func->parameters().size(), 0);
+  EXPECT_EQ(func->body().size(), 0);  // Empty body
+}
+
+TEST_F(ParserTest, ParsesNilFunctionImplicit) {
+  const std::string source = R"(
+const nil_func = fn() {
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  EXPECT_EQ(func->name(), "nil_func");
+  EXPECT_EQ(func->return_type(), "nil");  // Should default to nil
+  EXPECT_EQ(func->parameters().size(), 0);
+  EXPECT_EQ(func->body().size(), 0);  // Empty body
+}
+
+TEST_F(ParserTest, ParsesNilFunctionWithDoSyntax) {
+  const std::string source = R"(
+const nil_func = fn() do return
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  EXPECT_EQ(func->name(), "nil_func");
+  EXPECT_EQ(func->return_type(), "nil");  // Should default to nil
+  EXPECT_EQ(func->parameters().size(), 0);
+  EXPECT_EQ(func->body().size(), 1);  // Return statement
+  
+  const auto* return_stmt = dynamic_cast<const ReturnStatement*>(func->body()[0].get());
+  ASSERT_NE(return_stmt, nullptr);
+  EXPECT_EQ(return_stmt->expression(), nullptr);  // Return without value
+}
+
+TEST_F(ParserTest, ParsesNilFunctionWithParameters) {
+  const std::string source = R"(
+const print_number = fn(x: i32) -> nil {
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  EXPECT_EQ(func->name(), "print_number");
+  EXPECT_EQ(func->return_type(), "nil");
+  EXPECT_EQ(func->parameters().size(), 1);
+  EXPECT_EQ(func->parameters()[0]->name(), "x");
+  EXPECT_EQ(func->parameters()[0]->type(), "i32");
 }
 
 }  // namespace

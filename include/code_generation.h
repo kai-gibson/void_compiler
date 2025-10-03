@@ -50,6 +50,7 @@ class CodeGenerator {
   std::unique_ptr<llvm::IRBuilder<>> builder_;
   std::unordered_map<std::string, llvm::AllocaInst*> function_params_;
   std::unordered_map<std::string, llvm::AllocaInst*> local_variables_;
+  std::string current_function_return_type_;  // Track current function's return type for validation
 };
 
 }  // namespace void_compiler

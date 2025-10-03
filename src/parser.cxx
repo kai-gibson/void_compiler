@@ -194,6 +194,18 @@ std::unique_ptr<ASTNode> Parser::parse_primary() {
 std::unique_ptr<ASTNode> Parser::parse_statement() {
   if (match(TokenType::Return)) {
     consume(TokenType::Return);
+    // Check if we're at the end of a statement (return without expression)
+    // This happens when return is followed by statement terminators or end of input
+    if (current_ >= tokens_.size() || 
+        match(TokenType::EndOfFile) ||
+        match(TokenType::RBrace) ||   // End of block
+        match(TokenType::If) ||       // Next statement (if statement)
+        match(TokenType::Loop) ||     // Next statement (loop statement)
+        match(TokenType::Return) ||   // Next statement (another return)
+        match(TokenType::Const)) {    // Next declaration (function declaration)
+      // Return without expression for nil functions
+      return std::make_unique<ReturnStatement>(nullptr);
+    }
     auto expr = parse_expression();
     return std::make_unique<ReturnStatement>(std::move(expr));
   }
@@ -222,6 +234,12 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
   if (match(TokenType::Identifier) && current_ + 1 < tokens_.size() && 
       tokens_[current_ + 1].type == TokenType::Dot) {
     return parse_expression();  // Parse as expression, it will be handled as MemberAccess
+  }
+
+  // Check for function call: identifier(...)
+  if (match(TokenType::Identifier) && current_ + 1 < tokens_.size() && 
+      tokens_[current_ + 1].type == TokenType::LParen) {
+    return parse_expression();  // Parse as expression, function call can be a statement
   }
 
   throw std::runtime_error("Expected statement");
@@ -318,9 +336,15 @@ std::unique_ptr<FunctionDeclaration> Parser::parse_function() {
   std::string return_type;
   if (match(TokenType::Arrow)) {
     consume(TokenType::Arrow);
-    return_type = consume(TokenType::I32).value;
+    if (match(TokenType::I32)) {
+      return_type = consume(TokenType::I32).value;
+    } else if (match(TokenType::Nil)) {
+      return_type = consume(TokenType::Nil).value;
+    } else {
+      throw std::runtime_error("Expected return type (i32 or nil) after '->'");
+    }
   } else {
-    return_type = "void";  // Default to void if no return type specified
+    return_type = "nil";  // Default to nil if no return type specified
   }
   
   // Create function with return type

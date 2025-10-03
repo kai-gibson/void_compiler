@@ -31,7 +31,7 @@ void CodeGenerator::generate_function(const FunctionDeclaration* func_decl) {
 
   // Create function type
   llvm::Type* return_type;
-  if (func_decl->return_type() == "void") {
+  if (func_decl->return_type() == "void" || func_decl->return_type() == "nil") {
     return_type = llvm::Type::getVoidTy(*context_);
   } else {
     return_type = llvm::Type::getInt32Ty(*context_);
@@ -59,6 +59,10 @@ void CodeGenerator::generate_function(const FunctionDeclaration* func_decl) {
   // Store parameter values in allocas for later reference
   function_params_.clear();
   local_variables_.clear();
+  
+  // Track current function's return type for validation
+  current_function_return_type_ = func_decl->return_type();
+  
   for (auto& arg : function->args()) {
     llvm::AllocaInst* alloca = builder_->CreateAlloca(
         llvm::Type::getInt32Ty(*context_), nullptr, arg.getName());
@@ -71,8 +75,8 @@ void CodeGenerator::generate_function(const FunctionDeclaration* func_decl) {
     generate_statement(stmt.get(), function);
   }
   
-  // If this is a void function and there's no terminator, add a void return
-  if (func_decl->return_type() == "void" && !builder_->GetInsertBlock()->getTerminator()) {
+  // If this is a void/nil function and there's no terminator, add a void return
+  if ((func_decl->return_type() == "void" || func_decl->return_type() == "nil") && !builder_->GetInsertBlock()->getTerminator()) {
     builder_->CreateRetVoid();
   }
 }
@@ -325,8 +329,20 @@ void CodeGenerator::generate_statement(const ASTNode* node,
                                        llvm::Function* function) {
   (void)function;  // Mark as used
   if (const auto* ret = dynamic_cast<const ReturnStatement*>(node)) {
-    llvm::Value* ret_val = generate_expression(ret->expression());
-    builder_->CreateRet(ret_val);
+    if (ret->expression() == nullptr) {
+      // Return without value - only allowed for nil functions
+      if (current_function_return_type_ != "nil") {
+        throw std::runtime_error("Cannot use 'return' without value in non-nil function");
+      }
+      builder_->CreateRetVoid();
+    } else {
+      // Return with value - not allowed for nil functions
+      if (current_function_return_type_ == "nil") {
+        throw std::runtime_error("Cannot return a value from a nil function");
+      }
+      llvm::Value* ret_val = generate_expression(ret->expression());
+      builder_->CreateRet(ret_val);
+    }
     return;
   }
   
@@ -369,6 +385,12 @@ void CodeGenerator::generate_statement(const ASTNode* node,
   // Handle member access as a statement (e.g., fmt.println calls)
   if (const auto* member = dynamic_cast<const MemberAccess*>(node)) {
     generate_expression(member);  // Generate the call and discard the return value
+    return;
+  }
+  
+  // Handle function call as a statement (e.g., nil function calls)
+  if (const auto* func_call = dynamic_cast<const FunctionCall*>(node)) {
+    generate_expression(func_call);  // Generate the call and discard the return value
     return;
   }
   

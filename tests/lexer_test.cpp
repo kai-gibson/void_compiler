@@ -478,5 +478,43 @@ TEST_F(LexerTest, TokenizesFunctionDoSyntax) {
   EXPECT_EQ(tokens[8].type, TokenType::EndOfFile);
 }
 
+// Nil keyword tests
+TEST_F(LexerTest, TokenizesNilKeyword) {
+  auto tokens = TokenizeSource("nil");
+  
+  ASSERT_EQ(tokens.size(), 2);  // nil, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Nil);
+  EXPECT_EQ(tokens[0].value, "nil");
+  EXPECT_EQ(tokens[1].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, TokenizesNilReturnType) {
+  auto tokens = TokenizeSource("fn() -> nil");
+  
+  ASSERT_EQ(tokens.size(), 6);  // fn, (, ), ->, nil, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Fn);
+  EXPECT_EQ(tokens[1].type, TokenType::LParen);
+  EXPECT_EQ(tokens[2].type, TokenType::RParen);
+  EXPECT_EQ(tokens[3].type, TokenType::Arrow);
+  EXPECT_EQ(tokens[4].type, TokenType::Nil);
+  EXPECT_EQ(tokens[4].value, "nil");
+  EXPECT_EQ(tokens[5].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, TokenizesNilFunctionWithDo) {
+  auto tokens = TokenizeSource("fn() -> nil do return");
+  
+  ASSERT_EQ(tokens.size(), 8);  // fn, (, ), ->, nil, do, return, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Fn);
+  EXPECT_EQ(tokens[1].type, TokenType::LParen);
+  EXPECT_EQ(tokens[2].type, TokenType::RParen);
+  EXPECT_EQ(tokens[3].type, TokenType::Arrow);
+  EXPECT_EQ(tokens[4].type, TokenType::Nil);
+  EXPECT_EQ(tokens[4].value, "nil");
+  EXPECT_EQ(tokens[5].type, TokenType::Do);
+  EXPECT_EQ(tokens[6].type, TokenType::Return);
+  EXPECT_EQ(tokens[7].type, TokenType::EndOfFile);
+}
+
 }  // namespace
 }  // namespace void_compiler

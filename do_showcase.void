@@ -1,0 +1,20 @@
+const add = fn(a: i32, b: i32) -> i32 do return a + b
+
+const is_even = fn(n: i32) -> i32 do return n - (n / 2) * 2
+
+const main = fn() -> i32 {
+  result :i32 = add(10, 5)
+  
+  if result > 10 do result = result + 1
+  
+  loop i in 0..3 do result = result + i
+  
+  x :i32 = 0
+  loop if x < 2 do x = x + 1
+  
+  if result > 20 {
+    loop j in 0..2 do result = result - j
+  } else do result = result + 10
+  
+  return result
+}
