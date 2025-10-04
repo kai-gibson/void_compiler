@@ -1,16 +1,33 @@
-
 import fmt
 
-const test_ifs = fn() -> i32 {
-  loop i in 0..100 do fmt.println("iteration number: {:d}", i)
-
-  count: i32 = 20
-  loop if count > 0 {
-    fmt.println("count: {:d}", count)
-    count = count - 1
-  }
-  return 1
+// "const" in void means "compile time"
+const add = fn(x: i32, y: i32) -> i32 {
+  return x + y
 }
 
-const main = fn() do return test_ifs()
+// you can also omit curly braces with the "do" keyword followed by an expression
+const multiply = fn(x: i32, y: i32) -> i32 do return x * y
 
+const pow = fn(base: i32, exponent: i32) -> i32 {
+    if exponent == 0 do return 1
+
+    result: i32 = 1
+    loop i in 0..exponent do result = result * base
+    return result
+}
+
+const main = fn() {
+  fmt.println("2 ^ 0 == {:d}", pow(2, 0))
+  fmt.println("2 ^ 1 == {:d}", pow(2, 1))
+  fmt.println("2 ^ 2 == {:d}", pow(2, 2))
+  fmt.println("2 ^ 3 == {:d}", pow(2, 3))
+  fmt.println("2 ^ 4 == {:d}", pow(2, 4))
+  fmt.println("2 ^ 5 == {:d}", pow(2, 5))
+  fmt.println("2 ^ 6 == {:d}", pow(2, 6))
+  fmt.println("2 ^ 7 == {:d}", pow(2, 7))
+  fmt.println("2 ^ 8 == {:d}", pow(2, 8))
+  fmt.println("2 ^ 9 == {:d}", pow(2, 9))
+  fmt.println("2 ^ 10 == {:d}", pow(2, 10))
+  fmt.println("2 ^ 11 == {:d}", pow(2, 11))
+  fmt.println("2 ^ 12 == {:d}", pow(2, 12))
+}
