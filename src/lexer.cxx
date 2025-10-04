@@ -248,8 +248,17 @@ Token Lexer::next_token() {
 }
 
 char Lexer::current_char() const {
-  if (position_ >= source_.length()) return '\0';
+  if (position_ >= source_.size()) {
+    return '\0';
+  }
   return source_[position_];
+}
+
+char Lexer::peek_char() const {
+  if (position_ + 1 >= source_.size()) {
+    return '\0';
+  }
+  return source_[position_ + 1];
 }
 
 void Lexer::advance() {
@@ -263,9 +272,23 @@ void Lexer::advance() {
 }
 
 void Lexer::skip_whitespace() {
-  while (current_char() == ' ' || current_char() == '\t' ||
-         current_char() == '\n' || current_char() == '\r') {
-    advance();
+  while (true) {
+    // Skip regular whitespace
+    while (current_char() == ' ' || current_char() == '\t' ||
+           current_char() == '\n' || current_char() == '\r') {
+      advance();
+    }
+    
+    // Skip single-line comments
+    if (current_char() == '/' && peek_char() == '/') {
+      // Skip until end of line
+      while (current_char() != '\n' && current_char() != '\0') {
+        advance();
+      }
+      // Continue the loop to skip any whitespace after the comment
+    } else {
+      break; // No more whitespace or comments to skip
+    }
   }
 }
 

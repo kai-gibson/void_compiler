@@ -516,5 +516,114 @@ TEST_F(LexerTest, TokenizesNilFunctionWithDo) {
   EXPECT_EQ(tokens[7].type, TokenType::EndOfFile);
 }
 
+// Single-line comment tests
+TEST_F(LexerTest, SkipsSingleLineComment) {
+  auto tokens = TokenizeSource("const x // this is a comment");
+  
+  ASSERT_EQ(tokens.size(), 3);  // const, x, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Const);
+  EXPECT_EQ(tokens[1].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[1].value, "x");
+  EXPECT_EQ(tokens[2].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, SkipsCommentAtStartOfLine) {
+  auto tokens = TokenizeSource("// this is a comment\nconst x");
+  
+  ASSERT_EQ(tokens.size(), 3);  // const, x, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Const);
+  EXPECT_EQ(tokens[1].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[1].value, "x");
+  EXPECT_EQ(tokens[2].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, SkipsMultipleComments) {
+  auto tokens = TokenizeSource(R"(
+    // First comment
+    const x = 42  // Inline comment
+    // Another comment
+    fn test() -> nil  // Function comment
+  )");
+  
+  ASSERT_EQ(tokens.size(), 11);  // const, x, =, 42, fn, test, (, ), ->, nil, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Const);
+  EXPECT_EQ(tokens[1].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[1].value, "x");
+  EXPECT_EQ(tokens[2].type, TokenType::Equals);
+  EXPECT_EQ(tokens[3].type, TokenType::Number);
+  EXPECT_EQ(tokens[3].value, "42");
+  EXPECT_EQ(tokens[4].type, TokenType::Fn);
+  EXPECT_EQ(tokens[5].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[5].value, "test");
+  EXPECT_EQ(tokens[6].type, TokenType::LParen);
+  EXPECT_EQ(tokens[7].type, TokenType::RParen);
+  EXPECT_EQ(tokens[8].type, TokenType::Arrow);
+  EXPECT_EQ(tokens[9].type, TokenType::Nil);
+}
+
+TEST_F(LexerTest, HandlesCommentWithSpecialCharacters) {
+  auto tokens = TokenizeSource("const x // Comment with @#$%^&*(){}[]");
+  
+  ASSERT_EQ(tokens.size(), 3);  // const, x, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Const);
+  EXPECT_EQ(tokens[1].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[1].value, "x");
+  EXPECT_EQ(tokens[2].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, HandlesCommentAtEndOfFile) {
+  auto tokens = TokenizeSource("const x // comment at end");
+  
+  ASSERT_EQ(tokens.size(), 3);  // const, x, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Const);
+  EXPECT_EQ(tokens[1].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[1].value, "x");
+  EXPECT_EQ(tokens[2].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, HandlesEmptyComment) {
+  auto tokens = TokenizeSource("const x //");
+  
+  ASSERT_EQ(tokens.size(), 3);  // const, x, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Const);
+  EXPECT_EQ(tokens[1].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[1].value, "x");
+  EXPECT_EQ(tokens[2].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, HandlesCommentWithNewlines) {
+  auto tokens = TokenizeSource("const x // comment\nfn y // another\n");
+  
+  ASSERT_EQ(tokens.size(), 5);  // const, x, fn, y, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Const);
+  EXPECT_EQ(tokens[1].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[1].value, "x");
+  EXPECT_EQ(tokens[2].type, TokenType::Fn);
+  EXPECT_EQ(tokens[3].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[3].value, "y");
+  EXPECT_EQ(tokens[4].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, DoesNotTreatSingleSlashAsComment) {
+  auto tokens = TokenizeSource("x / y");
+  
+  ASSERT_EQ(tokens.size(), 4);  // x, /, y, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[0].value, "x");
+  EXPECT_EQ(tokens[1].type, TokenType::Divide);
+  EXPECT_EQ(tokens[2].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[2].value, "y");
+  EXPECT_EQ(tokens[3].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, HandlesCommentImmediatelyAfterToken) {
+  auto tokens = TokenizeSource("const//comment\nfn");
+  
+  ASSERT_EQ(tokens.size(), 3);  // const, fn, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Const);
+  EXPECT_EQ(tokens[1].type, TokenType::Fn);
+  EXPECT_EQ(tokens[2].type, TokenType::EndOfFile);
+}
+
 }  // namespace
 }  // namespace void_compiler

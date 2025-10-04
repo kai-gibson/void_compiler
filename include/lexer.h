@@ -16,6 +16,7 @@ class Lexer {
 
  private:
   [[nodiscard]] char current_char() const;
+  [[nodiscard]] char peek_char() const;
   void advance();
   void skip_whitespace();
   std::string read_identifier();
