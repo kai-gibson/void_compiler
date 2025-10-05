@@ -1,9 +1,9 @@
 # Compiler for the void language
 
 ## Preamble
-void is a high-level compiled language focused on developer ergonomics and speed, while maintaining low cpu overhead and a simple mental model.
+void is a high-level, statically typed, compiled language that compiles to LLVM IR. It is focused on developer ergonomics and speed, while maintaining low cpu overhead and a simple mental model.
 
-"void" means absence, or lack. This is a language designed to get out of the programmer's way - it's the absence of barriers and prescription.
+"void" means absence - the absence of barriers and prescription.
 
 Currently this repository is something like a prototype - it's a working example to get a feel for the language and explore ideas around it - feel free to play around with it but note that it is very rough and ready.
 
@@ -36,11 +36,11 @@ output:
 ### Control flow!
 ```void
 const pow = fn(base: i32, exponent: i32) -> i32 {
-    if exponent == 0 do return 1
+  if exponent == 0 do return 1
 
-    result: i32 = 1
-    loop i in 0..exponent do result = result * base
-    return result
+  result: i32 = 1
+  loop i in 0..exponent do result = result * base
+  return result
 }
 
 const main = fn() {
@@ -77,6 +77,19 @@ output:
 2 ^ 12 == 4096
 ```
 
+## Getting Started
+Since this project uses LLVM you'll have to install LLVM version 20, and I'd recommend using the clang compiler
+
+To build and run:
+```sh
+cmake -Bbuild -DCMAKE_CXX_COMPILER=clang++
+cmake --build build
+./build/void_compiler build void.main
+./a.out
+```
+
+The following sections outline upcoming features.
+
 ## Planned Features
 Currently void only supports `i32`'s. This is ok because `3 + 2 == 5` and 5 represents Geburah in the Kabbalistic tree of life, meaning strength and severity!
 
@@ -93,7 +106,7 @@ In the near future void will support the following types:
 ### User defined types
 #### Structs 
 
-```
+```void
 const User = struct {
   id: i64,
   name: string,
@@ -119,7 +132,7 @@ const main = fn() {
 #### Unions
 Tagged unions
 
-```
+```void
 const Response = union {
   user: User,
   error: string,
@@ -137,7 +150,7 @@ const main = fn() {
 ```
 
 #### Memory Model
-void will not have a Garbage Collector or a Borrow Checker - GC is too much CPU time overhead and BC brings too much programmer's mental overhead. The idea of void is to be a fast, simple, productive language.
+void will not have a Garbage Collector or a Borrow Checker - GC adds too much runtime overhead and BC adds mental overhead. The idea of void is to be a fast, simple, productive language.
 
 To achieve this, memory will be managed by a combination of move-only "owned" pointer types which deallocate at the close of owning scope, and "tagged" pointers, which panic at runtime if temporal memory errors like Use After Free are detected.
 
@@ -162,6 +175,7 @@ const take_ownership = fn(owned_int: ^i32) {
 
 const main = fn() {
   // ^T signifies owning pointer - it has one owner and cannot be copied
+  // owned values automatically deallocate at the close of their scope
   owned_int :^i32 = new(i32)
 
   // explicit "&" borrow syntax, even when passing pointer so the call site is obviously a potential mutation
