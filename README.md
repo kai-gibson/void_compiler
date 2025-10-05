@@ -3,6 +3,8 @@
 ## Preamble
 void is a high-level compiled language focused on developer ergonomics and speed, while maintaining low cpu overhead and a simple mental model.
 
+"void" means absence, or lack. This is a language designed to get out of the programmer's way - it's the absence of barriers and prescription.
+
 Currently this repository is something like a prototype - it's a working example to get a feel for the language and explore ideas around it - feel free to play around with it but note that it is very rough and ready.
 
 ## Current features!
@@ -76,7 +78,9 @@ output:
 ```
 
 ## Planned Features
-Currently void only supports `i32`'s. This is ok because `3 + 2 == 5` and 5 represents Geburah in the Kabbalistic tree of life, meaning strength and severity
+Currently void only supports `i32`'s. This is ok because `3 + 2 == 5` and 5 represents Geburah in the Kabbalistic tree of life, meaning strength and severity!
+
+NOTE: All the below code examples don't compile, they're just theoretical for now
 
 In the near future void will support the following types:
 
@@ -89,7 +93,6 @@ In the near future void will support the following types:
 ### User defined types
 #### Structs 
 
-Note: This code doesn't compile, it's just theoretical currently
 ```
 const User = struct {
   id: i64,
@@ -106,7 +109,7 @@ const User.make = fn() -> User {
 }
 
 const main = fn() {
-  user := make_user()
+  user := User.make()
 
   // runtime & compile time reflection is also planned
   fmt.println("user: {}", user)
@@ -133,4 +136,132 @@ const main = fn() {
 }
 ```
 
+#### Memory Model
+void will not have a Garbage Collector or a Borrow Checker - GC is too much CPU time overhead and BC brings too much programmer's mental overhead. The idea of void is to be a fast, simple, productive language.
 
+To achieve this, memory will be managed by a combination of move-only "owned" pointer types which deallocate at the close of owning scope, and "tagged" pointers, which panic at runtime if temporal memory errors like Use After Free are detected.
+
+Tagged pointers contain a pointer to the data and a "tag" which acts as a key to the memory. When you attempt to dereference memory, it will only succeed if the tag matches. On free, the memory's tag is invalidated so any subsequent dereferences will fail and cause a panic.
+
+This approach is inspired by the Vale language and ARM's Extended Memory Tagging Extension, which does memory tagging but accelerated at the hardware level. In the future when EMTE/MIE are brought to more platforms we should be able to remove the overhead of tagged pointers in the language and lean on that instead.
+
+The general idea here is to decouple the concept of memory safety from a languages memory management technique. We can ensure memory safety by just checking memory is valid before using it, leaving us free to manage memory the way we want without fear of critical memory errors. Once that's in place we just need something to ensure that memory doesn't leak and that we don't have to think too much about it - like owned pointers (which are the same as c++'s `unique_ptr<T>` and Rust's `Box<T>`)
+
+Example:
+```void
+
+const take_reference = fn(non_owned_int: *i32) {
+  fmt.println("value: {:d}", non_owned_int.*)
+}
+
+const take_ownership = fn(owned_int: ^i32) {
+  fmt.println("value: {:d}", owned_int.*)
+ 
+  // since this function owns owned_int, it will be deallocated at the end of this scope
+}
+
+const main = fn() {
+  // ^T signifies owning pointer - it has one owner and cannot be copied
+  owned_int :^i32 = new(i32)
+
+  // explicit "&" borrow syntax, even when passing pointer so the call site is obviously a potential mutation
+  take_reference(&owned_int)
+
+  // tagged pointer to our ^i32
+  non_owned_int :*i32 = &owned_int
+
+  // move the owned_int, invalidating the non_owned_int reference 
+  take_ownership(&owned_int.move())
+
+  // this will panic
+  take_reference(&non_owned_int)
+}
+```
+
+And a less contrived example:
+```void
+import json
+import io
+
+const User = struct {
+  id: i64,
+  name: ^string,
+  hashed_password: ^string,
+}
+
+const User.new = fn(name: string, hashed_password: string) -> ^User {
+  return new(User{
+    .id = generate_next_id(), // imagine this function exists
+    .name = string.new(name),
+    .hashed_password = string.new(hashed_password),
+  })
+}
+
+// like zig, !string means return an error OR a string
+const User.to_json = fn(user: *User) -> !^string {
+  // ! postfix operator means "propogate error up to caller", like rust's "?"
+  return json.encode(&user)! 
+}
+
+const main = fn() -> ! {
+  user := User.new("John Smith", "!@U$@DR3d2d")
+
+  user_json := user.to_json()!
+  fmt.println("user json: {}", user_json)
+
+  output_file := io.File.open("output.txt", "w")!
+  output_file.writeln(user_json)!
+
+  // at close of scope user is deallocated, the file is closed, and the json string is deallocated
+  // these will all still free correctly on an early return (like propogating an error)
+}
+
+```
+
+This is all still in the theoretical stage, but I'm hopeful we can get something working with relatively similar ergonomics to a GC'd language
+
+#### Errors
+void has an error type similar to Go's:
+
+```void
+const error = interface {
+  message: fn(*Self)->string
+}
+```
+
+Functions are marked as possibly erroring by making the return type an error union
+
+```void
+const cant_fail = fn() -> i32 do return 10
+
+const can_fail = fn(condition: bool) -> !i32 {
+  if condition {
+    return 10 
+  } else {
+    return error.new("Condition cannot be false")
+  }  
+}
+```
+
+To check for errors you can:
+```void
+
+const main = fn() -> ! {
+  // check explicitly
+  value := can_fail()
+  if value.is_err() {
+    fmt.println("found an error: {}", value.err())
+    return
+  }
+
+  // value is now considered unwrapped, since "is_err()" has been checked
+  value += 10
+
+  // propogate automatically
+
+  unwrapped_value := can_fail()!
+  unwrapped_value += 10
+
+  // ! postfix will propogate errors up to the caller. When used in main it causes a panic, terminating the program
+}
+```
