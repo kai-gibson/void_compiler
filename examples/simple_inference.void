@@ -1,0 +1,9 @@
+// Simple Type Inference Example
+const main = fn() -> i32 {
+    // Basic type inference
+    number := 42
+    message := "Hello World"
+    simple_fn := fn(x: i32) -> i32 do return x
+    
+    return number
+}

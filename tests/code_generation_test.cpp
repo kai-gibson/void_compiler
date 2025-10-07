@@ -1524,5 +1524,58 @@ const main = fn() -> i32 {
   EXPECT_NO_THROW(codegen.generate_program(program.get()));
 }
 
+TEST_F(CodeGenerationTest, GeneratesTypeInferredVariables) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  number := 42
+  message := "Hello"
+  return number
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  // Should generate valid IR for type-inferred variables
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Check that both variables are allocated correctly
+  EXPECT_TRUE(output.find("%number = alloca i32") != std::string::npos);
+  EXPECT_TRUE(output.find("%message = alloca ptr") != std::string::npos);
+  EXPECT_TRUE(output.find("store i32 42") != std::string::npos);
+  EXPECT_TRUE(output.find("Hello") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesTypeInferredAnonymousFunction) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  adder := fn(x: i32, y: i32) -> i32 do return x + y
+  result: i32 = adder(5, 7)
+  return result
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  // Should generate valid IR including anonymous function and type inference
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Check that anonymous function is generated and function pointer is allocated
+  EXPECT_TRUE(output.find("@anon_") != std::string::npos);
+  EXPECT_TRUE(output.find("%adder = alloca ptr") != std::string::npos);
+  EXPECT_TRUE(output.find("call i32") != std::string::npos);
+}
+
 }  // namespace
 }  // namespace void_compiler

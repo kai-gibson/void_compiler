@@ -1,0 +1,27 @@
+// Type Inference Examples for the Void Language
+// Using the := operator for automatic type deduction
+
+// Basic type inference with literals
+const main = fn() {
+    // Number inference
+    number := 42
+    another_number := -17
+    
+    // String inference  
+    message := "Hello, type inference!"
+    greeting := "Welcome to Void"
+    
+    // Function pointer inference
+    adder := fn(x: i32, y: i32) -> i32 do return x + y
+    multiplier := fn(a: i32, b: i32) -> i32 {
+        return a * b
+    }
+    
+    // Function pointer with string return
+    greeter := fn(name: const string) -> const string {
+        return "Hello, " + name
+    }
+    
+    // Direct return with inferred arithmetic
+    return 25
+}

@@ -22,6 +22,7 @@ enum class TokenType : uint8_t {
   I32,
   Comma,
   Colon,
+  ColonEquals,  // := for type inference
   Plus,
   Minus,
   Multiply,

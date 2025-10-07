@@ -223,9 +223,15 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
     return parse_loop_statement();
   }
   
-  // Check for variable declaration: identifier : type = value
+  // Check for variable declaration with explicit type: identifier : type = value
   if (match(TokenType::Identifier) && current_ + 1 < tokens_.size() && 
       tokens_[current_ + 1].type == TokenType::Colon) {
+    return parse_variable_declaration();
+  }
+  
+  // Check for variable declaration with type inference: identifier := value
+  if (match(TokenType::Identifier) && current_ + 1 < tokens_.size() && 
+      tokens_[current_ + 1].type == TokenType::ColonEquals) {
     return parse_variable_declaration();
   }
   
@@ -252,10 +258,23 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
 
 std::unique_ptr<VariableDeclaration> Parser::parse_variable_declaration() {
   std::string name = consume(TokenType::Identifier).value;
-  consume(TokenType::Colon);
-  std::string type = parse_type();  // Now supports both i32 and string
-  consume(TokenType::Equals);
-  auto value = parse_expression();
+  
+  std::string type;
+  std::unique_ptr<ASTNode> value;
+  
+  if (match(TokenType::ColonEquals)) {
+    // Type inference: name := value
+    consume(TokenType::ColonEquals);
+    value = parse_expression();
+    type = infer_type(value.get());
+  } else {
+    // Explicit type: name: type = value
+    consume(TokenType::Colon);
+    type = parse_type();
+    consume(TokenType::Equals);
+    value = parse_expression();
+  }
+  
   return std::make_unique<VariableDeclaration>(std::move(name), std::move(type), std::move(value));
 }
 
@@ -331,7 +350,7 @@ std::unique_ptr<FunctionDeclaration> Parser::parse_function() {
     do {
       std::string param_name = consume(TokenType::Identifier).value;
       consume(TokenType::Colon);
-      std::string param_type = consume(TokenType::I32).value;
+      std::string param_type = parse_type();
       parameters.push_back(std::make_unique<Parameter>(param_name, param_type));
     } while (match(TokenType::Comma) && (consume(TokenType::Comma), true));
   }
@@ -517,6 +536,41 @@ std::unique_ptr<AnonymousFunction> Parser::parse_anonymous_function() {
   }
 
   return func;
+}
+
+std::string Parser::infer_type(const ASTNode* node) {
+  // Infer type from literals
+  if (dynamic_cast<const NumberLiteral*>(node)) {
+    return "i32";
+  }
+  
+  if (dynamic_cast<const StringLiteral*>(node)) {
+    return "const string";
+  }
+  
+  // Infer type from anonymous functions
+  if (const auto* anon_func = dynamic_cast<const AnonymousFunction*>(node)) {
+    // Build function type string: fn(param_types) -> return_type
+    std::string func_type = "fn(";
+    for (size_t i = 0; i < anon_func->parameters().size(); ++i) {
+      if (i > 0) func_type += ", ";
+      // For now, assume all parameters are i32 (can be enhanced with parameter type info)
+      func_type += "i32";
+    }
+    func_type += ") -> " + anon_func->return_type();
+    return func_type;
+  }
+  
+  // Infer type from variable references (function names)
+  if (const auto* var_ref = dynamic_cast<const VariableReference*>(node)) {
+    // This is trickier - we'd need symbol table lookup
+    // For now, assume it's a function reference and we need more context
+    // This could be enhanced with a symbol table in the future
+    throw std::runtime_error("Cannot infer type from variable reference '" + var_ref->name() + "' - use explicit type annotation");
+  }
+  
+  // For other expression types, we can't infer the type yet
+  throw std::runtime_error("Cannot infer type from this expression - use explicit type annotation");
 }
 
 }  // namespace void_compiler

@@ -35,6 +35,7 @@ class Parser {
   std::unique_ptr<VariableDeclaration> parse_variable_declaration();
   std::unique_ptr<VariableAssignment> parse_variable_assignment();
   std::string parse_type();  // Helper to parse type tokens
+  std::string infer_type(const ASTNode* node);  // Helper to infer types from expressions
 
   std::vector<Token> tokens_;
   size_t current_ = 0;

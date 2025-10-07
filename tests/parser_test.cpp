@@ -1654,5 +1654,100 @@ const main = fn() -> i32 {
   EXPECT_EQ(anon_func->body().size(), 2);  // Variable declaration + return statement
 }
 
+TEST_F(ParserTest, ParsesTypeInferenceForNumbers) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x := 42
+  return x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  const auto& func = program->functions()[0];
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+  
+  EXPECT_EQ(var_decl->name(), "x");
+  EXPECT_EQ(var_decl->type(), "i32");
+  
+  const auto* num_literal = dynamic_cast<const NumberLiteral*>(var_decl->value());
+  ASSERT_NE(num_literal, nullptr);
+  EXPECT_EQ(num_literal->value(), 42);
+}
+
+TEST_F(ParserTest, ParsesTypeInferenceForStrings) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  message := "Hello World"
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  const auto& func = program->functions()[0];
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+  
+  EXPECT_EQ(var_decl->name(), "message");
+  EXPECT_EQ(var_decl->type(), "const string");
+  
+  const auto* str_literal = dynamic_cast<const StringLiteral*>(var_decl->value());
+  ASSERT_NE(str_literal, nullptr);
+  EXPECT_EQ(str_literal->value(), "Hello World");
+}
+
+TEST_F(ParserTest, ParsesTypeInferenceForAnonymousFunctions) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  adder := fn(x: i32, y: i32) -> i32 do return x + y
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  const auto& func = program->functions()[0];
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+  
+  EXPECT_EQ(var_decl->name(), "adder");
+  EXPECT_EQ(var_decl->type(), "fn(i32, i32) -> i32");
+  
+  const auto* anon_func = dynamic_cast<const AnonymousFunction*>(var_decl->value());
+  ASSERT_NE(anon_func, nullptr);
+  EXPECT_EQ(anon_func->return_type(), "i32");
+  EXPECT_EQ(anon_func->parameters().size(), 2);
+}
+
+TEST_F(ParserTest, ParsesExplicitTypeAnnotations) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x: i32 = 42
+  message: const string = "Hello"
+  return x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  const auto& func = program->functions()[0];
+  
+  const auto* var_decl1 = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl1, nullptr);
+  EXPECT_EQ(var_decl1->name(), "x");
+  EXPECT_EQ(var_decl1->type(), "i32");
+  
+  const auto* var_decl2 = dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
+  ASSERT_NE(var_decl2, nullptr);
+  EXPECT_EQ(var_decl2->name(), "message");
+  EXPECT_EQ(var_decl2->type(), "const string");
+}
+
 }  // namespace
 }  // namespace void_compiler

@@ -203,6 +203,13 @@ Token Lexer::next_token() {
                    .line = line_,
                    .column = start_column};
     case ':':
+      if (current_char() == '=') {
+        advance();  // consume the '='
+        return Token{.type = TokenType::ColonEquals,
+                     .value = ":=",
+                     .line = line_,
+                     .column = start_column};
+      }
       return Token{.type = TokenType::Colon,
                    .value = ":",
                    .line = line_,
