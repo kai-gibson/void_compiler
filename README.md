@@ -100,7 +100,7 @@ In the near future void will support the following types:
 ### Primitive types
 * Slices: `[]T` 
 * All sized ints: `i8, i16, i32, i64, u8, u16, u32, u64` 
-* Strings (slices of `u8`'s: `string` 
+* Strings (slices of `u8`'s): `string` 
 * Booleans: `bool`
 
 ### User defined types
@@ -234,6 +234,19 @@ const main = fn() -> ! {
 
 This is all still in the theoretical stage, but I'm hopeful we can get something working with relatively similar ergonomics to a GC'd language
 
+##### Escape Analysis
+Commonly GC languages will analyse whether a piece of memory will need to "escape" to the heap – generally if a piece of memory is captured in a closure, returned, stored in a type with a longer lifetime, etc. In void, we start with owned `^T` and tagged `*T` pointers – owned pointers erase to raw pointers at runtime, while tagged pointers incur the runtime cost of validating the tag. There are cases however where a tagged pointer can skip tag checking – meaning at compile time we can guarantee that this piece of memory will not be free'd before usage.
+
+A feature I'm planning is escape analyser – essentially a tiny, minimal borrow checker that attempts to validate memory lifetimes, and where it can safely do so, skip tag checks.
+
+The philosophy here is to not obstruct the programmer, but allow them to optimise to the level of C performance.
+
+Some examples:
+* When a `^T` is passed to a function that accepts a `*T`, we automatically know that the memory will outlive the callee
+* When a *T is only used at the same scope or in a scope with a longer lifetime as it's referent `^T`
+
+Eventually I'd like to get to the point of memory management being similar to thinking about state in React – just move the owned memory to the shortest living scope that encloses all usages of that memory, and in doing so remove all runtime checks on memory before dereference.
+
 #### Errors
 void has an error type similar to Go's:
 
@@ -279,3 +292,4 @@ const main = fn() -> ! {
   // ! postfix will propogate errors up to the caller. When used in main it causes a panic, terminating the program
 }
 ```
+G
