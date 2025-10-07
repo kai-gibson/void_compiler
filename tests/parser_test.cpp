@@ -1364,5 +1364,112 @@ const print_number = fn(x: i32) -> nil {
   EXPECT_EQ(func->parameters()[0]->type(), "i32");
 }
 
+TEST_F(ParserTest, ParsesConstStringVariable) {
+  const std::string source = R"(
+const test = fn() -> nil {
+  greeting: const string = "Hello"
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+
+  const auto& func = program->functions()[0];
+  EXPECT_EQ(func->name(), "test");
+  EXPECT_EQ(func->return_type(), "nil");
+  ASSERT_EQ(func->body().size(), 1);
+
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+  EXPECT_EQ(var_decl->name(), "greeting");
+  EXPECT_EQ(var_decl->type(), "const string");
+  
+  const auto* string_literal = dynamic_cast<const StringLiteral*>(var_decl->value());
+  ASSERT_NE(string_literal, nullptr);
+  EXPECT_EQ(string_literal->value(), "Hello");
+}
+
+TEST_F(ParserTest, ParsesRegularStringVariable) {
+  const std::string source = R"(
+const test = fn() -> nil {
+  message: string = "World"
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 1);
+
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+  EXPECT_EQ(var_decl->name(), "message");
+  EXPECT_EQ(var_decl->type(), "string");
+  
+  const auto* string_literal = dynamic_cast<const StringLiteral*>(var_decl->value());
+  ASSERT_NE(string_literal, nullptr);
+  EXPECT_EQ(string_literal->value(), "World");
+}
+
+TEST_F(ParserTest, ParsesEmptyStringVariable) {
+  const std::string source = R"(
+const test = fn() -> nil {
+  empty: const string = ""
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 1);
+
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+  EXPECT_EQ(var_decl->name(), "empty");
+  EXPECT_EQ(var_decl->type(), "const string");
+  
+  const auto* string_literal = dynamic_cast<const StringLiteral*>(var_decl->value());
+  ASSERT_NE(string_literal, nullptr);
+  EXPECT_EQ(string_literal->value(), "");
+}
+
+TEST_F(ParserTest, ParsesMultipleStringVariables) {
+  const std::string source = R"(
+const test = fn() -> nil {
+  greeting: const string = "Hello"
+  name: string = "World"
+  punctuation: const string = "!"
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 3);
+
+  // Check first variable
+  const auto* var_decl1 = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl1, nullptr);
+  EXPECT_EQ(var_decl1->name(), "greeting");
+  EXPECT_EQ(var_decl1->type(), "const string");
+
+  // Check second variable
+  const auto* var_decl2 = dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
+  ASSERT_NE(var_decl2, nullptr);
+  EXPECT_EQ(var_decl2->name(), "name");
+  EXPECT_EQ(var_decl2->type(), "string");
+
+  // Check third variable
+  const auto* var_decl3 = dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
+  ASSERT_NE(var_decl3, nullptr);
+  EXPECT_EQ(var_decl3->name(), "punctuation");
+  EXPECT_EQ(var_decl3->type(), "const string");
+}
+
 }  // namespace
 }  // namespace void_compiler

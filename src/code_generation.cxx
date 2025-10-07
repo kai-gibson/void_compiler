@@ -351,9 +351,19 @@ void CodeGenerator::generate_statement(const ASTNode* node,
     // Generate the initial value
     llvm::Value* init_value = generate_expression(var_decl->value());
     
+    // Determine the LLVM type based on the variable type
+    llvm::Type* var_type;
+    if (var_decl->type() == "i32") {
+      var_type = llvm::Type::getInt32Ty(*context_);
+    } else if (var_decl->type() == "string" || var_decl->type() == "const string") {
+      var_type = llvm::PointerType::get(llvm::Type::getInt8Ty(*context_), 0);
+    } else {
+      throw std::runtime_error("Unsupported variable type: " + var_decl->type());
+    }
+    
     // Create local variable (alloca)
     llvm::AllocaInst* alloca = builder_->CreateAlloca(
-        llvm::Type::getInt32Ty(*context_), nullptr, var_decl->name());
+        var_type, nullptr, var_decl->name());
     
     // Store the initial value
     builder_->CreateStore(init_value, alloca);

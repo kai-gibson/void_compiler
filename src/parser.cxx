@@ -248,7 +248,7 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
 std::unique_ptr<VariableDeclaration> Parser::parse_variable_declaration() {
   std::string name = consume(TokenType::Identifier).value;
   consume(TokenType::Colon);
-  std::string type = consume(TokenType::I32).value;  // For now, only support i32
+  std::string type = parse_type();  // Now supports both i32 and string
   consume(TokenType::Equals);
   auto value = parse_expression();
   return std::make_unique<VariableDeclaration>(std::move(name), std::move(type), std::move(value));
@@ -423,6 +423,26 @@ std::unique_ptr<RangeExpression> Parser::parse_range_expression() {
   auto end = parse_additive();    // Parse the end expression
   
   return std::make_unique<RangeExpression>(std::move(start), std::move(end));
+}
+
+std::string Parser::parse_type() {
+  if (tokens_[current_].type == TokenType::I32) {
+    current_++;
+    return "i32";
+  } else if (tokens_[current_].type == TokenType::Const) {
+    current_++; // consume 'const'
+    if (tokens_[current_].type == TokenType::String) {
+      current_++; // consume 'string'
+      return "const string";
+    } else {
+      throw std::runtime_error("Expected 'string' after 'const' in type");
+    }
+  } else if (tokens_[current_].type == TokenType::String) {
+    current_++;
+    return "string";
+  } else {
+    throw std::runtime_error("Unexpected token in type: " + tokens_[current_].value);
+  }
 }
 
 }  // namespace void_compiler

@@ -114,6 +114,12 @@ Token Lexer::next_token() {
                    .line = line_,
                    .column = column_};
     }
+    if (identifier == "string") {
+      return Token{.type = TokenType::String,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
 
     return Token{.type = TokenType::Identifier,
                  .value = identifier,

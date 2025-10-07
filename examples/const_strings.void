@@ -1,0 +1,13 @@
+import fmt
+
+const main = fn() {
+  // declare a mutable runtime variable pointing to a compile time string
+  message: const string = "testing"
+
+  fmt.println("Message: {:s}", message)
+ 
+  // reassign to another const string
+  message = "new message"
+
+  fmt.println("Message: {:s}", message)
+}

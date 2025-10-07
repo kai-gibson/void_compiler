@@ -45,6 +45,7 @@ enum class TokenType : uint8_t {
   DotDot,
   Do,
   Nil,
+  String,
   EndOfFile
 };
 

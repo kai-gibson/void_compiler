@@ -33,6 +33,7 @@ class Parser {
   std::unique_ptr<FunctionDeclaration> parse_function();
   std::unique_ptr<VariableDeclaration> parse_variable_declaration();
   std::unique_ptr<VariableAssignment> parse_variable_assignment();
+  std::string parse_type();  // Helper to parse type tokens
 
   std::vector<Token> tokens_;
   size_t current_ = 0;

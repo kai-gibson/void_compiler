@@ -844,5 +844,52 @@ const main = fn() -> i32 {
   EXPECT_EQ(result, 0);
 }
 
+TEST_F(IntegrationTest, CompileAndRunConstStringVariable) {
+  const std::string source = R"(
+import fmt
+
+const main = fn() -> i32 {
+  greeting: const string = "Hello"
+  fmt.println("Message: {:s}", greeting)
+  return 0
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 0);
+}
+
+TEST_F(IntegrationTest, CompileAndRunMultipleStringVariables) {
+  const std::string source = R"(
+import fmt
+
+const main = fn() -> i32 {
+  greeting: const string = "Hello"
+  name: string = "World" 
+  punctuation: const string = "!"
+  fmt.println("{:s}, {:s}{:s}", greeting, name, punctuation)
+  return 0
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 0);
+}
+
+TEST_F(IntegrationTest, CompileAndRunEmptyConstString) {
+  const std::string source = R"(
+import fmt
+
+const main = fn() -> i32 {
+  empty: const string = ""
+  fmt.println("Empty: '{:s}'", empty)
+  return 0
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 0);
+}
+
 }  // namespace
 }  // namespace void_compiler
