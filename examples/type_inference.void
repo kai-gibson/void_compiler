@@ -7,11 +7,11 @@ const main = fn() {
   number := 42
   another_number := 17
 
-  // String inference   
-  message := "Hello, type inference!"
-  greeting := "Welcome to Void"
+  // const string
+  message := "testing"
     
-  // Function pointer inference 
+  // Function pointer inference (and anonymous functions)
+  
   adder := fn(x: i32, y: i32) -> i32 do return x + y
   multiplier := fn(a: i32, b: i32) -> i32 {
     result: i32 = a * b
