@@ -175,6 +175,7 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
     // Check function parameters first
     auto it = function_params_.find(var->name());
     if (it != function_params_.end()) {
+      // For now, assume function parameters are i32 (TODO: track parameter types)
       return builder_->CreateLoad(llvm::Type::getInt32Ty(*context_), it->second,
                                   var->name());
     }
@@ -182,8 +183,23 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
     // Check local variables
     auto local_it = local_variables_.find(var->name());
     if (local_it != local_variables_.end()) {
-      return builder_->CreateLoad(llvm::Type::getInt32Ty(*context_), local_it->second,
-                                  var->name());
+      // Get the variable type and use correct load type
+      auto type_it = variable_types_.find(var->name());
+      if (type_it != variable_types_.end()) {
+        llvm::Type* load_type;
+        if (type_it->second == "i32") {
+          load_type = llvm::Type::getInt32Ty(*context_);
+        } else if (type_it->second == "string" || type_it->second == "const string") {
+          load_type = llvm::PointerType::get(llvm::Type::getInt8Ty(*context_), 0);
+        } else {
+          throw std::runtime_error("Unsupported variable type for loading: " + type_it->second);
+        }
+        return builder_->CreateLoad(load_type, local_it->second, var->name());
+      } else {
+        // Fallback to i32 if type not found (shouldn't happen)
+        return builder_->CreateLoad(llvm::Type::getInt32Ty(*context_), local_it->second,
+                                    var->name());
+      }
     }
     
     throw std::runtime_error("Unknown variable: " + var->name());
@@ -370,6 +386,7 @@ void CodeGenerator::generate_statement(const ASTNode* node,
     
     // Add to local variables map for later reference
     local_variables_[var_decl->name()] = alloca;
+    variable_types_[var_decl->name()] = var_decl->type();  // Track the type
     return;
   }
   
