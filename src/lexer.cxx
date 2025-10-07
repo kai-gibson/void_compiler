@@ -54,6 +54,24 @@ Token Lexer::next_token() {
                    .line = line_,
                    .column = column_};
     }
+    if (identifier == "bool") {
+      return Token{.type = TokenType::Bool,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
+    if (identifier == "true") {
+      return Token{.type = TokenType::True,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
+    if (identifier == "false") {
+      return Token{.type = TokenType::False,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
     if (identifier == "import") {
       return Token{.type = TokenType::Import,
                    .value = identifier,

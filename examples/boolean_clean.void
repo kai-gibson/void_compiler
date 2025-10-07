@@ -1,0 +1,27 @@
+// Clean Boolean Type Demo
+// Demonstrates proper boolean usage with correct types
+
+const is_valid = fn(x: i32) -> bool {
+    // Return true if x is positive
+    return x > 0
+}
+
+const get_status_code = fn(success: bool) -> i32 {
+    // Convert boolean to standard exit codes
+    if success {
+        return 0    // Success
+    } else {
+        return 1    // Failure
+    }
+}
+
+const main = fn() -> i32 {
+    // Test with positive number
+    test_value := 42
+    validation_result := is_valid(test_value)  // Returns bool
+    
+    // Convert boolean result to exit code
+    exit_code := get_status_code(validation_result)
+    
+    return exit_code  // Should return 0 (success)
+}

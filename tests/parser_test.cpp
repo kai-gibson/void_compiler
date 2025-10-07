@@ -1858,5 +1858,70 @@ const main = fn() -> i32 {
   EXPECT_EQ(result_decl->type(), "i32");
 }
 
+TEST_F(ParserTest, ParsesBooleanLiterals) {
+  const std::string source = R"(
+const main = fn() -> bool {
+  is_true := true
+  is_false := false
+  return is_true
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  const auto& func = program->functions()[0];
+  EXPECT_EQ(func->return_type(), "bool");
+  
+  // Check is_true := true
+  const auto* true_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(true_decl, nullptr);
+  EXPECT_EQ(true_decl->name(), "is_true");
+  EXPECT_EQ(true_decl->type(), "bool");
+  
+  const auto* true_literal = dynamic_cast<const BooleanLiteral*>(true_decl->value());
+  ASSERT_NE(true_literal, nullptr);
+  EXPECT_TRUE(true_literal->value());
+  
+  // Check is_false := false
+  const auto* false_decl = dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
+  ASSERT_NE(false_decl, nullptr);
+  EXPECT_EQ(false_decl->name(), "is_false");
+  EXPECT_EQ(false_decl->type(), "bool");
+  
+  const auto* false_literal = dynamic_cast<const BooleanLiteral*>(false_decl->value());
+  ASSERT_NE(false_literal, nullptr);
+  EXPECT_FALSE(false_literal->value());
+}
+
+TEST_F(ParserTest, ParsesBooleanOperations) {
+  const std::string source = R"(
+const main = fn() -> bool {
+  a := true
+  b := false
+  and_result := a and b
+  or_result := a or b
+  return or_result
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  const auto& func = program->functions()[0];
+  
+  // Check and_result := a and b (should infer bool)
+  const auto* and_decl = dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
+  ASSERT_NE(and_decl, nullptr);
+  EXPECT_EQ(and_decl->name(), "and_result");
+  EXPECT_EQ(and_decl->type(), "bool");
+  
+  // Check or_result := a or b (should infer bool)
+  const auto* or_decl = dynamic_cast<const VariableDeclaration*>(func->body()[3].get());
+  ASSERT_NE(or_decl, nullptr);
+  EXPECT_EQ(or_decl->name(), "or_result");
+  EXPECT_EQ(or_decl->type(), "bool");
+}
+
 }  // namespace
 }  // namespace void_compiler

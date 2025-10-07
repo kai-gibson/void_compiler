@@ -135,6 +135,16 @@ std::unique_ptr<ASTNode> Parser::parse_primary() {
     return std::make_unique<StringLiteral>(value);
   }
 
+  if (match(TokenType::True)) {
+    consume(TokenType::True);
+    return std::make_unique<BooleanLiteral>(true);
+  }
+
+  if (match(TokenType::False)) {
+    consume(TokenType::False);
+    return std::make_unique<BooleanLiteral>(false);
+  }
+
   if (match(TokenType::LParen)) {
     consume(TokenType::LParen);
     auto expr = parse_expression();
@@ -365,10 +375,12 @@ std::unique_ptr<FunctionDeclaration> Parser::parse_function() {
     consume(TokenType::Arrow);
     if (match(TokenType::I32)) {
       return_type = consume(TokenType::I32).value;
+    } else if (match(TokenType::Bool)) {
+      return_type = consume(TokenType::Bool).value;
     } else if (match(TokenType::Nil)) {
       return_type = consume(TokenType::Nil).value;
     } else {
-      throw std::runtime_error("Expected return type (i32 or nil) after '->'");
+      throw std::runtime_error("Expected return type (i32, bool, or nil) after '->'");
     }
   } else {
     return_type = "nil";  // Default to nil if no return type specified
@@ -459,6 +471,9 @@ std::string Parser::parse_type() {
   if (tokens_[current_].type == TokenType::I32) {
     current_++;
     return "i32";
+  } else if (tokens_[current_].type == TokenType::Bool) {
+    current_++;
+    return "bool";
   } else if (tokens_[current_].type == TokenType::Const) {
     current_++; // consume 'const'
     if (tokens_[current_].type == TokenType::String) {
@@ -554,6 +569,10 @@ std::string Parser::infer_type(const ASTNode* node) {
     return "const string";
   }
   
+  if (dynamic_cast<const BooleanLiteral*>(node)) {
+    return "bool";
+  }
+  
   // Infer type from anonymous functions
   if (const auto* anon_func = dynamic_cast<const AnonymousFunction*>(node)) {
     // Build function type string: fn(param_types) -> return_type
@@ -600,22 +619,22 @@ std::string Parser::infer_type(const ASTNode* node) {
                                 op == TokenType::Multiply ? "*" : "/") + " " + right_type);
     }
     
-    // Comparison operations always return i32 (treating as boolean for now)
+    // Comparison operations always return bool
     if (op == TokenType::EqualEqual || op == TokenType::NotEqual ||
         op == TokenType::LessThan || op == TokenType::LessEqual ||
         op == TokenType::GreaterThan || op == TokenType::GreaterEqual) {
       if (left_type == right_type) {
-        return "i32";  // Boolean result (represented as i32)
+        return "bool";  // Boolean result
       }
       throw std::runtime_error("Cannot compare different types: " + left_type + " and " + right_type);
     }
     
-    // Logical operations (i32 && i32 = i32, treating i32 as boolean)
+    // Logical operations (bool && bool = bool)
     if (op == TokenType::And || op == TokenType::Or) {
-      if (left_type == "i32" && right_type == "i32") {
-        return "i32";
+      if (left_type == "bool" && right_type == "bool") {
+        return "bool";
       }
-      throw std::runtime_error("Logical operations require boolean (i32) operands");
+      throw std::runtime_error("Logical operations require boolean operands");
     }
   }
   

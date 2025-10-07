@@ -20,6 +20,9 @@ enum class TokenType : uint8_t {
   Return,
   Number,
   I32,
+  Bool,          // bool type
+  True,          // true literal
+  False,         // false literal
   Comma,
   Colon,
   ColonEquals,  // := for type inference
@@ -137,6 +140,15 @@ class NumberLiteral : public ASTNode {
 
  private:
   int value_;
+};
+
+class BooleanLiteral : public ASTNode {
+ public:
+  explicit BooleanLiteral(bool value) : value_(value) {}
+  [[nodiscard]] bool value() const { return value_; }
+
+ private:
+  bool value_;
 };
 
 class VariableReference : public ASTNode {

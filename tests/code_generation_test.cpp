@@ -1667,5 +1667,58 @@ const main = fn() -> i32 {
   EXPECT_TRUE(output.find("store i32") != std::string::npos);
 }
 
+TEST_F(CodeGenerationTest, GeneratesBooleanLiterals) {
+  const std::string source = R"(
+const main = fn() -> bool {
+  is_true := true
+  is_false := false
+  return is_true
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Check that boolean variables are allocated as i1
+  EXPECT_TRUE(output.find("%is_true = alloca i1") != std::string::npos);
+  EXPECT_TRUE(output.find("%is_false = alloca i1") != std::string::npos);
+  
+  // Check boolean constants
+  EXPECT_TRUE(output.find("store i1 true") != std::string::npos);
+  EXPECT_TRUE(output.find("store i1 false") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesBooleanOperations) {
+  const std::string source = R"(
+const main = fn() -> bool {
+  a := true
+  b := false
+  result := a or b
+  return result
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Check boolean operations
+  EXPECT_TRUE(output.find("or i1") != std::string::npos);
+  EXPECT_TRUE(output.find("%result = alloca i1") != std::string::npos);
+}
+
 }  // namespace
 }  // namespace void_compiler

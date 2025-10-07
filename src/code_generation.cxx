@@ -171,6 +171,11 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
     return builder_->CreateGlobalStringPtr(str->value());
   }
 
+  if (const auto* boolean = dynamic_cast<const BooleanLiteral*>(node)) {
+    return llvm::ConstantInt::get(*context_,
+                                  llvm::APInt(1, boolean->value() ? 1 : 0, false));
+  }
+
   if (const auto* var = dynamic_cast<const VariableReference*>(node)) {
     // Check function parameters first
     auto it = function_params_.find(var->name());
@@ -607,6 +612,8 @@ bool CodeGenerator::is_function_pointer_type(const std::string& type_str) {
 llvm::Type* CodeGenerator::get_llvm_type_from_string(const std::string& type_str) {
   if (type_str == "i32") {
     return llvm::Type::getInt32Ty(*context_);
+  } else if (type_str == "bool") {
+    return llvm::Type::getInt1Ty(*context_);
   } else if (type_str == "string" || type_str == "const string") {
     return llvm::PointerType::get(llvm::Type::getInt8Ty(*context_), 0);
   } else if (is_function_pointer_type(type_str)) {
