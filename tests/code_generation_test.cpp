@@ -1312,5 +1312,68 @@ const test = fn() -> i32 {
   EXPECT_TRUE(output.find("@printf") != std::string::npos);
 }
 
+TEST_F(CodeGenerationTest, GeneratesFunctionPointerVariable) {
+  const std::string source = R"(
+const add = fn(x: i32, y: i32) -> i32 {
+  return x + y
+}
+
+const test = fn() -> i32 {
+  operation: fn(i32, i32) -> i32 = add
+  return 42
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  // Should not throw and should generate valid IR for function pointers
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Check that function pointer allocation is generated
+  EXPECT_TRUE(output.find("alloca") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesFunctionPointerTypeHelper) {
+  const std::string source = R"(
+const dummy = fn() -> i32 {
+  callback: fn() -> i32 = dummy
+  return 42
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  
+  // Test that function pointer type parsing works
+  EXPECT_NO_THROW(codegen.generate_program(program.get()));
+}
+
+TEST_F(CodeGenerationTest, HandlesFunctionPointerWithMultipleParams) {
+  const std::string source = R"(
+const calc = fn(a: i32, b: i32, c: i32) -> i32 {
+  return a + b + c
+}
+
+const test = fn() -> i32 {
+  operation: fn(i32, i32, i32) -> i32 = calc
+  return 42
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  EXPECT_NO_THROW(codegen.generate_program(program.get()));
+}
+
 }  // namespace
 }  // namespace void_compiler

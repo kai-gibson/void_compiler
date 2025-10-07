@@ -1471,5 +1471,86 @@ const test = fn() -> nil {
   EXPECT_EQ(var_decl3->type(), "const string");
 }
 
+TEST_F(ParserTest, ParsesFunctionPointerVariable) {
+  const std::string source = R"(
+const test = fn() -> nil {
+  callback: fn(i32) -> i32 = some_function
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 1);
+
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+  EXPECT_EQ(var_decl->name(), "callback");
+  EXPECT_EQ(var_decl->type(), "fn(i32) -> i32");
+  
+  const auto* var_ref = dynamic_cast<const VariableReference*>(var_decl->value());
+  ASSERT_NE(var_ref, nullptr);
+  EXPECT_EQ(var_ref->name(), "some_function");
+}
+
+TEST_F(ParserTest, ParsesFunctionPointerWithMultipleParams) {
+  const std::string source = R"(
+const test = fn() -> nil {
+  operation: fn(i32, i32, i32) -> i32 = add_three
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 1);
+
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+  EXPECT_EQ(var_decl->name(), "operation");
+  EXPECT_EQ(var_decl->type(), "fn(i32, i32, i32) -> i32");
+}
+
+TEST_F(ParserTest, ParsesFunctionPointerWithNoParams) {
+  const std::string source = R"(
+const test = fn() -> nil {
+  getter: fn() -> i32 = get_value
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 1);
+
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+  EXPECT_EQ(var_decl->name(), "getter");
+  EXPECT_EQ(var_decl->type(), "fn() -> i32");
+}
+
+TEST_F(ParserTest, ParsesFunctionPointerWithStringTypes) {
+  const std::string source = R"(
+const test = fn() -> nil {
+  processor: fn(const string, i32) -> string = process_string
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 1);
+
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+  EXPECT_EQ(var_decl->name(), "processor");
+  EXPECT_EQ(var_decl->type(), "fn(const string, i32) -> string");
+}
+
 }  // namespace
 }  // namespace void_compiler

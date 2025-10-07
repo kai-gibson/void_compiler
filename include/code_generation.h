@@ -44,6 +44,11 @@ class CodeGenerator {
   void generate_statement(const ASTNode* node, llvm::Function* function);
   void generate_range_loop(const LoopStatement* loop_stmt, llvm::Function* function);
   void generate_conditional_loop(const LoopStatement* loop_stmt, llvm::Function* function);
+  
+  // Function pointer helpers
+  bool is_function_pointer_type(const std::string& type_str);
+  llvm::Type* get_llvm_type_from_string(const std::string& type_str);
+  FunctionType parse_function_type(const std::string& type_str);
 
   std::unique_ptr<llvm::LLVMContext> context_;
   std::unique_ptr<llvm::Module> module_;

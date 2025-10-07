@@ -440,6 +440,25 @@ std::string Parser::parse_type() {
   } else if (tokens_[current_].type == TokenType::String) {
     current_++;
     return "string";
+  } else if (tokens_[current_].type == TokenType::Fn) {
+    // Parse function pointer type: fn(param_types) -> return_type
+    current_++; // consume 'fn'
+    consume(TokenType::LParen);
+    
+    std::vector<std::string> param_types;
+    if (!match(TokenType::RParen)) {
+      do {
+        param_types.push_back(parse_type());
+      } while (match(TokenType::Comma) && (current_++, true));
+    }
+    
+    consume(TokenType::RParen);
+    consume(TokenType::Arrow);
+    std::string return_type = parse_type();
+    
+    // Create a FunctionType and return its string representation
+    FunctionType func_type(std::move(param_types), std::move(return_type));
+    return func_type.to_string();
   } else {
     throw std::runtime_error("Unexpected token in type: " + tokens_[current_].value);
   }

@@ -56,6 +56,36 @@ struct Token {
   int column;
 };
 
+// Function pointer type representation
+class FunctionType {
+ public:
+  FunctionType(std::vector<std::string> param_types, std::string return_type)
+      : param_types_(std::move(param_types)), return_type_(std::move(return_type)) {}
+
+  [[nodiscard]] const std::vector<std::string>& param_types() const { return param_types_; }
+  [[nodiscard]] const std::string& return_type() const { return return_type_; }
+  
+  // Generate a string representation for type checking
+  [[nodiscard]] std::string to_string() const {
+    std::string result = "fn(";
+    for (size_t i = 0; i < param_types_.size(); ++i) {
+      if (i > 0) result += ", ";
+      result += param_types_[i];
+    }
+    result += ") -> " + return_type_;
+    return result;
+  }
+  
+  // Check if two function types are compatible
+  [[nodiscard]] bool is_compatible(const FunctionType& other) const {
+    return param_types_ == other.param_types_ && return_type_ == other.return_type_;
+  }
+
+ private:
+  std::vector<std::string> param_types_;
+  std::string return_type_;
+};
+
 // AST Node types
 class ASTNode {
  public:

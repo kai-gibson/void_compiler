@@ -186,20 +186,20 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
       // Get the variable type and use correct load type
       auto type_it = variable_types_.find(var->name());
       if (type_it != variable_types_.end()) {
-        llvm::Type* load_type;
-        if (type_it->second == "i32") {
-          load_type = llvm::Type::getInt32Ty(*context_);
-        } else if (type_it->second == "string" || type_it->second == "const string") {
-          load_type = llvm::PointerType::get(llvm::Type::getInt8Ty(*context_), 0);
-        } else {
-          throw std::runtime_error("Unsupported variable type for loading: " + type_it->second);
-        }
+        llvm::Type* load_type = get_llvm_type_from_string(type_it->second);
         return builder_->CreateLoad(load_type, local_it->second, var->name());
       } else {
         // Fallback to i32 if type not found (shouldn't happen)
         return builder_->CreateLoad(llvm::Type::getInt32Ty(*context_), local_it->second,
                                     var->name());
       }
+    }
+    
+    // Check if it's a function name (for function pointer assignment)
+    llvm::Function* func = module_->getFunction(var->name());
+    if (func) {
+      // Return the function as a value (function pointer)
+      return func;
     }
     
     throw std::runtime_error("Unknown variable: " + var->name());
@@ -367,15 +367,8 @@ void CodeGenerator::generate_statement(const ASTNode* node,
     // Generate the initial value
     llvm::Value* init_value = generate_expression(var_decl->value());
     
-    // Determine the LLVM type based on the variable type
-    llvm::Type* var_type;
-    if (var_decl->type() == "i32") {
-      var_type = llvm::Type::getInt32Ty(*context_);
-    } else if (var_decl->type() == "string" || var_decl->type() == "const string") {
-      var_type = llvm::PointerType::get(llvm::Type::getInt8Ty(*context_), 0);
-    } else {
-      throw std::runtime_error("Unsupported variable type: " + var_decl->type());
-    }
+    // Determine the LLVM type based on the variable type using helper method
+    llvm::Type* var_type = get_llvm_type_from_string(var_decl->type());
     
     // Create local variable (alloca)
     llvm::AllocaInst* alloca = builder_->CreateAlloca(
@@ -555,6 +548,79 @@ void CodeGenerator::generate_conditional_loop(const LoopStatement* loop_stmt, ll
   
   // Continue after loop
   builder_->SetInsertPoint(loop_end);
+}
+
+bool CodeGenerator::is_function_pointer_type(const std::string& type_str) {
+  return type_str.starts_with("fn(");
+}
+
+llvm::Type* CodeGenerator::get_llvm_type_from_string(const std::string& type_str) {
+  if (type_str == "i32") {
+    return llvm::Type::getInt32Ty(*context_);
+  } else if (type_str == "string" || type_str == "const string") {
+    return llvm::PointerType::get(llvm::Type::getInt8Ty(*context_), 0);
+  } else if (is_function_pointer_type(type_str)) {
+    // Parse function pointer type and create LLVM function pointer type
+    FunctionType func_type = parse_function_type(type_str);
+    
+    // Convert parameter types
+    std::vector<llvm::Type*> param_types;
+    for (const auto& param_type : func_type.param_types()) {
+      param_types.push_back(get_llvm_type_from_string(param_type));
+    }
+    
+    // Convert return type
+    llvm::Type* return_type = get_llvm_type_from_string(func_type.return_type());
+    
+    // Create function type and return pointer to it
+    llvm::FunctionType* llvm_func_type = llvm::FunctionType::get(return_type, param_types, false);
+    return llvm::PointerType::get(llvm_func_type, 0);
+  } else {
+    throw std::runtime_error("Unsupported type: " + type_str);
+  }
+}
+
+FunctionType CodeGenerator::parse_function_type(const std::string& type_str) {
+  // Parse "fn(param1, param2) -> return_type"
+  if (!type_str.starts_with("fn(")) {
+    throw std::runtime_error("Invalid function type format: " + type_str);
+  }
+  
+  // Find the parameter list
+  size_t params_start = 3; // After "fn("
+  size_t params_end = type_str.find(')');
+  if (params_end == std::string::npos) {
+    throw std::runtime_error("Missing ')' in function type: " + type_str);
+  }
+  
+  // Extract parameter types
+  std::vector<std::string> param_types;
+  if (params_end > params_start) {
+    std::string params_str = type_str.substr(params_start, params_end - params_start);
+    
+    // Simple parsing - split by comma (assumes no nested function types for now)
+    size_t start = 0;
+    while (start < params_str.length()) {
+      size_t comma_pos = params_str.find(", ", start);
+      if (comma_pos == std::string::npos) {
+        param_types.push_back(params_str.substr(start));
+        break;
+      } else {
+        param_types.push_back(params_str.substr(start, comma_pos - start));
+        start = comma_pos + 2;
+      }
+    }
+  }
+  
+  // Find return type
+  size_t arrow_pos = type_str.find(" -> ");
+  if (arrow_pos == std::string::npos) {
+    throw std::runtime_error("Missing ' -> ' in function type: " + type_str);
+  }
+  
+  std::string return_type = type_str.substr(arrow_pos + 4);
+  
+  return {std::move(param_types), std::move(return_type)};
 }
 
 }  // namespace void_compiler
