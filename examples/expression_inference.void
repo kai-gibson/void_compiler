@@ -1,0 +1,52 @@
+// Comprehensive Expression Type Inference Examples
+// Demonstrates automatic type deduction for variable assignments using :=
+
+const calculator = fn() -> i32 {
+    // Basic literal inference
+    x := 42          // inferred as i32
+    y := 17          // inferred as i32
+    message := "Result: "  // inferred as const string
+    
+    // Arithmetic expression inference
+    sum := x + y           // inferred as i32 (42 + 17 = 59)
+    difference := x - y    // inferred as i32 (42 - 17 = 25) 
+    product := x * y       // inferred as i32 (42 * 17 = 714)
+    quotient := x / y      // inferred as i32 (42 / 17 = 2)
+    
+    // Complex expression inference
+    complex := x + y * 2   // inferred as i32 (42 + 17*2 = 76)
+    
+    // Variable reference inference
+    copy_x := x           // inferred as i32 (copies type from x)
+    copy_sum := sum       // inferred as i32 (copies type from sum)
+    
+    // String concatenation inference  
+    greeting := "Hello"    // inferred as const string
+    world := "World"       // inferred as const string
+    
+    return sum
+}
+
+const demonstrate_functions = fn() -> i32 {
+    // Anonymous function inference
+    adder := fn(a: i32, b: i32) -> i32 do return a + b
+    multiplier := fn(x: i32, y: i32) -> i32 {
+        temp := x * y
+        return temp
+    }
+    
+    // Using inferred variables with function calls
+    first := 10
+    second := 20
+    result := adder(first, second)  // Uses inferred i32 variables
+    
+    return result
+}
+
+const main = fn() -> i32 {
+    calc_result := calculator()
+    func_result := demonstrate_functions()
+    final := calc_result + func_result
+    
+    return final
+}
