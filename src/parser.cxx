@@ -275,6 +275,9 @@ std::unique_ptr<VariableDeclaration> Parser::parse_variable_declaration() {
     value = parse_expression();
   }
   
+  // Add variable to symbol table
+  variable_types_[name] = type;
+  
   return std::make_unique<VariableDeclaration>(std::move(name), std::move(type), std::move(value));
 }
 
@@ -373,6 +376,9 @@ std::unique_ptr<FunctionDeclaration> Parser::parse_function() {
   
   // Create function with return type
   auto func = std::make_unique<FunctionDeclaration>(name, return_type);
+
+  // Add function to symbol table
+  function_return_types_[name] = return_type;
 
   // Add all parameters
   for (auto& param : parameters) {
@@ -561,12 +567,81 @@ std::string Parser::infer_type(const ASTNode* node) {
     return func_type;
   }
   
-  // Infer type from variable references (function names)
+  // Infer type from variable references
   if (const auto* var_ref = dynamic_cast<const VariableReference*>(node)) {
-    // This is trickier - we'd need symbol table lookup
-    // For now, assume it's a function reference and we need more context
-    // This could be enhanced with a symbol table in the future
-    throw std::runtime_error("Cannot infer type from variable reference '" + var_ref->name() + "' - use explicit type annotation");
+    auto it = variable_types_.find(var_ref->name());
+    if (it != variable_types_.end()) {
+      return it->second;
+    }
+    throw std::runtime_error("Cannot infer type from undeclared variable '" + var_ref->name() + "'");
+  }
+  
+  // Infer type from binary operations
+  if (const auto* bin_op = dynamic_cast<const BinaryOperation*>(node)) {
+    std::string left_type = infer_type(bin_op->left());
+    std::string right_type = infer_type(bin_op->right());
+    
+    // Type rules for binary operations
+    TokenType op = bin_op->operator_type();
+    
+    // Arithmetic operations (i32 + i32 = i32)
+    if (op == TokenType::Plus || op == TokenType::Minus || 
+        op == TokenType::Multiply || op == TokenType::Divide) {
+      if (left_type == "i32" && right_type == "i32") {
+        return "i32";
+      }
+      // String concatenation (const string + const string = const string)
+      if (op == TokenType::Plus && left_type == "const string" && right_type == "const string") {
+        return "const string";
+      }
+      throw std::runtime_error("Type mismatch in arithmetic operation: " + left_type + " " + 
+                               (op == TokenType::Plus ? "+" : 
+                                op == TokenType::Minus ? "-" : 
+                                op == TokenType::Multiply ? "*" : "/") + " " + right_type);
+    }
+    
+    // Comparison operations always return i32 (treating as boolean for now)
+    if (op == TokenType::EqualEqual || op == TokenType::NotEqual ||
+        op == TokenType::LessThan || op == TokenType::LessEqual ||
+        op == TokenType::GreaterThan || op == TokenType::GreaterEqual) {
+      if (left_type == right_type) {
+        return "i32";  // Boolean result (represented as i32)
+      }
+      throw std::runtime_error("Cannot compare different types: " + left_type + " and " + right_type);
+    }
+    
+    // Logical operations (i32 && i32 = i32, treating i32 as boolean)
+    if (op == TokenType::And || op == TokenType::Or) {
+      if (left_type == "i32" && right_type == "i32") {
+        return "i32";
+      }
+      throw std::runtime_error("Logical operations require boolean (i32) operands");
+    }
+  }
+  
+  // Infer type from function calls
+  if (const auto* func_call = dynamic_cast<const FunctionCall*>(node)) {
+    auto it = function_return_types_.find(func_call->function_name());
+    if (it != function_return_types_.end()) {
+      return it->second;
+    }
+    
+    // Check if it's a function pointer variable
+    auto var_it = variable_types_.find(func_call->function_name());
+    if (var_it != variable_types_.end()) {
+      const std::string& func_type = var_it->second;
+      // Extract return type from function pointer type: "fn(params) -> return_type"
+      auto arrow_pos = func_type.find(" -> ");
+      if (arrow_pos != std::string::npos) {
+        return func_type.substr(arrow_pos + 4);  // Return the part after " -> "
+      }
+    }
+    
+    // Handle built-in functions or member access functions
+    if (func_call->function_name() == "fmt.println") {
+      return "nil";  // fmt.println returns nothing
+    }
+    throw std::runtime_error("Cannot infer return type from undeclared function '" + func_call->function_name() + "'");
   }
   
   // For other expression types, we can't infer the type yet

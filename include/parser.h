@@ -1,6 +1,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 #include <vector>
+#include <unordered_map>
 
 #include "types.h"
 
@@ -39,6 +40,10 @@ class Parser {
 
   std::vector<Token> tokens_;
   size_t current_ = 0;
+  
+  // Symbol table for type tracking
+  std::unordered_map<std::string, std::string> variable_types_;
+  std::unordered_map<std::string, std::string> function_return_types_;
 };
 
 }  // namespace void_compiler

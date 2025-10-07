@@ -1577,5 +1577,95 @@ const main = fn() -> i32 {
   EXPECT_TRUE(output.find("call i32") != std::string::npos);
 }
 
+TEST_F(CodeGenerationTest, GeneratesTypeInferredArithmeticExpressions) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x := 10
+  y := 20
+  sum := x + y
+  product := x * y
+  return sum
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Check that all variables are allocated as i32
+  EXPECT_TRUE(output.find("%x = alloca i32") != std::string::npos);
+  EXPECT_TRUE(output.find("%y = alloca i32") != std::string::npos);
+  EXPECT_TRUE(output.find("%sum = alloca i32") != std::string::npos);
+  EXPECT_TRUE(output.find("%product = alloca i32") != std::string::npos);
+  
+  // Check arithmetic operations
+  EXPECT_TRUE(output.find("add i32") != std::string::npos);
+  EXPECT_TRUE(output.find("mul i32") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesTypeInferredStringConcatenation) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  first := "Hello"
+  second := "World"
+  combined := first + second
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Check that string variables are allocated as pointers
+  EXPECT_TRUE(output.find("%first = alloca ptr") != std::string::npos);
+  EXPECT_TRUE(output.find("%second = alloca ptr") != std::string::npos);
+  EXPECT_TRUE(output.find("%combined = alloca ptr") != std::string::npos);
+  
+  // Check string constants
+  EXPECT_TRUE(output.find("Hello") != std::string::npos);
+  EXPECT_TRUE(output.find("World") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesTypeInferredVariableReferences) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  original := 42
+  copy := original
+  return copy
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Check that both variables are allocated as i32
+  EXPECT_TRUE(output.find("%original = alloca i32") != std::string::npos);
+  EXPECT_TRUE(output.find("%copy = alloca i32") != std::string::npos);
+  
+  // Check load and store operations
+  EXPECT_TRUE(output.find("load i32") != std::string::npos);
+  EXPECT_TRUE(output.find("store i32") != std::string::npos);
+}
+
 }  // namespace
 }  // namespace void_compiler

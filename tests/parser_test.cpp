@@ -1749,5 +1749,114 @@ const main = fn() -> i32 {
   EXPECT_EQ(var_decl2->type(), "const string");
 }
 
+TEST_F(ParserTest, ParsesTypeInferenceForArithmeticExpressions) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x := 10
+  y := 20
+  sum := x + y
+  difference := x - y
+  product := x * y
+  quotient := x / y
+  return sum
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  const auto& func = program->functions()[0];
+  
+  // Check sum := x + y (should infer i32)
+  const auto* sum_decl = dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
+  ASSERT_NE(sum_decl, nullptr);
+  EXPECT_EQ(sum_decl->name(), "sum");
+  EXPECT_EQ(sum_decl->type(), "i32");
+  
+  // Check difference := x - y (should infer i32)
+  const auto* diff_decl = dynamic_cast<const VariableDeclaration*>(func->body()[3].get());
+  ASSERT_NE(diff_decl, nullptr);
+  EXPECT_EQ(diff_decl->name(), "difference");
+  EXPECT_EQ(diff_decl->type(), "i32");
+  
+  // Check product := x * y (should infer i32)
+  const auto* prod_decl = dynamic_cast<const VariableDeclaration*>(func->body()[4].get());
+  ASSERT_NE(prod_decl, nullptr);
+  EXPECT_EQ(prod_decl->name(), "product");
+  EXPECT_EQ(prod_decl->type(), "i32");
+  
+  // Check quotient := x / y (should infer i32)
+  const auto* quot_decl = dynamic_cast<const VariableDeclaration*>(func->body()[5].get());
+  ASSERT_NE(quot_decl, nullptr);
+  EXPECT_EQ(quot_decl->name(), "quotient");
+  EXPECT_EQ(quot_decl->type(), "i32");
+}
+
+TEST_F(ParserTest, ParsesTypeInferenceForStringConcatenation) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  first := "Hello"
+  second := "World"
+  combined := first + second
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  const auto& func = program->functions()[0];
+  
+  // Check combined := first + second (should infer const string)
+  const auto* combined_decl = dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
+  ASSERT_NE(combined_decl, nullptr);
+  EXPECT_EQ(combined_decl->name(), "combined");
+  EXPECT_EQ(combined_decl->type(), "const string");
+}
+
+TEST_F(ParserTest, ParsesTypeInferenceForVariableReferences) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  original := 42
+  copy := original
+  return copy
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  const auto& func = program->functions()[0];
+  
+  // Check copy := original (should infer i32 from variable reference)
+  const auto* copy_decl = dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
+  ASSERT_NE(copy_decl, nullptr);
+  EXPECT_EQ(copy_decl->name(), "copy");
+  EXPECT_EQ(copy_decl->type(), "i32");
+}
+
+TEST_F(ParserTest, ParsesTypeInferenceForComplexExpressions) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  a := 10
+  b := 20
+  c := 30
+  result := a + b * c
+  return result
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  const auto& func = program->functions()[0];
+  
+  // Check result := a + b * c (should infer i32)
+  const auto* result_decl = dynamic_cast<const VariableDeclaration*>(func->body()[3].get());
+  ASSERT_NE(result_decl, nullptr);
+  EXPECT_EQ(result_decl->name(), "result");
+  EXPECT_EQ(result_decl->type(), "i32");
+}
+
 }  // namespace
 }  // namespace void_compiler
