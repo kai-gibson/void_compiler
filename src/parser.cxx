@@ -142,6 +142,11 @@ std::unique_ptr<ASTNode> Parser::parse_primary() {
     return expr;
   }
 
+  // Parse anonymous functions
+  if (match(TokenType::Fn)) {
+    return parse_anonymous_function();
+  }
+
   // Parse function calls and variable references
   if (match(TokenType::Identifier)) {
     std::string name = consume(TokenType::Identifier).value;
@@ -462,6 +467,56 @@ std::string Parser::parse_type() {
   } else {
     throw std::runtime_error("Unexpected token in type: " + tokens_[current_].value);
   }
+}
+
+std::unique_ptr<AnonymousFunction> Parser::parse_anonymous_function() {
+  consume(TokenType::Fn);
+  consume(TokenType::LParen);
+
+  // Parse parameters first, store them temporarily
+  std::vector<std::unique_ptr<Parameter>> parameters;
+  if (!match(TokenType::RParen)) {
+    do {
+      std::string param_name = consume(TokenType::Identifier).value;
+      consume(TokenType::Colon);
+      std::string param_type = parse_type();
+      parameters.push_back(std::make_unique<Parameter>(param_name, param_type));
+    } while (match(TokenType::Comma) && (consume(TokenType::Comma), true));
+  }
+
+  consume(TokenType::RParen);
+  
+  std::string return_type;
+  if (match(TokenType::Arrow)) {
+    consume(TokenType::Arrow);
+    return_type = parse_type();
+  } else {
+    return_type = "nil";  // Default to nil if no return type specified
+  }
+  
+  // Create anonymous function with return type
+  auto func = std::make_unique<AnonymousFunction>(return_type);
+
+  // Add all parameters
+  for (auto& param : parameters) {
+    func->add_parameter(std::move(param));
+  }
+
+  // Parse function body - check for 'do' or block syntax
+  if (match(TokenType::Do)) {
+    consume(TokenType::Do);
+    // Single statement after 'do'
+    func->add_statement(parse_statement());
+  } else {
+    consume(TokenType::LBrace);
+    // Multiple statements in block
+    while (!match(TokenType::RBrace)) {
+      func->add_statement(parse_statement());
+    }
+    consume(TokenType::RBrace);
+  }
+
+  return func;
 }
 
 }  // namespace void_compiler

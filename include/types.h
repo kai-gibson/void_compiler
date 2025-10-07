@@ -347,6 +347,34 @@ class FunctionDeclaration : public ASTNode {
   std::vector<std::unique_ptr<ASTNode>> body_;
 };
 
+class AnonymousFunction : public ASTNode {
+ public:
+  explicit AnonymousFunction(std::string return_type)
+      : return_type_(std::move(return_type)) {}
+
+  [[nodiscard]] const std::string& return_type() const { return return_type_; }
+  [[nodiscard]] const std::vector<std::unique_ptr<ASTNode>>& body() const {
+    return body_;
+  }
+  [[nodiscard]] const std::vector<std::unique_ptr<Parameter>>& parameters()
+      const {
+    return parameters_;
+  }
+
+  void add_statement(std::unique_ptr<ASTNode> statement) {
+    body_.push_back(std::move(statement));
+  }
+
+  void add_parameter(std::unique_ptr<Parameter> parameter) {
+    parameters_.push_back(std::move(parameter));
+  }
+
+ private:
+  std::string return_type_;
+  std::vector<std::unique_ptr<Parameter>> parameters_;
+  std::vector<std::unique_ptr<ASTNode>> body_;
+};
+
 class Program : public ASTNode {
  public:
   Program() = default;

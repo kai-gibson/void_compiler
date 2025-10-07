@@ -1552,5 +1552,107 @@ const test = fn() -> nil {
   EXPECT_EQ(var_decl->type(), "fn(const string, i32) -> string");
 }
 
+TEST_F(ParserTest, ParsesAnonymousFunctionSimple) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  operation: fn(i32, i32) -> i32 = fn(x: i32, y: i32) -> i32 do return x + y
+  return 42
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 2);
+
+  // Check the variable declaration with anonymous function
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+  EXPECT_EQ(var_decl->name(), "operation");
+  EXPECT_EQ(var_decl->type(), "fn(i32, i32) -> i32");
+
+  // Check that the value is an anonymous function
+  const auto* anon_func = dynamic_cast<const AnonymousFunction*>(var_decl->value());
+  ASSERT_NE(anon_func, nullptr);
+  EXPECT_EQ(anon_func->return_type(), "i32");
+  EXPECT_EQ(anon_func->parameters().size(), 2);
+  EXPECT_EQ(anon_func->body().size(), 1);
+}
+
+TEST_F(ParserTest, ParsesAnonymousFunctionWithNoParams) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  getter: fn() -> i32 = fn() -> i32 do return 42
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+
+  const auto& func = program->functions()[0];
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+
+  const auto* anon_func = dynamic_cast<const AnonymousFunction*>(var_decl->value());
+  ASSERT_NE(anon_func, nullptr);
+  EXPECT_EQ(anon_func->return_type(), "i32");
+  EXPECT_EQ(anon_func->parameters().size(), 0);
+  EXPECT_EQ(anon_func->body().size(), 1);
+}
+
+TEST_F(ParserTest, ParsesAnonymousFunctionWithMultipleParams) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  calc: fn(i32, i32, i32) -> i32 = fn(a: i32, b: i32, c: i32) -> i32 do return a + b + c
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  const auto& func = program->functions()[0];
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+
+  const auto* anon_func = dynamic_cast<const AnonymousFunction*>(var_decl->value());
+  ASSERT_NE(anon_func, nullptr);
+  EXPECT_EQ(anon_func->return_type(), "i32");
+  EXPECT_EQ(anon_func->parameters().size(), 3);
+  
+  EXPECT_EQ(anon_func->parameters()[0]->name(), "a");
+  EXPECT_EQ(anon_func->parameters()[1]->name(), "b");
+  EXPECT_EQ(anon_func->parameters()[2]->name(), "c");
+}
+
+TEST_F(ParserTest, ParsesAnonymousFunctionWithBlock) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  complex: fn(i32) -> i32 = fn(x: i32) -> i32 {
+    doubled: i32 = x * 2
+    return doubled + 1
+  }
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  const auto& func = program->functions()[0];
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+
+  const auto* anon_func = dynamic_cast<const AnonymousFunction*>(var_decl->value());
+  ASSERT_NE(anon_func, nullptr);
+  EXPECT_EQ(anon_func->return_type(), "i32");
+  EXPECT_EQ(anon_func->parameters().size(), 1);
+  EXPECT_EQ(anon_func->body().size(), 2);  // Variable declaration + return statement
+}
+
 }  // namespace
 }  // namespace void_compiler

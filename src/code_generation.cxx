@@ -251,6 +251,52 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
   }
 
   if (const auto* call = dynamic_cast<const FunctionCall*>(node)) {
+    // Check if this is a function pointer call first
+    auto local_it = local_variables_.find(call->function_name());
+    if (local_it != local_variables_.end()) {
+      // Check if it's a function pointer variable
+      auto type_it = variable_types_.find(call->function_name());
+      if (type_it != variable_types_.end() && is_function_pointer_type(type_it->second)) {
+        // This is a function pointer call
+        // Load the function pointer from the variable
+        llvm::Type* func_ptr_type = get_llvm_type_from_string(type_it->second);
+        llvm::Value* func_ptr = builder_->CreateLoad(func_ptr_type, local_it->second, 
+                                                     call->function_name());
+        
+        // Parse function type to get parameter and return types
+        FunctionType func_type = parse_function_type(type_it->second);
+        
+        // Validate argument count
+        size_t expected_args = func_type.param_types().size();
+        size_t provided_args = call->arguments().size();
+        if (provided_args != expected_args) {
+          throw std::runtime_error("Function pointer '" + call->function_name() + 
+                                  "' expects " + std::to_string(expected_args) + 
+                                  " arguments, but " + std::to_string(provided_args) + 
+                                  " were provided");
+        }
+        
+        // Generate arguments
+        std::vector<llvm::Value*> args;
+        for (const auto& arg : call->arguments()) {
+          args.push_back(generate_expression(arg.get()));
+        }
+        
+        // Get the LLVM function type for the indirect call
+        std::vector<llvm::Type*> llvm_param_types;
+        for (const auto& param_type : func_type.param_types()) {
+          llvm_param_types.push_back(get_llvm_type_from_string(param_type));
+        }
+        llvm::Type* llvm_return_type = get_llvm_type_from_string(func_type.return_type());
+        llvm::FunctionType* function_type = llvm::FunctionType::get(llvm_return_type, 
+                                                                    llvm_param_types, false);
+        
+        // Create indirect call through function pointer
+        return builder_->CreateCall(function_type, func_ptr, args);
+      }
+    }
+    
+    // Fall back to direct function call
     llvm::Function* func = module_->getFunction(call->function_name());
     if (!func) {
       throw std::runtime_error("Unknown function: " + call->function_name());
@@ -273,6 +319,10 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
     }
 
     return builder_->CreateCall(func, args);
+  }
+
+  if (const auto* anon_func = dynamic_cast<const AnonymousFunction*>(node)) {
+    return generate_anonymous_function(anon_func);
   }
 
   if (const auto* member = dynamic_cast<const MemberAccess*>(node)) {
@@ -621,6 +671,85 @@ FunctionType CodeGenerator::parse_function_type(const std::string& type_str) {
   std::string return_type = type_str.substr(arrow_pos + 4);
   
   return {std::move(param_types), std::move(return_type)};
+}
+
+llvm::Value* CodeGenerator::generate_anonymous_function(const AnonymousFunction* anon_func) {
+  // Generate a unique name for the anonymous function
+  static int anon_counter = 0;
+  std::string func_name = "anon_" + std::to_string(anon_counter++);
+  
+  // Create parameter types
+  std::vector<llvm::Type*> param_types;
+  for (const auto& param : anon_func->parameters()) {
+    (void)param;  // Mark as used to avoid warning
+    // For now, assume all parameters are i32 (can be enhanced later with proper type system)
+    param_types.push_back(llvm::Type::getInt32Ty(*context_));
+  }
+
+  // Create function type
+  llvm::Type* return_type;
+  if (anon_func->return_type() == "void" || anon_func->return_type() == "nil") {
+    return_type = llvm::Type::getVoidTy(*context_);
+  } else {
+    return_type = llvm::Type::getInt32Ty(*context_);
+  }
+  
+  llvm::FunctionType* func_type =
+      llvm::FunctionType::get(return_type, param_types, false);
+
+  // Create function
+  llvm::Function* function =
+      llvm::Function::Create(func_type, llvm::Function::InternalLinkage,
+                             func_name, module_.get());
+
+  // Set parameter names
+  size_t idx = 0;
+  for (auto& arg : function->args()) {
+    arg.setName(anon_func->parameters()[idx++]->name());
+  }
+
+  // Save current insertion point and local state
+  llvm::BasicBlock* current_block = builder_->GetInsertBlock();
+  auto saved_params = function_params_;
+  auto saved_locals = local_variables_;
+  auto saved_return_type = current_function_return_type_;
+
+  // Create basic block for anonymous function
+  llvm::BasicBlock* entry =
+      llvm::BasicBlock::Create(*context_, "entry", function);
+  builder_->SetInsertPoint(entry);
+
+  // Clear and set up parameter allocas for anonymous function
+  function_params_.clear();
+  local_variables_.clear();
+  current_function_return_type_ = anon_func->return_type();
+  
+  for (auto& arg : function->args()) {
+    llvm::AllocaInst* alloca = builder_->CreateAlloca(
+        llvm::Type::getInt32Ty(*context_), nullptr, arg.getName());
+    builder_->CreateStore(&arg, alloca);
+    function_params_[std::string(arg.getName())] = alloca;
+  }
+
+  // Generate function body
+  for (const auto& stmt : anon_func->body()) {
+    generate_statement(stmt.get(), function);
+  }
+  
+  // If this is a void/nil function and there's no terminator, add a void return
+  if ((anon_func->return_type() == "void" || anon_func->return_type() == "nil") && 
+      !builder_->GetInsertBlock()->getTerminator()) {
+    builder_->CreateRetVoid();
+  }
+
+  // Restore previous state
+  builder_->SetInsertPoint(current_block);
+  function_params_ = saved_params;
+  local_variables_ = saved_locals;
+  current_function_return_type_ = saved_return_type;
+
+  // Return the function as a value (function pointer)
+  return function;
 }
 
 }  // namespace void_compiler

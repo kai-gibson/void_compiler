@@ -31,6 +31,7 @@ class Parser {
   std::unique_ptr<RangeExpression> parse_range_expression();
   std::unique_ptr<ImportStatement> parse_import();
   std::unique_ptr<FunctionDeclaration> parse_function();
+  std::unique_ptr<AnonymousFunction> parse_anonymous_function();
   std::unique_ptr<VariableDeclaration> parse_variable_declaration();
   std::unique_ptr<VariableAssignment> parse_variable_assignment();
   std::string parse_type();  // Helper to parse type tokens

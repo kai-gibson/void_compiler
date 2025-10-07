@@ -1,0 +1,37 @@
+// Function Pointers Example
+// This demonstrates how to use function pointers in the void language
+import fmt
+
+// Define some functions to use as function pointers
+const add = fn(x: i32, y: i32) -> i32 {
+  result: i32 = x + y
+  fmt.println("add: {:d}", result)
+  return result
+}
+
+const multiply = fn(x: i32, y: i32) -> i32 {
+  result: i32 = x * y
+  fmt.println("multiply: {:d}", result)
+  return result
+}
+
+const main = fn() -> i32 {
+  // Declare a function pointer variable
+  operation: fn(i32, i32) -> i32 = add
+  
+  // Call the function through the pointer
+  result1: i32 = operation(5, 3)  // result1 = 8
+  
+  // Reassign the function pointer to a different function
+  operation = multiply
+  
+  // Call the new function through the same pointer
+  result2: i32 = operation(4, 7)  // result2 = 28
+  
+  // Anonymous function example - define function inline
+  quick_calc: fn(i32, i32) -> i32 = fn(a: i32, b: i32) -> i32 do return a * 2 + b
+  result3: i32 = quick_calc(3, 4)  // result3 = 10 (3 * 2 + 4)
+  
+  // Return the sum: 8 + 28 + 10 = 46
+  return result1 + result2 + result3
+}

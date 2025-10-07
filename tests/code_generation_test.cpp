@@ -1375,5 +1375,154 @@ const test = fn() -> i32 {
   EXPECT_NO_THROW(codegen.generate_program(program.get()));
 }
 
+TEST_F(CodeGenerationTest, GeneratesFunctionPointerCall) {
+  const std::string source = R"(
+const add = fn(x: i32, y: i32) -> i32 {
+  return x + y
+}
+
+const test = fn() -> i32 {
+  operation: fn(i32, i32) -> i32 = add
+  result: i32 = operation(5, 3)
+  return result
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  // Should generate valid IR including indirect call
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Check that indirect call is generated
+  EXPECT_TRUE(output.find("call") != std::string::npos);
+  EXPECT_TRUE(output.find("alloca") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, HandlesFunctionPointerCallWithNoParams) {
+  const std::string source = R"(
+const getValue = fn() -> i32 {
+  return 42
+}
+
+const test = fn() -> i32 {
+  getter: fn() -> i32 = getValue
+  result: i32 = getter()
+  return result
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  EXPECT_NO_THROW(codegen.generate_program(program.get()));
+}
+
+TEST_F(CodeGenerationTest, ThrowsOnFunctionPointerCallWithWrongArgCount) {
+  const std::string source = R"(
+const add = fn(x: i32, y: i32) -> i32 {
+  return x + y
+}
+
+const test = fn() -> i32 {
+  operation: fn(i32, i32) -> i32 = add
+  result: i32 = operation(5)
+  return result
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  EXPECT_THROW(codegen.generate_program(program.get()), std::runtime_error);
+}
+
+TEST_F(CodeGenerationTest, GeneratesAnonymousFunction) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  operation: fn(i32, i32) -> i32 = fn(x: i32, y: i32) -> i32 do return x + y
+  return 42
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  // Should not throw and should generate valid IR for anonymous functions
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Check that anonymous function is generated
+  EXPECT_TRUE(output.find("@anon_") != std::string::npos);
+  EXPECT_TRUE(output.find("define internal i32 @anon_") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesAnonymousFunctionCall) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  operation: fn(i32, i32) -> i32 = fn(x: i32, y: i32) -> i32 do return x + y
+  result: i32 = operation(5, 3)
+  return result
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  // Should generate valid IR including anonymous function and call
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Check that anonymous function is generated and called
+  EXPECT_TRUE(output.find("@anon_") != std::string::npos);
+  EXPECT_TRUE(output.find("call i32") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesAnonymousFunctionWithMultipleParams) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  calc: fn(i32, i32, i32) -> i32 = fn(a: i32, b: i32, c: i32) -> i32 do return a + b + c
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  EXPECT_NO_THROW(codegen.generate_program(program.get()));
+}
+
+TEST_F(CodeGenerationTest, GeneratesAnonymousFunctionWithNoParams) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  getter: fn() -> i32 = fn() -> i32 do return 42
+  result: i32 = getter()
+  return result
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  EXPECT_NO_THROW(codegen.generate_program(program.get()));
+}
+
 }  // namespace
 }  // namespace void_compiler
