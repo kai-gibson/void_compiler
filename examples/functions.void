@@ -1,7 +1,8 @@
 import fmt
 
-const add = fn(x: i32, y: i32) -> i32 do x + y
-const sub = fn(x: i32, y: i32) -> i32 do x - y
+const add = fn(x: i32, y: i32) -> i32 do return x + y
+
+const sub = fn(x: i32, y: i32) -> i32 do return x - y
 
 const main = fn() {
   operation := fn(x: i32, y: i32) -> i32 do return x * y
