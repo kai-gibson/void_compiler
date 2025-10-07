@@ -1,0 +1,16 @@
+import fmt
+
+const add = fn(x: i32, y: i32) -> i32 do x + y
+const sub = fn(x: i32, y: i32) -> i32 do x - y
+
+const main = fn() {
+  operation := fn(x: i32, y: i32) -> i32 do return x * y
+
+  fmt.println("mult: {:d}", operation(10, 2))
+
+  operation = add
+  fmt.println("add: {:d}", operation(10, 2))
+
+  operation = sub
+  fmt.println("sub: {:d}", operation(10, 2))
+}
