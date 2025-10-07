@@ -625,5 +625,86 @@ TEST_F(LexerTest, HandlesCommentImmediatelyAfterToken) {
   EXPECT_EQ(tokens[2].type, TokenType::EndOfFile);
 }
 
+// String literal tests
+TEST_F(LexerTest, TokenizesSimpleStringLiteral) {
+  auto tokens = TokenizeSource("\"hello\"");
+  
+  ASSERT_EQ(tokens.size(), 2);  // string, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::StringLiteral);
+  EXPECT_EQ(tokens[0].value, "hello");
+  EXPECT_EQ(tokens[1].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, TokenizesEmptyStringLiteral) {
+  auto tokens = TokenizeSource("\"\"");
+  
+  ASSERT_EQ(tokens.size(), 2);  // string, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::StringLiteral);
+  EXPECT_EQ(tokens[0].value, "");
+  EXPECT_EQ(tokens[1].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, TokenizesStringWithEscapes) {
+  auto tokens = TokenizeSource("\"hello\\nworld\\t!\\\"quote\\\"\"");
+  
+  ASSERT_EQ(tokens.size(), 2);  // string, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::StringLiteral);
+  EXPECT_EQ(tokens[0].value, "hello\nworld\t!\"quote\"");
+  EXPECT_EQ(tokens[1].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, TokenizesStringWithSpecialCharacters) {
+  auto tokens = TokenizeSource("\"Hello, {:s}! Number: {:d}\"");
+  
+  ASSERT_EQ(tokens.size(), 2);  // string, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::StringLiteral);
+  EXPECT_EQ(tokens[0].value, "Hello, {:s}! Number: {:d}");
+  EXPECT_EQ(tokens[1].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, TokenizesMultipleStringLiterals) {
+  auto tokens = TokenizeSource("\"first\" \"second\" \"third\"");
+  
+  ASSERT_EQ(tokens.size(), 4);  // 3 strings + EOF
+  EXPECT_EQ(tokens[0].type, TokenType::StringLiteral);
+  EXPECT_EQ(tokens[0].value, "first");
+  EXPECT_EQ(tokens[1].type, TokenType::StringLiteral);
+  EXPECT_EQ(tokens[1].value, "second");
+  EXPECT_EQ(tokens[2].type, TokenType::StringLiteral);
+  EXPECT_EQ(tokens[2].value, "third");
+  EXPECT_EQ(tokens[3].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, TokenizesStringInFunctionCall) {
+  auto tokens = TokenizeSource("fmt.println(\"Hello, {:s}!\", \"world\")");
+  
+  // fmt, ., println, (, "Hello, {:s}!", ,, "world", ), EOF
+  ASSERT_EQ(tokens.size(), 9);
+  EXPECT_EQ(tokens[0].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[0].value, "fmt");
+  EXPECT_EQ(tokens[1].type, TokenType::Dot);
+  EXPECT_EQ(tokens[2].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[2].value, "println");
+  EXPECT_EQ(tokens[3].type, TokenType::LParen);
+  EXPECT_EQ(tokens[4].type, TokenType::StringLiteral);
+  EXPECT_EQ(tokens[4].value, "Hello, {:s}!");
+  EXPECT_EQ(tokens[5].type, TokenType::Comma);
+  EXPECT_EQ(tokens[6].type, TokenType::StringLiteral);
+  EXPECT_EQ(tokens[6].value, "world");
+  EXPECT_EQ(tokens[7].type, TokenType::RParen);
+  EXPECT_EQ(tokens[8].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, ThrowsOnUnterminatedString) {
+  EXPECT_THROW({
+    try {
+      TokenizeSource("\"unterminated string");
+    } catch (const std::runtime_error& e) {
+      EXPECT_STREQ("Unterminated string literal", e.what());
+      throw;
+    }
+  }, std::runtime_error);
+}
+
 }  // namespace
 }  // namespace void_compiler

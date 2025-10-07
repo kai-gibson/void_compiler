@@ -288,11 +288,12 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
           size_t pos = 0;
           while ((pos = format_str.find("{:d}", pos)) != std::string::npos) {
             format_str.replace(pos, 4, "%d");
-            pos += 2;
+            pos += 2;  // Move past the replacement
           }
+          pos = 0;  // Reset position for next replacement
           while ((pos = format_str.find("{:s}", pos)) != std::string::npos) {
             format_str.replace(pos, 4, "%s");
-            pos += 2;
+            pos += 2;  // Move past the replacement
           }
           
           // Add newline for println

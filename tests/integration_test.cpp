@@ -795,5 +795,54 @@ const main = fn() -> i32 {
   EXPECT_EQ(result, 2); // Only adds 2 (i=2), since i=0,1 don't satisfy i>1
 }
 
+TEST_F(IntegrationTest, CompileAndRunStringLiterals) {
+  const std::string source = R"(
+import fmt
+
+const main = fn() -> i32 {
+  fmt.println("Hello, {:s}!", "world")
+  fmt.println("Number: {:d}", 42)
+  fmt.println("Mixed: {:s} and {:d}", "text", 123)
+  return 0
+}
+)";
+
+  // We can't easily test stdout output in this test framework,
+  // but we can verify the program compiles and runs without crashing
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 0);
+}
+
+TEST_F(IntegrationTest, CompileAndRunStringLiteralsWithEscapes) {
+  const std::string source = R"(
+import fmt
+
+const main = fn() -> i32 {
+  fmt.println("Line 1\nLine 2")
+  fmt.println("Tab\ttab")
+  fmt.println("Quote: \"Hello\"")
+  return 0
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 0);
+}
+
+TEST_F(IntegrationTest, CompileAndRunEmptyString) {
+  const std::string source = R"(
+import fmt
+
+const main = fn() -> i32 {
+  fmt.println("")
+  fmt.println("{:s}", "")
+  return 0
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 0);
+}
+
 }  // namespace
 }  // namespace void_compiler

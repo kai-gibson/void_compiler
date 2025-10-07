@@ -1234,5 +1234,83 @@ const nil_func = fn() -> nil {
   }
 }
 
+TEST_F(CodeGenerationTest, GeneratesStringLiterals) {
+  const std::string source = R"(
+import fmt
+
+const test = fn() -> i32 {
+  fmt.println("Hello, world!")
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate string constants
+  EXPECT_TRUE(output.find("Hello, world!") != std::string::npos);
+  EXPECT_TRUE(output.find("@printf") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesStringFormatReplacement) {
+  const std::string source = R"(
+import fmt
+
+const test = fn() -> i32 {
+  fmt.println("Number: {:d}", 42)
+  fmt.println("String: {:s}", "hello")
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Format strings should be converted from {:d} to %d and {:s} to %s
+  EXPECT_TRUE(output.find("Number: %d") != std::string::npos);
+  EXPECT_TRUE(output.find("String: %s") != std::string::npos);
+  EXPECT_TRUE(output.find("hello") != std::string::npos);
+  EXPECT_FALSE(output.find("{:d}") != std::string::npos);  // Should not contain original format
+  EXPECT_FALSE(output.find("{:s}") != std::string::npos);  // Should not contain original format
+}
+
+TEST_F(CodeGenerationTest, GeneratesEmptyStringLiteral) {
+  const std::string source = R"(
+import fmt
+
+const test = fn() -> i32 {
+  fmt.println("")
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  // Should not throw and should generate valid IR for empty strings
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  EXPECT_TRUE(output.find("@printf") != std::string::npos);
+}
+
 }  // namespace
 }  // namespace void_compiler
