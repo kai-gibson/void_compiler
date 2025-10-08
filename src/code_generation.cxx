@@ -648,7 +648,9 @@ bool CodeGenerator::is_function_pointer_type(const std::string& type_str) {
 }
 
 llvm::Type* CodeGenerator::get_llvm_type_from_string(const std::string& type_str) {
-  if (type_str == "i8") {
+  if (type_str == "nil" || type_str == "void") {
+    return llvm::Type::getVoidTy(*context_);
+  } else if (type_str == "i8") {
     return llvm::Type::getInt8Ty(*context_);
   } else if (type_str == "i16") {
     return llvm::Type::getInt16Ty(*context_);
