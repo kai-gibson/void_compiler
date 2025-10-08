@@ -1985,5 +1985,164 @@ const test_func = fn() -> i32 {
   EXPECT_EQ(u64_decl->type(), "u64");
 }
 
+TEST_F(ParserTest, ParsesSizedIntegerFunctionParameters) {
+  const std::string source = R"(
+const test_func = fn(a: i8, b: i16, c: i32, d: i64, e: u8, f: u16, g: u32, h: u64) -> i32 {
+  return 42
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+
+  const auto& func = program->functions()[0];
+  EXPECT_EQ(func->name(), "test_func");
+  EXPECT_EQ(func->return_type(), "i32");
+  ASSERT_EQ(func->parameters().size(), 8);
+
+  // Check all parameter types
+  EXPECT_EQ(func->parameters()[0]->name(), "a");
+  EXPECT_EQ(func->parameters()[0]->type(), "i8");
+  EXPECT_EQ(func->parameters()[1]->name(), "b");
+  EXPECT_EQ(func->parameters()[1]->type(), "i16");
+  EXPECT_EQ(func->parameters()[2]->name(), "c");
+  EXPECT_EQ(func->parameters()[2]->type(), "i32");
+  EXPECT_EQ(func->parameters()[3]->name(), "d");
+  EXPECT_EQ(func->parameters()[3]->type(), "i64");
+  EXPECT_EQ(func->parameters()[4]->name(), "e");
+  EXPECT_EQ(func->parameters()[4]->type(), "u8");
+  EXPECT_EQ(func->parameters()[5]->name(), "f");
+  EXPECT_EQ(func->parameters()[5]->type(), "u16");
+  EXPECT_EQ(func->parameters()[6]->name(), "g");
+  EXPECT_EQ(func->parameters()[6]->type(), "u32");
+  EXPECT_EQ(func->parameters()[7]->name(), "h");
+  EXPECT_EQ(func->parameters()[7]->type(), "u64");
+}
+
+TEST_F(ParserTest, ParsesSizedIntegerReturnTypes) {
+  const std::string source = R"(
+const func_i8 = fn() -> i8 { return 42 }
+const func_i16 = fn() -> i16 { return 42 }
+const func_i32 = fn() -> i32 { return 42 }
+const func_i64 = fn() -> i64 { return 42 }
+const func_u8 = fn() -> u8 { return 42 }
+const func_u16 = fn() -> u16 { return 42 }
+const func_u32 = fn() -> u32 { return 42 }
+const func_u64 = fn() -> u64 { return 42 }
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 8);
+
+  // Check all return types
+  EXPECT_EQ(program->functions()[0]->name(), "func_i8");
+  EXPECT_EQ(program->functions()[0]->return_type(), "i8");
+  EXPECT_EQ(program->functions()[1]->name(), "func_i16");
+  EXPECT_EQ(program->functions()[1]->return_type(), "i16");
+  EXPECT_EQ(program->functions()[2]->name(), "func_i32");
+  EXPECT_EQ(program->functions()[2]->return_type(), "i32");
+  EXPECT_EQ(program->functions()[3]->name(), "func_i64");
+  EXPECT_EQ(program->functions()[3]->return_type(), "i64");
+  EXPECT_EQ(program->functions()[4]->name(), "func_u8");
+  EXPECT_EQ(program->functions()[4]->return_type(), "u8");
+  EXPECT_EQ(program->functions()[5]->name(), "func_u16");
+  EXPECT_EQ(program->functions()[5]->return_type(), "u16");
+  EXPECT_EQ(program->functions()[6]->name(), "func_u32");
+  EXPECT_EQ(program->functions()[6]->return_type(), "u32");
+  EXPECT_EQ(program->functions()[7]->name(), "func_u64");
+  EXPECT_EQ(program->functions()[7]->return_type(), "u64");
+}
+
+TEST_F(ParserTest, ParsesSizedIntegerTypeInference) {
+  const std::string source = R"(
+const test_func = fn() -> i32 {
+  tiny := 127
+  small := 32767
+  medium := 42
+  large := 1000000
+  byte_val := 255
+  word_val := 65535
+  dword_val := 42
+  qword_val := 2000000
+  return medium
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  const auto& func = program->functions()[0];
+  
+  // All should be inferred as i32 for now (since that's the default for number literals)
+  for (int i = 0; i < 8; i++) {
+    const auto* decl = dynamic_cast<const VariableDeclaration*>(func->body()[i].get());
+    ASSERT_NE(decl, nullptr);
+    EXPECT_EQ(decl->type(), "i32");  // Number literals default to i32
+  }
+}
+
+TEST_F(ParserTest, ParsesSizedIntegerVariableReferences) {
+  const std::string source = R"(
+const test_func = fn() -> i32 {
+  tiny: i8 = 127
+  small: i16 = 32767
+  medium: i32 = 42
+  large: i64 = 1000000
+  
+  tiny_copy := tiny
+  small_copy := small
+  medium_copy := medium
+  large_copy := large
+  
+  return medium
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  const auto& func = program->functions()[0];
+  
+  // Check original declarations
+  const auto* tiny_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(tiny_decl, nullptr);
+  EXPECT_EQ(tiny_decl->type(), "i8");
+  
+  const auto* small_decl = dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
+  ASSERT_NE(small_decl, nullptr);
+  EXPECT_EQ(small_decl->type(), "i16");
+  
+  const auto* medium_decl = dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
+  ASSERT_NE(medium_decl, nullptr);
+  EXPECT_EQ(medium_decl->type(), "i32");
+  
+  const auto* large_decl = dynamic_cast<const VariableDeclaration*>(func->body()[3].get());
+  ASSERT_NE(large_decl, nullptr);
+  EXPECT_EQ(large_decl->type(), "i64");
+  
+  // Check type inference from variable references
+  const auto* tiny_copy_decl = dynamic_cast<const VariableDeclaration*>(func->body()[4].get());
+  ASSERT_NE(tiny_copy_decl, nullptr);
+  EXPECT_EQ(tiny_copy_decl->name(), "tiny_copy");
+  EXPECT_EQ(tiny_copy_decl->type(), "i8");  // Should infer i8 from tiny variable
+  
+  const auto* small_copy_decl = dynamic_cast<const VariableDeclaration*>(func->body()[5].get());
+  ASSERT_NE(small_copy_decl, nullptr);
+  EXPECT_EQ(small_copy_decl->name(), "small_copy");
+  EXPECT_EQ(small_copy_decl->type(), "i16");  // Should infer i16 from small variable
+  
+  const auto* medium_copy_decl = dynamic_cast<const VariableDeclaration*>(func->body()[6].get());
+  ASSERT_NE(medium_copy_decl, nullptr);
+  EXPECT_EQ(medium_copy_decl->name(), "medium_copy");
+  EXPECT_EQ(medium_copy_decl->type(), "i32");  // Should infer i32 from medium variable
+  
+  const auto* large_copy_decl = dynamic_cast<const VariableDeclaration*>(func->body()[7].get());
+  ASSERT_NE(large_copy_decl, nullptr);
+  EXPECT_EQ(large_copy_decl->name(), "large_copy");
+  EXPECT_EQ(large_copy_decl->type(), "i64");  // Should infer i64 from large variable
+}
+
 }  // namespace
 }  // namespace void_compiler

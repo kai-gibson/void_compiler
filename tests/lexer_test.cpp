@@ -695,6 +695,78 @@ TEST_F(LexerTest, TokenizesStringInFunctionCall) {
   EXPECT_EQ(tokens[8].type, TokenType::EndOfFile);
 }
 
+TEST_F(LexerTest, TokenizesSizedIntegerKeywords) {
+  auto tokens = TokenizeSource("i8 i16 i32 i64 u8 u16 u32 u64");
+  
+  ASSERT_EQ(tokens.size(), 9);  // 8 integer types + EOF
+  EXPECT_EQ(tokens[0].type, TokenType::I8);
+  EXPECT_EQ(tokens[0].value, "i8");
+  EXPECT_EQ(tokens[1].type, TokenType::I16);
+  EXPECT_EQ(tokens[1].value, "i16");
+  EXPECT_EQ(tokens[2].type, TokenType::I32);
+  EXPECT_EQ(tokens[2].value, "i32");
+  EXPECT_EQ(tokens[3].type, TokenType::I64);
+  EXPECT_EQ(tokens[3].value, "i64");
+  EXPECT_EQ(tokens[4].type, TokenType::U8);
+  EXPECT_EQ(tokens[4].value, "u8");
+  EXPECT_EQ(tokens[5].type, TokenType::U16);
+  EXPECT_EQ(tokens[5].value, "u16");
+  EXPECT_EQ(tokens[6].type, TokenType::U32);
+  EXPECT_EQ(tokens[6].value, "u32");
+  EXPECT_EQ(tokens[7].type, TokenType::U64);
+  EXPECT_EQ(tokens[7].value, "u64");
+  EXPECT_EQ(tokens[8].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, TokenizesSizedIntegerVariableDeclarations) {
+  auto tokens = TokenizeSource("tiny: i8 = 42 large: u64 = 1000");
+  
+  // tiny : i8 = 42 large : u64 = 1000 EOF
+  ASSERT_EQ(tokens.size(), 11);  // 10 tokens + EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[0].value, "tiny");
+  EXPECT_EQ(tokens[1].type, TokenType::Colon);
+  EXPECT_EQ(tokens[2].type, TokenType::I8);
+  EXPECT_EQ(tokens[2].value, "i8");
+  EXPECT_EQ(tokens[3].type, TokenType::Equals);
+  EXPECT_EQ(tokens[4].type, TokenType::Number);
+  EXPECT_EQ(tokens[4].value, "42");
+  EXPECT_EQ(tokens[5].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[5].value, "large");
+  EXPECT_EQ(tokens[6].type, TokenType::Colon);
+  EXPECT_EQ(tokens[7].type, TokenType::U64);
+  EXPECT_EQ(tokens[7].value, "u64");
+  EXPECT_EQ(tokens[8].type, TokenType::Equals);
+  EXPECT_EQ(tokens[9].type, TokenType::Number);
+  EXPECT_EQ(tokens[9].value, "1000");
+  EXPECT_EQ(tokens[10].type, TokenType::EndOfFile);
+}
+
+TEST_F(LexerTest, TokenizesSizedIntegerFunctionSignatures) {
+  auto tokens = TokenizeSource("fn(x: i16, y: u32) -> i64");
+  
+  // fn ( x : i16 , y : u32 ) -> i64 EOF
+  ASSERT_EQ(tokens.size(), 13);  // 12 tokens + EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Fn);
+  EXPECT_EQ(tokens[1].type, TokenType::LParen);
+  EXPECT_EQ(tokens[2].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[2].value, "x");
+  EXPECT_EQ(tokens[3].type, TokenType::Colon);
+  EXPECT_EQ(tokens[4].type, TokenType::I16);
+  EXPECT_EQ(tokens[4].value, "i16");
+  EXPECT_EQ(tokens[5].type, TokenType::Comma);
+  EXPECT_EQ(tokens[6].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[6].value, "y");
+  EXPECT_EQ(tokens[7].type, TokenType::Colon);
+  EXPECT_EQ(tokens[8].type, TokenType::U32);
+  EXPECT_EQ(tokens[8].value, "u32");
+  EXPECT_EQ(tokens[9].type, TokenType::RParen);
+  EXPECT_EQ(tokens[10].type, TokenType::Arrow);
+  EXPECT_EQ(tokens[11].type, TokenType::I64);
+  EXPECT_EQ(tokens[11].value, "i64");
+  EXPECT_EQ(tokens[12].type, TokenType::EndOfFile);
+}
+
 TEST_F(LexerTest, ThrowsOnUnterminatedString) {
   EXPECT_THROW({
     try {

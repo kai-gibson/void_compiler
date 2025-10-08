@@ -1752,5 +1752,113 @@ const main = fn() -> i32 {
   EXPECT_TRUE(output.find("%word_val = alloca i16") != std::string::npos);
 }
 
+TEST_F(CodeGenerationTest, GeneratesAllSizedIntegerTypes) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  i8_val: i8 = 127
+  i16_val: i16 = 32767
+  i32_val: i32 = 42
+  i64_val: i64 = 1000000
+  u8_val: u8 = 255
+  u16_val: u16 = 65535
+  u32_val: u32 = 12345
+  u64_val: u64 = 2000000
+  return i32_val
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Check that all integer sizes are allocated with correct LLVM types
+  EXPECT_TRUE(output.find("%i8_val = alloca i8") != std::string::npos);
+  EXPECT_TRUE(output.find("%i16_val = alloca i16") != std::string::npos);
+  EXPECT_TRUE(output.find("%i32_val = alloca i32") != std::string::npos);
+  EXPECT_TRUE(output.find("%i64_val = alloca i64") != std::string::npos);
+  EXPECT_TRUE(output.find("%u8_val = alloca i8") != std::string::npos);   // u8 maps to i8
+  EXPECT_TRUE(output.find("%u16_val = alloca i16") != std::string::npos); // u16 maps to i16
+  EXPECT_TRUE(output.find("%u32_val = alloca i32") != std::string::npos); // u32 maps to i32
+  EXPECT_TRUE(output.find("%u64_val = alloca i64") != std::string::npos); // u64 maps to i64
+  
+  // Check that values are stored correctly
+  EXPECT_TRUE(output.find("store i8 127") != std::string::npos);
+  EXPECT_TRUE(output.find("store i16 32767") != std::string::npos);
+  EXPECT_TRUE(output.find("store i32 42") != std::string::npos);
+  EXPECT_TRUE(output.find("store i64 1000000") != std::string::npos);
+  EXPECT_TRUE(output.find("store i8 -1") != std::string::npos);    // 255 as i8
+  EXPECT_TRUE(output.find("store i16 -1") != std::string::npos);   // 65535 as i16
+  EXPECT_TRUE(output.find("store i32 12345") != std::string::npos); // 12345 as i32
+  EXPECT_TRUE(output.find("store i64 2000000") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesSizedIntegerFunctions) {
+  const std::string source = R"(
+const add_i8 = fn(a: i8, b: i8) -> i8 {
+  return 42
+}
+
+const add_i16 = fn(a: i16, b: i16) -> i16 {
+  return 42
+}
+
+const add_i32 = fn(a: i32, b: i32) -> i32 {
+  return 42
+}
+
+const add_i64 = fn(a: i64, b: i64) -> i64 {
+  return 42
+}
+
+const add_u8 = fn(a: u8, b: u8) -> u8 {
+  return 42
+}
+
+const add_u16 = fn(a: u16, b: u16) -> u16 {
+  return 42
+}
+
+const add_u32 = fn(a: u32, b: u32) -> u32 {
+  return 42
+}
+
+const add_u64 = fn(a: u64, b: u64) -> u64 {
+  return 42
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Check function signatures are generated correctly
+  EXPECT_TRUE(output.find("define i8 @add_i8(i8 %a, i8 %b)") != std::string::npos);
+  EXPECT_TRUE(output.find("define i16 @add_i16(i16 %a, i16 %b)") != std::string::npos);
+  EXPECT_TRUE(output.find("define i32 @add_i32(i32 %a, i32 %b)") != std::string::npos);
+  EXPECT_TRUE(output.find("define i64 @add_i64(i64 %a, i64 %b)") != std::string::npos);
+  EXPECT_TRUE(output.find("define i8 @add_u8(i8 %a, i8 %b)") != std::string::npos);   // u8 -> i8
+  EXPECT_TRUE(output.find("define i16 @add_u16(i16 %a, i16 %b)") != std::string::npos); // u16 -> i16
+  EXPECT_TRUE(output.find("define i32 @add_u32(i32 %a, i32 %b)") != std::string::npos); // u32 -> i32
+  EXPECT_TRUE(output.find("define i64 @add_u64(i64 %a, i64 %b)") != std::string::npos); // u64 -> i64
+  
+  // Check return values are correct type
+  EXPECT_TRUE(output.find("ret i8 42") != std::string::npos);
+  EXPECT_TRUE(output.find("ret i16 42") != std::string::npos);
+  EXPECT_TRUE(output.find("ret i32 42") != std::string::npos);
+  EXPECT_TRUE(output.find("ret i64 42") != std::string::npos);
+}
+
 }  // namespace
 }  // namespace void_compiler

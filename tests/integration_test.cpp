@@ -891,5 +891,155 @@ const main = fn() -> i32 {
   EXPECT_EQ(result, 0);
 }
 
+TEST_F(IntegrationTest, CompileAndRunSizedIntegerI8) {
+  const std::string source = R"(
+const test_i8 = fn(x: i8) -> i32 {
+  return 127
+}
+
+const main = fn() -> i32 {
+  return test_i8(42)
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 127);
+}
+
+TEST_F(IntegrationTest, CompileAndRunSizedIntegerI16) {
+  const std::string source = R"(
+const test_i16 = fn(x: i16) -> i32 {
+  return 32767
+}
+
+const main = fn() -> i32 {
+  return test_i16(1000)
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 32767);
+}
+
+TEST_F(IntegrationTest, CompileAndRunSizedIntegerI64) {
+  const std::string source = R"(
+const test_i64 = fn(x: i64) -> i32 {
+  return 1000000
+}
+
+const main = fn() -> i32 {
+  return test_i64(999999)
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 1000000);
+}
+
+TEST_F(IntegrationTest, CompileAndRunSizedIntegerU8) {
+  const std::string source = R"(
+const test_u8 = fn(x: u8) -> i32 {
+  return 255
+}
+
+const main = fn() -> i32 {
+  return test_u8(100)
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 255);
+}
+
+TEST_F(IntegrationTest, CompileAndRunSizedIntegerU16) {
+  const std::string source = R"(
+const test_u16 = fn(x: u16) -> i32 {
+  return 65535
+}
+
+const main = fn() -> i32 {
+  return test_u16(1000)
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 65535);
+}
+
+TEST_F(IntegrationTest, CompileAndRunSizedIntegerU32) {
+  const std::string source = R"(
+const test_u32 = fn(x: u32) -> i32 {
+  return 42
+}
+
+const main = fn() -> i32 {
+  return test_u32(100)
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 42);
+}
+
+TEST_F(IntegrationTest, CompileAndRunSizedIntegerU64) {
+  const std::string source = R"(
+const test_u64 = fn(x: u64) -> i32 {
+  return 2000000
+}
+
+const main = fn() -> i32 {
+  return test_u64(1000000)
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 2000000);
+}
+
+TEST_F(IntegrationTest, CompileAndRunSizedIntegerFunctionParameters) {
+  const std::string source = R"(
+const add_small = fn(a: i8, b: i8) -> i32 {
+  return 100
+}
+
+const add_medium = fn(a: i16, b: i16) -> i32 {
+  return 200
+}
+
+const add_large = fn(a: u32, b: u32) -> i32 {
+  return 300
+}
+
+const main = fn() -> i32 {
+  result1: i32 = add_small(10, 20)
+  result2: i32 = add_medium(30, 40)
+  result3: i32 = add_large(50, 60)
+  return result1 + result2 + result3
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 600);  // 100 + 200 + 300
+}
+
+TEST_F(IntegrationTest, CompileAndRunMixedSizedIntegers) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  tiny: i8 = 127
+  small: i16 = 32767
+  medium: i32 = 42
+  large: i64 = 1000000
+  byte_val: u8 = 255
+  word_val: u16 = 65535
+  dword_val: u32 = 12345
+  qword_val: u64 = 2000000
+  return medium
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 42);
+}
+
 }  // namespace
 }  // namespace void_compiler

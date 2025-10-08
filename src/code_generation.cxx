@@ -25,17 +25,12 @@ void CodeGenerator::generate_function(const FunctionDeclaration* func_decl) {
   // Create parameter types
   std::vector<llvm::Type*> param_types;
   for (const auto& param : func_decl->parameters()) {
-    (void)param;  // Mark as used
-    param_types.push_back(llvm::Type::getInt32Ty(*context_));
+    llvm::Type* param_type = get_llvm_type_from_string(param->type());
+    param_types.push_back(param_type);
   }
 
   // Create function type
-  llvm::Type* return_type;
-  if (func_decl->return_type() == "void" || func_decl->return_type() == "nil") {
-    return_type = llvm::Type::getVoidTy(*context_);
-  } else {
-    return_type = llvm::Type::getInt32Ty(*context_);
-  }
+  llvm::Type* return_type = get_llvm_type_from_string(func_decl->return_type());
   
   llvm::FunctionType* func_type =
       llvm::FunctionType::get(return_type, param_types, false);
@@ -63,11 +58,15 @@ void CodeGenerator::generate_function(const FunctionDeclaration* func_decl) {
   // Track current function's return type for validation
   current_function_return_type_ = func_decl->return_type();
   
+  idx = 0;
   for (auto& arg : function->args()) {
+    // Use the actual parameter type for the alloca
+    llvm::Type* param_type = get_llvm_type_from_string(func_decl->parameters()[idx]->type());
     llvm::AllocaInst* alloca = builder_->CreateAlloca(
-        llvm::Type::getInt32Ty(*context_), nullptr, arg.getName());
+        param_type, nullptr, arg.getName());
     builder_->CreateStore(&arg, alloca);
     function_params_[std::string(arg.getName())] = alloca;
+    idx++;
   }
 
   // Generate function body
@@ -413,6 +412,27 @@ void CodeGenerator::generate_statement(const ASTNode* node,
         throw std::runtime_error("Cannot return a value from a nil function");
       }
       llvm::Value* ret_val = generate_expression(ret->expression());
+      
+      // Get the expected return type
+      llvm::Type* expected_type = get_llvm_type_from_string(current_function_return_type_);
+      
+      // Convert the return value to the correct type if needed
+      if (ret_val->getType() != expected_type) {
+        // Handle integer type conversions
+        if (expected_type->isIntegerTy() && ret_val->getType()->isIntegerTy()) {
+          unsigned expected_bits = expected_type->getIntegerBitWidth();
+          unsigned actual_bits = ret_val->getType()->getIntegerBitWidth();
+          
+          if (expected_bits < actual_bits) {
+            // Truncate to smaller type
+            ret_val = builder_->CreateTrunc(ret_val, expected_type);
+          } else if (expected_bits > actual_bits) {
+            // Extend to larger type (sign extend for now)
+            ret_val = builder_->CreateSExt(ret_val, expected_type);
+          }
+        }
+      }
+      
       builder_->CreateRet(ret_val);
     }
     return;
@@ -429,8 +449,26 @@ void CodeGenerator::generate_statement(const ASTNode* node,
     llvm::AllocaInst* alloca = builder_->CreateAlloca(
         var_type, nullptr, var_decl->name());
     
-    // Store the initial value
-    builder_->CreateStore(init_value, alloca);
+    // Convert the initial value to the correct type if needed
+    llvm::Value* converted_value = init_value;
+    if (init_value->getType() != var_type) {
+      // Handle integer type conversions
+      if (var_type->isIntegerTy() && init_value->getType()->isIntegerTy()) {
+        unsigned var_bits = var_type->getIntegerBitWidth();
+        unsigned init_bits = init_value->getType()->getIntegerBitWidth();
+        
+        if (var_bits < init_bits) {
+          // Truncate to smaller type
+          converted_value = builder_->CreateTrunc(init_value, var_type);
+        } else if (var_bits > init_bits) {
+          // Extend to larger type (sign extend for now)
+          converted_value = builder_->CreateSExt(init_value, var_type);
+        }
+      }
+    }
+    
+    // Store the converted value
+    builder_->CreateStore(converted_value, alloca);
     
     // Add to local variables map for later reference
     local_variables_[var_decl->name()] = alloca;
