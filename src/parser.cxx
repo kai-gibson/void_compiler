@@ -120,7 +120,13 @@ std::unique_ptr<ASTNode> Parser::parse_multiplicative() {
 }
 
 std::unique_ptr<ASTNode> Parser::parse_unary() {
-  // Currently no unary operators at this level
+  // Handle unary minus for negative numbers
+  if (match(TokenType::Minus)) {
+    TokenType op = consume(TokenType::Minus).type;
+    auto operand = parse_unary(); // Recursively parse unary for things like --5
+    return std::make_unique<UnaryOperation>(op, std::move(operand));
+  }
+  
   return parse_primary();
 }
 
@@ -673,6 +679,25 @@ std::string Parser::infer_type(const ASTNode* node) {
     }
   }
   
+  // Infer type from unary operations
+  if (const auto* unary_op = dynamic_cast<const UnaryOperation*>(node)) {
+    std::string operand_type = infer_type(unary_op->operand());
+    
+    TokenType op = unary_op->operator_type();
+    
+    // Unary minus preserves the type of the operand
+    if (op == TokenType::Minus) {
+      return operand_type;
+    }
+    
+    // Logical not always returns bool
+    if (op == TokenType::Not) {
+      return "bool";
+    }
+    
+    throw std::runtime_error("Unsupported unary operator");
+  }
+
   // Infer type from function calls
   if (const auto* func_call = dynamic_cast<const FunctionCall*>(node)) {
     auto it = function_return_types_.find(func_call->function_name());

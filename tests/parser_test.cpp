@@ -2144,5 +2144,139 @@ const test_func = fn() -> i32 {
   EXPECT_EQ(large_copy_decl->type(), "i64");  // Should infer i64 from large variable
 }
 
+TEST_F(ParserTest, ParsesUnaryMinusOperation) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  x: i32 = -42
+  return x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+  
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 2);  // var declaration + return
+  
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+  EXPECT_EQ(var_decl->name(), "x");
+  EXPECT_EQ(var_decl->type(), "i32");
+  
+  // Check that the value is a unary minus operation
+  const auto* unary_op = dynamic_cast<const UnaryOperation*>(var_decl->value());
+  ASSERT_NE(unary_op, nullptr);
+  EXPECT_EQ(unary_op->operator_type(), TokenType::Minus);
+  
+  // Check the operand is the number 42
+  const auto* num_literal = dynamic_cast<const NumberLiteral*>(unary_op->operand());
+  ASSERT_NE(num_literal, nullptr);
+  EXPECT_EQ(num_literal->value(), 42);
+}
+
+TEST_F(ParserTest, ParsesDoubleUnaryMinus) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  x: i32 = --42
+  return x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  const auto& func = program->functions()[0];
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+  
+  // Should parse as -(-(42))
+  const auto* outer_unary = dynamic_cast<const UnaryOperation*>(var_decl->value());
+  ASSERT_NE(outer_unary, nullptr);
+  EXPECT_EQ(outer_unary->operator_type(), TokenType::Minus);
+  
+  const auto* inner_unary = dynamic_cast<const UnaryOperation*>(outer_unary->operand());
+  ASSERT_NE(inner_unary, nullptr);
+  EXPECT_EQ(inner_unary->operator_type(), TokenType::Minus);
+  
+  const auto* num_literal = dynamic_cast<const NumberLiteral*>(inner_unary->operand());
+  ASSERT_NE(num_literal, nullptr);
+  EXPECT_EQ(num_literal->value(), 42);
+}
+
+TEST_F(ParserTest, ParsesUnaryMinusWithSizedIntegers) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  tiny: i8 = -10
+  small: i16 = -1000
+  large: i64 = -999999
+  return 0
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  const auto& func = program->functions()[0];
+  
+  // Check i8 variable
+  const auto* tiny_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(tiny_decl, nullptr);
+  EXPECT_EQ(tiny_decl->type(), "i8");
+  
+  const auto* tiny_unary = dynamic_cast<const UnaryOperation*>(tiny_decl->value());
+  ASSERT_NE(tiny_unary, nullptr);
+  EXPECT_EQ(tiny_unary->operator_type(), TokenType::Minus);
+  
+  // Check i16 variable
+  const auto* small_decl = dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
+  ASSERT_NE(small_decl, nullptr);
+  EXPECT_EQ(small_decl->type(), "i16");
+  
+  const auto* small_unary = dynamic_cast<const UnaryOperation*>(small_decl->value());
+  ASSERT_NE(small_unary, nullptr);
+  EXPECT_EQ(small_unary->operator_type(), TokenType::Minus);
+  
+  // Check i64 variable
+  const auto* large_decl = dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
+  ASSERT_NE(large_decl, nullptr);
+  EXPECT_EQ(large_decl->type(), "i64");
+  
+  const auto* large_unary = dynamic_cast<const UnaryOperation*>(large_decl->value());
+  ASSERT_NE(large_unary, nullptr);
+  EXPECT_EQ(large_unary->operator_type(), TokenType::Minus);
+}
+
+TEST_F(ParserTest, ParsesUnaryMinusInExpressions) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  result: i32 = -10 + 5
+  return result
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  
+  const auto& func = program->functions()[0];
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(var_decl, nullptr);
+  
+  // Should parse as (-10) + 5
+  const auto* add_op = dynamic_cast<const BinaryOperation*>(var_decl->value());
+  ASSERT_NE(add_op, nullptr);
+  EXPECT_EQ(add_op->operator_type(), TokenType::Plus);
+  
+  // Left side should be unary minus
+  const auto* unary_minus = dynamic_cast<const UnaryOperation*>(add_op->left());
+  ASSERT_NE(unary_minus, nullptr);
+  EXPECT_EQ(unary_minus->operator_type(), TokenType::Minus);
+  
+  // Right side should be the number 5
+  const auto* right_num = dynamic_cast<const NumberLiteral*>(add_op->right());
+  ASSERT_NE(right_num, nullptr);
+  EXPECT_EQ(right_num->value(), 5);
+}
+
 }  // namespace
 }  // namespace void_compiler

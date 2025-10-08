@@ -249,6 +249,13 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
     switch (unary->operator_type()) {
       case TokenType::Not:
         return builder_->CreateNot(operand, "nottmp");
+      case TokenType::Minus:
+        // Handle unary minus (negation)
+        if (operand->getType()->isIntegerTy()) {
+          return builder_->CreateNeg(operand, "negtmp");
+        } else {
+          throw std::runtime_error("Unary minus only supported for integer types");
+        }
       default:
         throw std::runtime_error("Unknown unary operator");
     }
@@ -379,7 +386,18 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
         
         // Process additional arguments
         for (size_t i = 1; i < member->arguments().size(); ++i) {
-          printf_args.push_back(generate_expression(member->arguments()[i].get()));
+          llvm::Value* arg_value = generate_expression(member->arguments()[i].get());
+          
+          // Handle integer promotion for printf - i8 and i16 should be promoted to i32
+          if (arg_value->getType()->isIntegerTy()) {
+            unsigned bit_width = arg_value->getType()->getIntegerBitWidth();
+            if (bit_width < 32) {
+              // Sign-extend smaller integers to i32 for printf
+              arg_value = builder_->CreateSExt(arg_value, llvm::Type::getInt32Ty(*context_));
+            }
+          }
+          
+          printf_args.push_back(arg_value);
         }
       }
       

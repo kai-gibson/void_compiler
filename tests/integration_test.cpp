@@ -1041,5 +1041,90 @@ const main = fn() -> i32 {
   EXPECT_EQ(result, 42);
 }
 
+TEST_F(IntegrationTest, CompileAndRunNegativeIntegers) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  neg_i8: i8 = -10
+  neg_i16: i16 = -1000
+  neg_i32: i32 = -50000
+  neg_i64: i64 = -1000000
+  return neg_i32
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, -50000);
+}
+
+TEST_F(IntegrationTest, CompileAndRunNegativeIntegerArithmetic) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x: i32 = -10
+  y: i32 = -5
+  return x + y
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, -15);
+}
+
+TEST_F(IntegrationTest, CompileAndRunDoubleNegation) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x: i32 = --42
+  return x
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 42);
+}
+
+TEST_F(IntegrationTest, CompileAndRunNegativeIntegerComparison) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  x: i8 = -10
+  y: i8 = -5
+  if x < y do return 1
+  return 0
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, 1);  // -10 < -5 is true
+}
+
+TEST_F(IntegrationTest, CompileAndRunNegativeIntegerInFunction) {
+  const std::string source = R"(
+const negate = fn(x: i32) -> i32 {
+  return -x
+}
+
+const main = fn() -> i32 {
+  positive: i32 = 42
+  negative: i32 = negate(positive)
+  return negative
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, -42);
+}
+
+TEST_F(IntegrationTest, CompileAndRunMixedPositiveNegativeArithmetic) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  pos: i32 = 20
+  neg: i32 = -30
+  result: i32 = pos + neg
+  return result
+}
+)";
+
+  int result = compiler_.compile_and_run(source);
+  EXPECT_EQ(result, -10);
+}
+
 }  // namespace
 }  // namespace void_compiler

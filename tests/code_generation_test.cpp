@@ -1860,5 +1860,130 @@ const add_u64 = fn(a: u64, b: u64) -> u64 {
   EXPECT_TRUE(output.find("ret i64 42") != std::string::npos);
 }
 
+TEST_F(CodeGenerationTest, GeneratesUnaryMinusOperation) {
+  const std::string source = R"(
+const test = fn(x: i32) -> i32 {
+  return -x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate sub instruction for unary minus (LLVM CreateNeg generates sub i32 0, %operand)
+  EXPECT_TRUE(output.find("sub i32 0,") != std::string::npos);
+  EXPECT_TRUE(output.find("negtmp") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesUnaryMinusWithSizedIntegers) {
+  const std::string source = R"(
+const test = fn(a: i8, b: i16, c: i32, d: i64) -> i32 {
+  tiny: i8 = -a
+  small: i16 = -b  
+  medium: i32 = -c
+  large: i64 = -d
+  return medium
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate sub operations for unary minus (all promoted to i32)
+  EXPECT_TRUE(output.find("sub i32 0,") != std::string::npos);
+  // Should have truncation/extension operations for type conversions
+  EXPECT_TRUE(output.find("trunc i32") != std::string::npos || output.find("sext i32") != std::string::npos);
+  // Should allocate variables of correct types
+  EXPECT_TRUE(output.find("alloca i8") != std::string::npos);
+  EXPECT_TRUE(output.find("alloca i16") != std::string::npos);
+  EXPECT_TRUE(output.find("alloca i32") != std::string::npos);
+  EXPECT_TRUE(output.find("alloca i64") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesDoubleUnaryMinus) {
+  const std::string source = R"(
+const test = fn(x: i32) -> i32 {
+  return --x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate two sub instructions for double negation
+  size_t first_sub = output.find("sub i32 0,");
+  EXPECT_NE(first_sub, std::string::npos);
+  size_t second_sub = output.find("sub i32 0,", first_sub + 1);
+  EXPECT_NE(second_sub, std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesUnaryMinusInArithmetic) {
+  const std::string source = R"(
+const test = fn(x: i32) -> i32 {
+  result: i32 = -x + 5
+  return result
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate sub instruction for unary minus and add for addition
+  EXPECT_TRUE(output.find("sub i32 0,") != std::string::npos);
+  EXPECT_TRUE(output.find("add i32") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesUnaryMinusTypeConversion) {
+  const std::string source = R"(
+const test = fn(x: i8) -> i32 {
+  negated: i8 = -x
+  extended: i32 = negated
+  return extended
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate sub for unary minus (promoted to i32) and sign extension for type conversion
+  EXPECT_TRUE(output.find("sub i32 0,") != std::string::npos);
+  EXPECT_TRUE(output.find("sext i8") != std::string::npos || output.find("trunc i32") != std::string::npos);
+}
+
 }  // namespace
 }  // namespace void_compiler
