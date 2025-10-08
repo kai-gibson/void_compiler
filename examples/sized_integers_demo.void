@@ -1,0 +1,67 @@
+// Comprehensive Sized Integer Types Demo
+// Shows all integer types with proper ranges and type inference
+
+const demonstrate_signed_integers = fn() -> i32 {
+    // Signed integer types with different ranges
+    byte_size: i8 = 100        // -128 to 127
+    word_size: i16 = 30000     // -32,768 to 32,767  
+    dword_size: i32 = 1000000  // -2^31 to 2^31-1
+    qword_size: i64 = 1000000  // Using smaller value for now
+    
+    // Type inference for signed integers
+    inferred_byte := byte_size     // infers i8
+    inferred_word := word_size     // infers i16
+    inferred_dword := dword_size   // infers i32
+    inferred_qword := qword_size   // infers i64
+    
+    // Arithmetic with same-sized types
+    byte_sum := byte_size + inferred_byte     // i8 + i8 = i8
+    word_sum := word_size + inferred_word     // i16 + i16 = i16
+    
+    return dword_size
+}
+
+const demonstrate_unsigned_integers = fn() -> u32 {
+    // Unsigned integer types with different ranges
+    ubyte_size: u8 = 200       // 0 to 255
+    uword_size: u16 = 60000    // 0 to 65,535
+    udword_size: u32 = 4000000 // 0 to 2^32-1
+    uqword_size: u64 = 1000000 // Using smaller value for now
+    
+    // Type inference for unsigned integers
+    inferred_ubyte := ubyte_size     // infers u8
+    inferred_uword := uword_size     // infers u16
+    inferred_udword := udword_size   // infers u32
+    inferred_uqword := uqword_size   // infers u64
+    
+    // Arithmetic with same-sized types
+    ubyte_sum := ubyte_size + inferred_ubyte   // u8 + u8 = u8
+    uword_sum := uword_size + inferred_uword   // u16 + u16 = u16
+    
+    return udword_size
+}
+
+const size_comparison = fn() -> bool {
+    // Different sizes for different needs
+    tiny: i8 = 42
+    medium: i32 = 42
+    huge: i64 = 42
+    
+    // All represent the same value but use different memory
+    values_equal := (tiny == 42) and (medium == 42) and (huge == 42)
+    
+    return values_equal
+}
+
+const main = fn() -> i32 {
+    signed_demo := demonstrate_signed_integers()    // i64
+    unsigned_demo := demonstrate_unsigned_integers() // u64
+    comparison_result := size_comparison()           // bool
+    
+    // Return a simple i32 value
+    if comparison_result {
+        return 42  // All size comparisons were true
+    } else {
+        return 0   // Something went wrong
+    }
+}

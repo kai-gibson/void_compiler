@@ -610,8 +610,22 @@ bool CodeGenerator::is_function_pointer_type(const std::string& type_str) {
 }
 
 llvm::Type* CodeGenerator::get_llvm_type_from_string(const std::string& type_str) {
-  if (type_str == "i32") {
+  if (type_str == "i8") {
+    return llvm::Type::getInt8Ty(*context_);
+  } else if (type_str == "i16") {
+    return llvm::Type::getInt16Ty(*context_);
+  } else if (type_str == "i32") {
     return llvm::Type::getInt32Ty(*context_);
+  } else if (type_str == "i64") {
+    return llvm::Type::getInt64Ty(*context_);
+  } else if (type_str == "u8") {
+    return llvm::Type::getInt8Ty(*context_);
+  } else if (type_str == "u16") {
+    return llvm::Type::getInt16Ty(*context_);
+  } else if (type_str == "u32") {
+    return llvm::Type::getInt32Ty(*context_);
+  } else if (type_str == "u64") {
+    return llvm::Type::getInt64Ty(*context_);
   } else if (type_str == "bool") {
     return llvm::Type::getInt1Ty(*context_);
   } else if (type_str == "string" || type_str == "const string") {

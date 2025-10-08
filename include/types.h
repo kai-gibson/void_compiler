@@ -19,7 +19,14 @@ enum class TokenType : uint8_t {
   Arrow,
   Return,
   Number,
-  I32,
+  I8,            // i8 type
+  I16,           // i16 type
+  I32,           // i32 type
+  I64,           // i64 type
+  U8,            // u8 type
+  U16,           // u16 type
+  U32,           // u32 type
+  U64,           // u64 type
   Bool,          // bool type
   True,          // true literal
   False,         // false literal

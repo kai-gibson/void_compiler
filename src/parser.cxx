@@ -373,14 +373,28 @@ std::unique_ptr<FunctionDeclaration> Parser::parse_function() {
   std::string return_type;
   if (match(TokenType::Arrow)) {
     consume(TokenType::Arrow);
-    if (match(TokenType::I32)) {
+    if (match(TokenType::I8)) {
+      return_type = consume(TokenType::I8).value;
+    } else if (match(TokenType::I16)) {
+      return_type = consume(TokenType::I16).value;
+    } else if (match(TokenType::I32)) {
       return_type = consume(TokenType::I32).value;
+    } else if (match(TokenType::I64)) {
+      return_type = consume(TokenType::I64).value;
+    } else if (match(TokenType::U8)) {
+      return_type = consume(TokenType::U8).value;
+    } else if (match(TokenType::U16)) {
+      return_type = consume(TokenType::U16).value;
+    } else if (match(TokenType::U32)) {
+      return_type = consume(TokenType::U32).value;
+    } else if (match(TokenType::U64)) {
+      return_type = consume(TokenType::U64).value;
     } else if (match(TokenType::Bool)) {
       return_type = consume(TokenType::Bool).value;
     } else if (match(TokenType::Nil)) {
       return_type = consume(TokenType::Nil).value;
     } else {
-      throw std::runtime_error("Expected return type (i32, bool, or nil) after '->'");
+      throw std::runtime_error("Expected return type (i8, i16, i32, i64, u8, u16, u32, u64, bool, or nil) after '->'");
     }
   } else {
     return_type = "nil";  // Default to nil if no return type specified
@@ -468,9 +482,30 @@ std::unique_ptr<RangeExpression> Parser::parse_range_expression() {
 }
 
 std::string Parser::parse_type() {
-  if (tokens_[current_].type == TokenType::I32) {
+  if (tokens_[current_].type == TokenType::I8) {
+    current_++;
+    return "i8";
+  } else if (tokens_[current_].type == TokenType::I16) {
+    current_++;
+    return "i16";
+  } else if (tokens_[current_].type == TokenType::I32) {
     current_++;
     return "i32";
+  } else if (tokens_[current_].type == TokenType::I64) {
+    current_++;
+    return "i64";
+  } else if (tokens_[current_].type == TokenType::U8) {
+    current_++;
+    return "u8";
+  } else if (tokens_[current_].type == TokenType::U16) {
+    current_++;
+    return "u16";
+  } else if (tokens_[current_].type == TokenType::U32) {
+    current_++;
+    return "u32";
+  } else if (tokens_[current_].type == TokenType::U64) {
+    current_++;
+    return "u64";
   } else if (tokens_[current_].type == TokenType::Bool) {
     current_++;
     return "bool";

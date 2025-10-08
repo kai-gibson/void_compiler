@@ -1,0 +1,35 @@
+// Simple Sized Integer Types Demo
+// Shows all integer types work with declarations and inference
+
+const demonstrate_types = fn() -> i32 {
+    // All sized integer types work for declarations
+    tiny: i8 = 100
+    small: i16 = 30000  
+    medium: i32 = 42
+    large: i64 = 1000000
+    
+    // Unsigned types
+    ubyte: u8 = 200
+    uword: u16 = 60000
+    udword: u32 = 42
+    uqword: u64 = 1000000
+    
+    // Type inference works for all sizes
+    inferred_tiny := tiny       // infers i8
+    inferred_small := small     // infers i16
+    inferred_medium := medium   // infers i32
+    inferred_large := large     // infers i64
+    
+    inferred_ubyte := ubyte     // infers u8
+    inferred_uword := uword     // infers u16
+    inferred_udword := udword   // infers u32
+    inferred_uqword := uqword   // infers u64
+    
+    // Return an i32 value
+    return medium
+}
+
+const main = fn() -> i32 {
+    result := demonstrate_types()
+    return result
+}

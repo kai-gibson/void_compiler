@@ -1720,5 +1720,37 @@ const main = fn() -> bool {
   EXPECT_TRUE(output.find("%result = alloca i1") != std::string::npos);
 }
 
+TEST_F(CodeGenerationTest, GeneratesSizedIntegerTypes) {
+  const std::string source = R"(
+const main = fn() -> i32 {
+  tiny: i8 = 127
+  small: i16 = 32767
+  medium: i32 = 42
+  large: i64 = 1000000
+  byte_val: u8 = 255
+  word_val: u16 = 65535
+  return medium
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Check that different integer sizes are allocated correctly
+  EXPECT_TRUE(output.find("%tiny = alloca i8") != std::string::npos);
+  EXPECT_TRUE(output.find("%small = alloca i16") != std::string::npos);
+  EXPECT_TRUE(output.find("%medium = alloca i32") != std::string::npos);
+  EXPECT_TRUE(output.find("%large = alloca i64") != std::string::npos);
+  EXPECT_TRUE(output.find("%byte_val = alloca i8") != std::string::npos);
+  EXPECT_TRUE(output.find("%word_val = alloca i16") != std::string::npos);
+}
+
 }  // namespace
 }  // namespace void_compiler

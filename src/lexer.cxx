@@ -48,8 +48,50 @@ Token Lexer::next_token() {
                    .line = line_,
                    .column = column_};
     }
+    if (identifier == "i8") {
+      return Token{.type = TokenType::I8,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
+    if (identifier == "i16") {
+      return Token{.type = TokenType::I16,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
     if (identifier == "i32") {
       return Token{.type = TokenType::I32,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
+    if (identifier == "i64") {
+      return Token{.type = TokenType::I64,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
+    if (identifier == "u8") {
+      return Token{.type = TokenType::U8,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
+    if (identifier == "u16") {
+      return Token{.type = TokenType::U16,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
+    if (identifier == "u32") {
+      return Token{.type = TokenType::U32,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
+    if (identifier == "u64") {
+      return Token{.type = TokenType::U64,
                    .value = identifier,
                    .line = line_,
                    .column = column_};

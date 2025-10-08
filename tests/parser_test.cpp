@@ -1923,5 +1923,67 @@ const main = fn() -> bool {
   EXPECT_EQ(or_decl->type(), "bool");
 }
 
+TEST_F(ParserTest, ParsesSizedIntegerTypes) {
+  const std::string source = R"(
+const test_func = fn() -> i32 {
+  tiny: i8 = 127
+  small: i16 = 32767
+  medium: i32 = 42
+  large: i64 = 1000000
+  byte_val: u8 = 255
+  word_val: u16 = 65535
+  dword_val: u32 = 42
+  qword_val: u64 = 2000000
+  return medium
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  const auto& func = program->functions()[0];
+  
+  // Check all integer type declarations
+  const auto* i8_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  ASSERT_NE(i8_decl, nullptr);
+  EXPECT_EQ(i8_decl->name(), "tiny");
+  EXPECT_EQ(i8_decl->type(), "i8");
+  
+  const auto* i16_decl = dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
+  ASSERT_NE(i16_decl, nullptr);
+  EXPECT_EQ(i16_decl->name(), "small");
+  EXPECT_EQ(i16_decl->type(), "i16");
+  
+  const auto* i32_decl = dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
+  ASSERT_NE(i32_decl, nullptr);
+  EXPECT_EQ(i32_decl->name(), "medium");
+  EXPECT_EQ(i32_decl->type(), "i32");
+  
+  const auto* i64_decl = dynamic_cast<const VariableDeclaration*>(func->body()[3].get());
+  ASSERT_NE(i64_decl, nullptr);
+  EXPECT_EQ(i64_decl->name(), "large");
+  EXPECT_EQ(i64_decl->type(), "i64");
+  
+  const auto* u8_decl = dynamic_cast<const VariableDeclaration*>(func->body()[4].get());
+  ASSERT_NE(u8_decl, nullptr);
+  EXPECT_EQ(u8_decl->name(), "byte_val");
+  EXPECT_EQ(u8_decl->type(), "u8");
+  
+  const auto* u16_decl = dynamic_cast<const VariableDeclaration*>(func->body()[5].get());
+  ASSERT_NE(u16_decl, nullptr);
+  EXPECT_EQ(u16_decl->name(), "word_val");
+  EXPECT_EQ(u16_decl->type(), "u16");
+  
+  const auto* u32_decl = dynamic_cast<const VariableDeclaration*>(func->body()[6].get());
+  ASSERT_NE(u32_decl, nullptr);
+  EXPECT_EQ(u32_decl->name(), "dword_val");
+  EXPECT_EQ(u32_decl->type(), "u32");
+  
+  const auto* u64_decl = dynamic_cast<const VariableDeclaration*>(func->body()[7].get());
+  ASSERT_NE(u64_decl, nullptr);
+  EXPECT_EQ(u64_decl->name(), "qword_val");
+  EXPECT_EQ(u64_decl->type(), "u64");
+}
+
 }  // namespace
 }  // namespace void_compiler
