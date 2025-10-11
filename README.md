@@ -354,6 +354,38 @@ const compile_time_add = const fn(const x: i32, const y: i32) -> i32 {
 }
 ```
 
+For the "Wrapped" example above, there is a syntax sugar available specifically for structs and unions:
+```void
+const Wrapped = struct(const T: type) {
+  data: ^T
+}
+
+const Maybe = union(const T: type) {
+  ok: T,
+  none: nil,
+}
+```
+
+Other const params are also available to be inferred for methods:
+```void
+const Matrix = struct(const T: type, const ROWS: u64, COLUMNS: u64) {
+  data: [ROWS][COLUMNS]T,
+}
+
+const Matrix.add = fn(
+  a: *Matrix(infer T, infer ROWS, infer COLUMNS)
+  b: *Matrix(T, ROWS, COLUMNS)
+) -> Matrix(T, ROWS, COLUMNS) {
+  ...
+}
+
+// or you can use Self sugar
+const Matrix.add = fn(a: *Self, b: *Self) -> Self {
+  ...
+}
+
+```
+
 #### Slices
 void will have slice types (pointer + len) for arrays. By default, void will heap allocate your arrays unless you ask it not to. This is to make a very high-level feel to the language possible, while retaining ability to optimise to C performance
 
@@ -418,3 +450,58 @@ const main = fn() {
 ```
 
 Of course it's more verbose than javascript, but it is explicit, simple, and easy to reason about – no magic.
+
+#### Methods
+Methods are normal functions that have 2 distinguished qualities:
+1. They live in the namespace of a type
+2. The first parameter can be omitted when calling on the type whose namespace the method belongs to
+
+Some examples:
+```void
+const Product = struct {
+  id: i32,
+  name: ^string,
+  price: i64,
+}
+
+const Product.new = fn(name: string, price: i64) {
+  return new(Product{
+    .id = 1,
+    .name = name.copy(),
+    .price = price,
+  })
+}
+
+const main = fn() {
+  chips := Price.new("Chips", 890)
+}
+```
+
+Methods also work with generics:
+```void
+const Matrix = struct(const T: type, const ROWS: u64, const COLUMNS: u64) {
+  data: [ROWS][COLUMNS]T,
+}
+
+const Matrix.row = fn(
+  matrix: *Matrix(infer T, const ROWS, const COLUMNS), 
+  row: u64
+) -> []T {
+  return matrix.data[row]
+}
+
+const Matrix.add = fn(
+  matrix: *Matrix(infer T, const ROWS, const COLUMNS), 
+  second: *Matrix(infer T, const SIZE, const COLUMNS)
+) -> Matrix(T, ROWS, COLUMNS) {
+  result := Matrix(T, ROWS, COLUMNS)
+
+  loop i in 0..ROWS {
+    loop j in 0..COLUMNS {
+      result.data[i][j] = matrix.data[i][j] + second.data[i][j]
+    }
+  }
+}
+
+```
+
