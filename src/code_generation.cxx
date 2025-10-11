@@ -386,6 +386,10 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
     return generate_anonymous_function(anon_func);
   }
 
+  if (const auto* slice_expr = dynamic_cast<const SliceExpression*>(node)) {
+    return generate_slice_expression(slice_expr);
+  }
+
   if (const auto* member = dynamic_cast<const MemberAccess*>(node)) {
     // Handle fmt.println specifically
     if (member->object_name() == "fmt" && member->member_name() == "println") {
@@ -772,6 +776,18 @@ llvm::Type* CodeGenerator::get_llvm_type_from_string(
     std::string base_type = type_str.substr(1);  // Remove the '*'
     llvm::Type* base_llvm_type = get_llvm_type_from_string(base_type);
     return llvm::PointerType::get(base_llvm_type, 0);
+  } else if (type_str.starts_with("[]")) {
+    // Handle slice types like []i32, []string
+    std::string element_type = type_str.substr(2);  // Remove the '[]'
+    llvm::Type* element_llvm_type = get_llvm_type_from_string(element_type);
+    llvm::Type* int32_type = llvm::Type::getInt32Ty(*context_);
+    
+    // Create slice structure: {element_type*, i32 length, i32 capacity}
+    return llvm::StructType::get(*context_, {
+        llvm::PointerType::get(element_llvm_type, 0),  // base pointer
+        int32_type,  // length
+        int32_type   // capacity
+    });
   } else if (is_function_pointer_type(type_str)) {
     // Parse function pointer type and create LLVM function pointer type
     FunctionType func_type = parse_function_type(type_str);
