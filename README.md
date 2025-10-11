@@ -326,4 +326,95 @@ const main = fn() -> ! {
   // ! postfix will propogate errors up to the caller. When used in main it causes a panic, terminating the program
 }
 ```
-G
+
+#### Generics
+void will have a sophisticated compile time programming system largely inspired by zig, jai, odin, and c++. The idea is that types are just first order values, so we can have compile time functions to generate types - like zig.
+
+Some examples:
+```void
+// the type T is marked as inferred from the parameter X
+const add = fn(x:infer T, y: T) -> T do return x + y
+
+// T is a const (compile time) parameter to "create"
+const create = fn(const T: type) -> ^T {
+  return new(T)
+}
+
+// a "const" (compile time) function that creates a new type with your type and an id within it
+const Wrapped = const fn(const T: type) -> type {
+  return struct {
+    data: T,
+    id: i32,
+  }
+}
+
+// a fully compile time function to add 2 compile time ints together - but it just looks like normal void code
+const compile_time_add = const fn(const x: i32, const y: i32) -> i32 {
+  return x + y
+}
+```
+
+#### Slices
+void will have slice types (pointer + len) for arrays. By default, void will heap allocate your arrays unless you ask it not to. This is to make a very high-level feel to the language possible, while retaining ability to optimise to C performance
+
+```void
+const main = fn() {
+  // nums inferred as [^]i32, i.e. an owned slice who's data lives on the heap
+  nums := [1, 2, 3, 4]
+  nums.push(6) // dynamic!
+
+  // you can still have stack arrays 
+  stack_nums: [5]i32 = [1, 2, 3, 4, 5]
+
+  // or inferred size stack arrays
+  alt_syntax: [_]i32 = [1, 2, 3, 4, 5]
+
+  // strings are the same
+
+  // name inferred as ^string, i.e. [^]u8, an owned slice of u8's who's data lives on the heap
+  name := "John Doe"
+  name.append(" is my name")
+
+  // this is a runtime variable pointing to a compile time string value
+  literal_name: const string = "Timothy Jones"
+
+}
+```
+
+When you pass a `[^]T` or `[10]T` to a function expecting a non-owned slice (`[]T`), it will implicitly decay to a slice, just like with `^T` owned pointers.
+
+```void
+// note: readonly marks a variable as immutable runtime
+const sum = fn(readonly nums: []i32) -> i32 {
+  total: i32
+  loop i in nums do total += i
+  return total
+}
+
+const main = fn() {
+  nums := [1, 2, 3, 4, 5]
+  fmt.println("total: {}", sum(nums))
+}
+```
+
+If you wanted you could invent filters in void very easily:
+```void
+const filter = fn(array: []infer T, condition: fn(*T)->bool) -> [^]T {
+  filtered: [^]T = []
+  for &val in array {
+    if condition(val) do filtered.push(val)
+  }
+
+  return filtered.move()
+}
+
+// used like
+const main = fn() {
+  nums := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  even_nums := filter(nums, fn(i: *i32)->bool do return i % 2 == 0)
+
+  fmt.println("even nums: {}", even_nums) // prints [2, 4, 6, 8, 10]
+}
+```
+
+Of course it's more verbose than javascript, but it is explicit, simple, and easy to reason about – no magic.
