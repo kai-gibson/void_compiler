@@ -42,10 +42,12 @@ class CodeGenerator {
  private:
   llvm::Value* generate_expression(const ASTNode* node);
   void generate_statement(const ASTNode* node, llvm::Function* function);
-  void generate_range_loop(const LoopStatement* loop_stmt, llvm::Function* function);
-  void generate_conditional_loop(const LoopStatement* loop_stmt, llvm::Function* function);
+  void generate_range_loop(const LoopStatement* loop_stmt,
+                           llvm::Function* function);
+  void generate_conditional_loop(const LoopStatement* loop_stmt,
+                                 llvm::Function* function);
   llvm::Value* generate_anonymous_function(const AnonymousFunction* anon_func);
-  
+
   // Function pointer helpers
   bool is_function_pointer_type(const std::string& type_str);
   llvm::Type* get_llvm_type_from_string(const std::string& type_str);
@@ -56,8 +58,10 @@ class CodeGenerator {
   std::unique_ptr<llvm::IRBuilder<>> builder_;
   std::unordered_map<std::string, llvm::AllocaInst*> function_params_;
   std::unordered_map<std::string, llvm::AllocaInst*> local_variables_;
-  std::unordered_map<std::string, std::string> variable_types_;  // Track variable types for proper loading
-  std::string current_function_return_type_;  // Track current function's return type for validation
+  std::unordered_map<std::string, std::string>
+      variable_types_;  // Track variable types for proper loading
+  std::string current_function_return_type_;  // Track current function's return
+                                              // type for validation
 };
 
 }  // namespace void_compiler

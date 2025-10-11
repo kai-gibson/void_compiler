@@ -778,5 +778,51 @@ TEST_F(LexerTest, ThrowsOnUnterminatedString) {
   }, std::runtime_error);
 }
 
+TEST_F(LexerTest, TokenizesPointerOperators) {
+  auto tokens = TokenizeSource("* & .*");
+  
+  ASSERT_EQ(tokens.size(), 4);  // 3 operators + EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Multiply);  // * is multiply token, context determines usage
+  EXPECT_EQ(tokens[0].value, "*");
+  EXPECT_EQ(tokens[1].type, TokenType::Borrow);
+  EXPECT_EQ(tokens[1].value, "&");
+  EXPECT_EQ(tokens[2].type, TokenType::DotStar);
+  EXPECT_EQ(tokens[2].value, ".*");
+}
+
+TEST_F(LexerTest, TokenizesPointerTypes) {
+  auto tokens = TokenizeSource("*i32 *string");
+  
+  ASSERT_EQ(tokens.size(), 5);  // * i32 * string EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Multiply);  // * is multiply token, context determines usage
+  EXPECT_EQ(tokens[0].value, "*");
+  EXPECT_EQ(tokens[1].type, TokenType::I32);
+  EXPECT_EQ(tokens[1].value, "i32");
+  EXPECT_EQ(tokens[2].type, TokenType::Multiply);  // * is multiply token, context determines usage
+  EXPECT_EQ(tokens[2].value, "*");
+  EXPECT_EQ(tokens[3].type, TokenType::String);
+  EXPECT_EQ(tokens[3].value, "string");
+}
+
+TEST_F(LexerTest, TokenizesBorrowExpression) {
+  auto tokens = TokenizeSource("&variable");
+  
+  ASSERT_EQ(tokens.size(), 3);  // & variable EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Borrow);
+  EXPECT_EQ(tokens[0].value, "&");
+  EXPECT_EQ(tokens[1].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[1].value, "variable");
+}
+
+TEST_F(LexerTest, TokenizesDereferenceExpression) {
+  auto tokens = TokenizeSource("ptr.*");
+  
+  ASSERT_EQ(tokens.size(), 3);  // ptr .* EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Identifier);
+  EXPECT_EQ(tokens[0].value, "ptr");
+  EXPECT_EQ(tokens[1].type, TokenType::DotStar);
+  EXPECT_EQ(tokens[1].value, ".*");
+}
+
 }  // namespace
 }  // namespace void_compiler

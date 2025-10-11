@@ -2,9 +2,8 @@
 #include <fstream>
 #include <ios>
 #include <iostream>
-#include <string>
 #include <sstream>
-#include <fstream>
+#include <string>
 
 #include "compiler.h"
 
@@ -14,7 +13,7 @@ int main(int argc, char** argv) {
     Dev,
   };
 
-  Tool tool {};
+  Tool tool{};
   std::string filename;
 
   if (argc == 1) {
@@ -48,14 +47,14 @@ int main(int argc, char** argv) {
     // Compile to executable
     std::cout << "=== Compiling to Executable ===" << '\n';
     auto source_code = void_compiler::SourcePath{.path = source};
-    if (compiler.compile_to_executable(source_code,
-                                      void_compiler::OutputPath{"hello_void"})) {
+    if (compiler.compile_to_executable(
+            source_code, void_compiler::OutputPath{"hello_void"})) {
       std::cout << "Success! Run with: ./hello_void" << '\n';
     }
   } else {
     std::ifstream file(filename);
     std::ostringstream buf;
-    buf << file.rdbuf();          // read everything (whitespace included)
+    buf << file.rdbuf();  // read everything (whitespace included)
     std::string source = buf.str();
 
     std::cout << "source: " << source << '\n';

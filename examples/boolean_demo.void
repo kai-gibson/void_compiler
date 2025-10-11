@@ -1,0 +1,47 @@
+// Boolean Type Demonstration
+// Shows boolean literals, operations, comparisons, and type inference
+
+const logic_demo = fn() -> bool {
+    // Boolean literals and type inference
+    is_active := true           // inferred as bool
+    is_complete := false        // inferred as bool
+    
+    // Logical operations with keyword operators
+    both_true := is_active and is_complete     // false
+    either_true := is_active or is_complete    // true
+    
+    // Comparisons return bool
+    x := 10
+    y := 20
+    is_greater := x > y         // false
+    is_equal := x == y          // false
+    is_less := x < y            // true
+    
+    // Complex boolean expressions
+    result := (x < y) and is_active     // true and true = true
+    
+    return result
+}
+
+const conditional_demo = fn() -> i32 {
+    condition := true
+    value := 42
+    
+    if condition {
+        return value
+    } else {
+        return 0
+    }
+}
+
+const main = fn() -> i32 {
+    logic_result := logic_demo()        // bool
+    conditional_result := conditional_demo()  // i32
+    
+    // Proper boolean to integer conversion
+    if logic_result {
+        return conditional_result       // Return 42 if logic_result is true
+    } else {
+        return 0                       // Return 0 if logic_result is false
+    }
+}

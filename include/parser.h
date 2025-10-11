@@ -1,7 +1,7 @@
 #ifndef PARSER_H
 #define PARSER_H
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 #include "types.h"
 
@@ -9,8 +9,7 @@ namespace void_compiler {
 // Parser
 class Parser {
  public:
-  explicit Parser(std::vector<Token> tokens)
-      : tokens_(std::move(tokens)) {}
+  explicit Parser(std::vector<Token> tokens) : tokens_(std::move(tokens)) {}
 
   std::unique_ptr<Program> parse();
 
@@ -36,11 +35,12 @@ class Parser {
   std::unique_ptr<VariableDeclaration> parse_variable_declaration();
   std::unique_ptr<VariableAssignment> parse_variable_assignment();
   std::string parse_type();  // Helper to parse type tokens
-  std::string infer_type(const ASTNode* node);  // Helper to infer types from expressions
+  std::string infer_type(
+      const ASTNode* node);  // Helper to infer types from expressions
 
   std::vector<Token> tokens_;
   size_t current_ = 0;
-  
+
   // Symbol table for type tracking
   std::unordered_map<std::string, std::string> variable_types_;
   std::unordered_map<std::string, std::string> function_return_types_;

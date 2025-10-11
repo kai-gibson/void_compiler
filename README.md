@@ -38,7 +38,7 @@ output:
 const pow = fn(base: i32, exponent: i32) -> i32 {
   if exponent == 0 do return 1
 
-  result: i32 = 1
+  result := 1
   loop i in 0..exponent do result = result * base
   return result
 }
@@ -77,6 +77,44 @@ output:
 2 ^ 12 == 4096
 ```
 
+### Compile time strings!
+```void
+import fmt
+
+const main = fn() {
+  a := "testing!!" // infers type "const string"
+  b := "1234"
+  fmt.println("a: {:s}", a)
+  fmt.println("b: {:s}", b)
+
+  b = a
+  fmt.println("a: {:s}", a)
+  fmt.println("b: {:s}", b)
+}
+```
+
+### Function Pointers & Anonymous Functions
+```void
+import fmt
+
+const add = fn(x: i32, y: i32) -> i32 do return x + y
+const sub = fn(x: i32, y: i32) -> i32 do return x - y
+
+const main = fn() {
+  // inferred to type fn(i32, i32)->i32
+  operation := fn(x: i32, y: i32) -> i32 do return x * y
+
+  fmt.println("multiply: {:d}", operation(2, 3))
+
+  operation = add
+  fmt.println("add: {:d}", operation(2, 3))
+  
+  operation = sub
+  fmt.println("sub: {:d}", operation(2, 3))
+}
+```
+
+
 ## Getting Started
 Since this project uses LLVM you'll have to install LLVM version 20, and I'd recommend using the clang compiler
 
@@ -91,17 +129,13 @@ cmake --build build
 The following sections outline upcoming features.
 
 ## Planned Features
-Currently void only supports `i32`'s. This is ok because `3 + 2 == 5` and 5 represents Geburah in the Kabbalistic tree of life, meaning strength and severity!
-
 NOTE: All the below code examples don't compile, they're just theoretical for now
 
 In the near future void will support the following types:
 
 ### Primitive types
 * Slices: `[]T` 
-* All sized ints: `i8, i16, i32, i64, u8, u16, u32, u64` 
-* Strings (slices of `u8`'s): `string` 
-* Booleans: `bool`
+* Runtime strings (slices of `u8`'s): `string` 
 
 ### User defined types
 #### Structs 

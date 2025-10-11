@@ -1153,7 +1153,7 @@ const test = fn() -> i32 {
 // Nil function code generation tests
 TEST_F(CodeGenerationTest, GeneratesNilFunctionExplicit) {
   const std::string source = R"(
-const nil_func = fn() -> nil {
+const nil_func = fn() {
   return
 }
 )";
@@ -1214,7 +1214,7 @@ const nil_func = fn() do return
 
 TEST_F(CodeGenerationTest, RejectsValueReturnFromNilFunction) {
   const std::string source = R"(
-const nil_func = fn() -> nil {
+const nil_func = fn() {
   return 42
 }
 )";
@@ -1983,6 +1983,101 @@ const test = fn(x: i8) -> i32 {
   // Should generate sub for unary minus (promoted to i32) and sign extension for type conversion
   EXPECT_TRUE(output.find("sub i32 0,") != std::string::npos);
   EXPECT_TRUE(output.find("sext i8") != std::string::npos || output.find("trunc i32") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesPointerType) {
+  const std::string source = R"(
+const test = fn(ptr: *i32) {
+  return
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should generate pointer type parameter
+  EXPECT_TRUE(output.find("ptr %") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesBorrowOperation) {
+  const std::string source = R"(
+const test = fn() -> *i32 {
+  x: i32 = 42
+  return &x
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should allocate variable and return its address
+  EXPECT_TRUE(output.find("alloca i32") != std::string::npos);
+  EXPECT_TRUE(output.find("store i32 42") != std::string::npos);
+  // The return should return the alloca (address) directly
+  EXPECT_TRUE(output.find("ret") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesExplicitDereference) {
+  const std::string source = R"(
+const test = fn(ptr: *i32) -> i32 {
+  return ptr.*
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should load from the pointer
+  EXPECT_TRUE(output.find("load i32") != std::string::npos);
+  EXPECT_TRUE(output.find("ret i32") != std::string::npos);
+}
+
+TEST_F(CodeGenerationTest, GeneratesComplexPointerOperations) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  x: i32 = 42
+  ptr: *i32 = &x
+  value: i32 = ptr.*
+  return value
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+
+  CodeGenerator codegen;
+  codegen.generate_program(program.get());
+  
+  testing::internal::CaptureStdout();
+  codegen.print_ir();
+  std::string output = testing::internal::GetCapturedStdout();
+  
+  // Should have variable allocation, borrowing, and dereferencing
+  EXPECT_TRUE(output.find("alloca i32") != std::string::npos);  // x allocation
+  EXPECT_TRUE(output.find("alloca ptr") != std::string::npos);  // ptr allocation
+  EXPECT_TRUE(output.find("store i32 42") != std::string::npos); // store to x
+  EXPECT_TRUE(output.find("load i32") != std::string::npos);     // dereference
 }
 
 }  // namespace

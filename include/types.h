@@ -19,17 +19,17 @@ enum class TokenType : uint8_t {
   Arrow,
   Return,
   Number,
-  I8,            // i8 type
-  I16,           // i16 type
-  I32,           // i32 type
-  I64,           // i64 type
-  U8,            // u8 type
-  U16,           // u16 type
-  U32,           // u32 type
-  U64,           // u64 type
-  Bool,          // bool type
-  True,          // true literal
-  False,         // false literal
+  I8,     // i8 type
+  I16,    // i16 type
+  I32,    // i32 type
+  I64,    // i64 type
+  U8,     // u8 type
+  U16,    // u16 type
+  U32,    // u32 type
+  U64,    // u64 type
+  Bool,   // bool type
+  True,   // true literal
+  False,  // false literal
   Comma,
   Colon,
   ColonEquals,  // := for type inference
@@ -57,6 +57,8 @@ enum class TokenType : uint8_t {
   Do,
   Nil,
   String,
+  Borrow,   // & for borrowing
+  DotStar,  // .* for explicit dereference
   EndOfFile
 };
 
@@ -71,11 +73,14 @@ struct Token {
 class FunctionType {
  public:
   FunctionType(std::vector<std::string> param_types, std::string return_type)
-      : param_types_(std::move(param_types)), return_type_(std::move(return_type)) {}
+      : param_types_(std::move(param_types)),
+        return_type_(std::move(return_type)) {}
 
-  [[nodiscard]] const std::vector<std::string>& param_types() const { return param_types_; }
+  [[nodiscard]] const std::vector<std::string>& param_types() const {
+    return param_types_;
+  }
   [[nodiscard]] const std::string& return_type() const { return return_type_; }
-  
+
   // Generate a string representation for type checking
   [[nodiscard]] std::string to_string() const {
     std::string result = "fn(";
@@ -86,10 +91,11 @@ class FunctionType {
     result += ") -> " + return_type_;
     return result;
   }
-  
+
   // Check if two function types are compatible
   [[nodiscard]] bool is_compatible(const FunctionType& other) const {
-    return param_types_ == other.param_types_ && return_type_ == other.return_type_;
+    return param_types_ == other.param_types_ &&
+           return_type_ == other.return_type_;
   }
 
  private:
@@ -114,7 +120,8 @@ class StringLiteral : public ASTNode {
 
 class ImportStatement : public ASTNode {
  public:
-  explicit ImportStatement(std::string module_name) : module_name_(std::move(module_name)) {}
+  explicit ImportStatement(std::string module_name)
+      : module_name_(std::move(module_name)) {}
   [[nodiscard]] const std::string& module_name() const { return module_name_; }
 
  private:
@@ -125,7 +132,8 @@ class MemberAccess : public ASTNode {
  public:
   MemberAccess(std::string object_name, std::string member_name,
                std::vector<std::unique_ptr<ASTNode>> arguments)
-      : object_name_(std::move(object_name)), member_name_(std::move(member_name)), 
+      : object_name_(std::move(object_name)),
+        member_name_(std::move(member_name)),
         arguments_(std::move(arguments)) {}
 
   [[nodiscard]] const std::string& object_name() const { return object_name_; }
@@ -198,8 +206,11 @@ class UnaryOperation : public ASTNode {
 
 class VariableDeclaration : public ASTNode {
  public:
-  VariableDeclaration(std::string name, std::string type, std::unique_ptr<ASTNode> value)
-      : name_(std::move(name)), type_(std::move(type)), value_(std::move(value)) {}
+  VariableDeclaration(std::string name, std::string type,
+                      std::unique_ptr<ASTNode> value)
+      : name_(std::move(name)),
+        type_(std::move(type)),
+        value_(std::move(value)) {}
 
   [[nodiscard]] const std::string& name() const { return name_; }
   [[nodiscard]] const std::string& type() const { return type_; }
@@ -240,8 +251,8 @@ class IfStatement : public ASTNode {
   IfStatement(std::unique_ptr<ASTNode> condition,
               std::vector<std::unique_ptr<ASTNode>> then_body,
               std::vector<std::unique_ptr<ASTNode>> else_body = {})
-      : condition_(std::move(condition)), 
-        then_body_(std::move(then_body)), 
+      : condition_(std::move(condition)),
+        then_body_(std::move(then_body)),
         else_body_(std::move(else_body)) {}
 
   [[nodiscard]] const ASTNode* condition() const { return condition_.get(); }
@@ -276,22 +287,24 @@ class LoopStatement : public ASTNode {
   // Range-based loop: loop i in 0..10 { ... }
   LoopStatement(std::string variable_name, std::unique_ptr<ASTNode> range,
                 std::vector<std::unique_ptr<ASTNode>> body)
-      : variable_name_(std::move(variable_name)), 
-        range_(std::move(range)), 
+      : variable_name_(std::move(variable_name)),
+        range_(std::move(range)),
         condition_(nullptr),
-        body_(std::move(body)), 
+        body_(std::move(body)),
         is_range_loop_(true) {}
 
   // Conditional loop: loop if condition { ... }
   LoopStatement(std::unique_ptr<ASTNode> condition,
                 std::vector<std::unique_ptr<ASTNode>> body)
       : range_(nullptr),
-        condition_(std::move(condition)), 
-        body_(std::move(body)), 
+        condition_(std::move(condition)),
+        body_(std::move(body)),
         is_range_loop_(false) {}
 
   [[nodiscard]] bool is_range_loop() const { return is_range_loop_; }
-  [[nodiscard]] const std::string& variable_name() const { return variable_name_; }
+  [[nodiscard]] const std::string& variable_name() const {
+    return variable_name_;
+  }
   [[nodiscard]] const ASTNode* range() const { return range_.get(); }
   [[nodiscard]] const ASTNode* condition() const { return condition_.get(); }
   [[nodiscard]] const std::vector<std::unique_ptr<ASTNode>>& body() const {
@@ -299,8 +312,8 @@ class LoopStatement : public ASTNode {
   }
 
  private:
-  std::string variable_name_;  // For range loops
-  std::unique_ptr<ASTNode> range_;  // For range loops  
+  std::string variable_name_;           // For range loops
+  std::unique_ptr<ASTNode> range_;      // For range loops
   std::unique_ptr<ASTNode> condition_;  // For conditional loops
   std::vector<std::unique_ptr<ASTNode>> body_;
   bool is_range_loop_;
@@ -399,8 +412,8 @@ class Program : public ASTNode {
  public:
   Program() = default;
 
-  [[nodiscard]] const std::vector<std::unique_ptr<ImportStatement>>&
-  imports() const {
+  [[nodiscard]] const std::vector<std::unique_ptr<ImportStatement>>& imports()
+      const {
     return imports_;
   }
 

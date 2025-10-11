@@ -297,6 +297,13 @@ Token Lexer::next_token() {
                      .line = line_,
                      .column = start_column};
       }
+      if (current_char() == '*') {
+        advance();
+        return Token{.type = TokenType::DotStar,
+                     .value = ".*",
+                     .line = line_,
+                     .column = start_column};
+      }
       return Token{.type = TokenType::Dot,
                    .value = ".",
                    .line = line_,
@@ -311,6 +318,11 @@ Token Lexer::next_token() {
       }
       return Token{.type = TokenType::Minus,
                    .value = "-",
+                   .line = line_,
+                   .column = start_column};
+    case '&':
+      return Token{.type = TokenType::Borrow,
+                   .value = "&",
                    .line = line_,
                    .column = start_column};
     default:
@@ -351,7 +363,7 @@ void Lexer::skip_whitespace() {
            current_char() == '\n' || current_char() == '\r') {
       advance();
     }
-    
+
     // Skip single-line comments
     if (current_char() == '/' && peek_char() == '/') {
       // Skip until end of line
@@ -360,7 +372,7 @@ void Lexer::skip_whitespace() {
       }
       // Continue the loop to skip any whitespace after the comment
     } else {
-      break; // No more whitespace or comments to skip
+      break;  // No more whitespace or comments to skip
     }
   }
 }
@@ -385,31 +397,43 @@ std::string Lexer::read_number() {
 
 std::string Lexer::read_string() {
   std::string result;
-  advance(); // Skip opening quote
-  
+  advance();  // Skip opening quote
+
   while (current_char() != '"' && current_char() != '\0') {
     if (current_char() == '\\') {
-      advance(); // Skip escape character
+      advance();  // Skip escape character
       switch (current_char()) {
-        case 'n': result += '\n'; break;
-        case 't': result += '\t'; break;
-        case 'r': result += '\r'; break;
-        case '\\': result += '\\'; break;
-        case '"': result += '"'; break;
-        default: result += current_char(); break;
+        case 'n':
+          result += '\n';
+          break;
+        case 't':
+          result += '\t';
+          break;
+        case 'r':
+          result += '\r';
+          break;
+        case '\\':
+          result += '\\';
+          break;
+        case '"':
+          result += '"';
+          break;
+        default:
+          result += current_char();
+          break;
       }
     } else {
       result += current_char();
     }
     advance();
   }
-  
+
   if (current_char() == '"') {
-    advance(); // Skip closing quote
+    advance();  // Skip closing quote
   } else {
     throw std::runtime_error("Unterminated string literal");
   }
-  
+
   return result;
 }
 

@@ -1294,7 +1294,7 @@ const test = fn(x: i32) -> i32 {
 // Nil function tests
 TEST_F(ParserTest, ParsesNilFunctionExplicit) {
   const std::string source = R"(
-const nil_func = fn() -> nil {
+const nil_func = fn() {
 }
 )";
 
@@ -1348,7 +1348,7 @@ const nil_func = fn() do return
 
 TEST_F(ParserTest, ParsesNilFunctionWithParameters) {
   const std::string source = R"(
-const print_number = fn(x: i32) -> nil {
+const print_number = fn(x: i32) {
 }
 )";
 
@@ -2276,6 +2276,114 @@ const test = fn() -> i32 {
   const auto* right_num = dynamic_cast<const NumberLiteral*>(add_op->right());
   ASSERT_NE(right_num, nullptr);
   EXPECT_EQ(right_num->value(), 5);
+}
+
+TEST_F(ParserTest, ParsesPointerType) {
+  const std::string source = R"(
+const test = fn(ptr: *i32) {
+  return
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->parameters().size(), 1);
+  EXPECT_EQ(func->parameters()[0]->type(), "*i32");
+}
+
+TEST_F(ParserTest, ParsesBorrowExpression) {
+  const std::string source = R"(
+const test = fn() {
+  x: i32 = 42
+  ptr: *i32 = &x
+  return
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 3);  // 2 variable declarations + return
+
+  // Check the second variable declaration (ptr: *i32 = &x)
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
+  ASSERT_NE(var_decl, nullptr);
+  EXPECT_EQ(var_decl->name(), "ptr");
+  EXPECT_EQ(var_decl->type(), "*i32");
+
+  // Check that the value is a borrow operation
+  const auto* borrow_op = dynamic_cast<const UnaryOperation*>(var_decl->value());
+  ASSERT_NE(borrow_op, nullptr);
+  EXPECT_EQ(borrow_op->operator_type(), TokenType::Borrow);
+
+  // Check that the operand is a variable reference to 'x'
+  const auto* var_ref = dynamic_cast<const VariableReference*>(borrow_op->operand());
+  ASSERT_NE(var_ref, nullptr);
+  EXPECT_EQ(var_ref->name(), "x");
+}
+
+TEST_F(ParserTest, ParsesExplicitDereference) {
+  const std::string source = R"(
+const test = fn(ptr: *i32) -> i32 {
+  return ptr.*
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 1);  // return statement
+
+  // Check the return statement
+  const auto* return_stmt = dynamic_cast<const ReturnStatement*>(func->body()[0].get());
+  ASSERT_NE(return_stmt, nullptr);
+  ASSERT_NE(return_stmt->expression(), nullptr);
+
+  // Check that the returned value is a dereference operation
+  const auto* deref_op = dynamic_cast<const UnaryOperation*>(return_stmt->expression());
+  ASSERT_NE(deref_op, nullptr);
+  EXPECT_EQ(deref_op->operator_type(), TokenType::DotStar);
+
+  // Check that the operand is a variable reference to 'ptr'
+  const auto* var_ref = dynamic_cast<const VariableReference*>(deref_op->operand());
+  ASSERT_NE(var_ref, nullptr);
+  EXPECT_EQ(var_ref->name(), "ptr");
+}
+
+TEST_F(ParserTest, ParsesComplexPointerExpression) {
+  const std::string source = R"(
+const test = fn() -> i32 {
+  x: i32 = 42
+  ptr: *i32 = &x
+  value: i32 = ptr.*
+  return value
+}
+)";
+
+  auto program = ParseSource(source);
+  ASSERT_NE(program, nullptr);
+  ASSERT_EQ(program->functions().size(), 1);
+
+  const auto& func = program->functions()[0];
+  ASSERT_EQ(func->body().size(), 4);  // 3 variable declarations + return
+
+  // Check the third variable declaration (value: i32 = ptr.*)
+  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
+  ASSERT_NE(var_decl, nullptr);
+  EXPECT_EQ(var_decl->name(), "value");
+  EXPECT_EQ(var_decl->type(), "i32");
+
+  // Check that the value is a dereference operation
+  const auto* deref_op = dynamic_cast<const UnaryOperation*>(var_decl->value());
+  ASSERT_NE(deref_op, nullptr);
+  EXPECT_EQ(deref_op->operator_type(), TokenType::DotStar);
 }
 
 }  // namespace
