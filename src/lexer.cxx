@@ -325,6 +325,23 @@ Token Lexer::next_token() {
                    .value = "&",
                    .line = line_,
                    .column = start_column};
+    case '[':
+      if (current_char() == ']') {
+        advance();
+        return Token{.type = TokenType::Slice,
+                     .value = "[]",
+                     .line = line_,
+                     .column = start_column};
+      }
+      return Token{.type = TokenType::LBracket,
+                   .value = "[",
+                   .line = line_,
+                   .column = start_column};
+    case ']':
+      return Token{.type = TokenType::RBracket,
+                   .value = "]",
+                   .line = line_,
+                   .column = start_column};
     default:
       throw std::runtime_error("Unknown character: " + std::string(1, ch));
   }

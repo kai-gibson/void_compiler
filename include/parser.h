@@ -37,6 +37,7 @@ class Parser {
   std::string parse_type();  // Helper to parse type tokens
   std::string infer_type(
       const ASTNode* node);  // Helper to infer types from expressions
+  std::unique_ptr<ASTNode> parse_slice_expression();
 
   std::vector<Token> tokens_;
   size_t current_ = 0;

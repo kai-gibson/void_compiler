@@ -59,6 +59,9 @@ enum class TokenType : uint8_t {
   String,
   Borrow,   // & for borrowing
   DotStar,  // .* for explicit dereference
+  Slice,    // [] slice syntax
+  LBracket,  // [
+  RBracket,  // ]
   EndOfFile
 };
 
@@ -443,6 +446,35 @@ class Program : public ASTNode {
   std::vector<std::unique_ptr<ImportStatement>> imports_;
   std::vector<std::unique_ptr<FunctionDeclaration>> functions_;
   std::vector<std::unique_ptr<VariableDeclaration>> variables_;
+};
+
+// Add slice type representation
+class SliceType {
+ public:
+  explicit SliceType(std::string element_type)
+      : element_type_(std::move(element_type)) {}
+
+  [[nodiscard]] const std::string& element_type() const {
+    return element_type_;
+  }
+
+  [[nodiscard]] std::string to_string() const {
+    return "[]" + element_type_;
+  }
+
+ private:
+  std::string element_type_;
+};
+
+class SliceExpression : public ASTNode {
+ public:
+  explicit SliceExpression(std::unique_ptr<ASTNode> base)
+      : base_(std::move(base)) {}
+
+  [[nodiscard]] const ASTNode* base() const { return base_.get(); }
+
+ private:
+  std::unique_ptr<ASTNode> base_;
 };
 }  // namespace void_compiler
 
