@@ -937,30 +937,4 @@ llvm::Value* CodeGenerator::generate_anonymous_function(
   return function;
 }
 
-llvm::Value* CodeGenerator::generate_slice_expression(const SliceExpression* slice_expr) {
-  llvm::Value* base = generate_expression(slice_expr->base());
-
-  // Assume base is an array pointer, create a slice structure
-  llvm::Type* int32_type = llvm::Type::getInt32Ty(*context_);
-  llvm::Type* slice_type = llvm::StructType::get(
-      *context_, {base->getType(), int32_type, int32_type});
-
-  llvm::Value* slice = builder_->CreateAlloca(slice_type, nullptr, "slice");
-
-  // Set base pointer
-  llvm::Value* base_ptr = builder_->CreateStructGEP(slice_type, slice, 0);
-  builder_->CreateStore(base, base_ptr);
-
-  // Set length (for now, assume full array length is 10)
-  llvm::Value* length_ptr = builder_->CreateStructGEP(slice_type, slice, 1);
-  llvm::Value* length = llvm::ConstantInt::get(int32_type, 10);
-  builder_->CreateStore(length, length_ptr);
-
-  // Set capacity (assume same as length for now)
-  llvm::Value* capacity_ptr = builder_->CreateStructGEP(slice_type, slice, 2);
-  builder_->CreateStore(length, capacity_ptr);
-
-  return slice;
-}
-
 }  // namespace void_compiler

@@ -152,25 +152,7 @@ std::unique_ptr<ASTNode> Parser::parse_unary() {
     return std::make_unique<UnaryOperation>(op, std::move(operand));
   }
 
-  return parse_slice_expression();
-}
-
-std::unique_ptr<ASTNode> Parser::parse_slice_expression() {
-  auto base = parse_primary();
-
-  if (match(TokenType::LBracket)) {
-    consume(TokenType::LBracket);
-
-    if (match(TokenType::Colon)) {
-      consume(TokenType::Colon);
-      consume(TokenType::RBracket);
-      return std::make_unique<SliceExpression>(std::move(base));
-    }
-
-    throw std::runtime_error("Expected ':' in slice expression");
-  }
-
-  return base;
+  return parse_primary();
 }
 
 std::unique_ptr<ASTNode> Parser::parse_primary() {
@@ -194,10 +176,6 @@ std::unique_ptr<ASTNode> Parser::parse_primary() {
     return std::make_unique<BooleanLiteral>(false);
   }
 
-  if (match(TokenType::Fn)) {
-    return parse_anonymous_function();
-  }
-
   if (match(TokenType::LParen)) {
     consume(TokenType::LParen);
     auto expr = parse_expression();
@@ -205,6 +183,12 @@ std::unique_ptr<ASTNode> Parser::parse_primary() {
     return expr;
   }
 
+  // Parse anonymous functions
+  if (match(TokenType::Fn)) {
+    return parse_anonymous_function();
+  }
+
+  // Parse function calls and variable references
   if (match(TokenType::Identifier)) {
     std::string name = consume(TokenType::Identifier).value;
 

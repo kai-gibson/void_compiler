@@ -6,7 +6,6 @@ add_library(void_compiler_lib
   ../src/parser.cxx
   ../src/code_generation.cxx
   ../src/compiler.cxx
-  ../src/runtime.cxx
 )
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -21,7 +20,6 @@ add_executable(void_compiler_tests
   integration_test.cpp
   code_generation_test.cpp
   test_main.cpp
-  slice_tests.cpp
 )
 
 target_link_libraries(void_compiler_tests
