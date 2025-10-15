@@ -739,13 +739,6 @@ std::string Parser::infer_type(const ASTNode* node) {
     throw std::runtime_error("Unsupported unary operator");
   }
 
-  // Infer type from slice expressions
-  if (const auto* slice_expr = dynamic_cast<const SliceExpression*>(node)) {
-    std::string base_type = infer_type(slice_expr->base());
-    // A slice of type T has type []T
-    return "[]" + base_type;
-  }
-
   // Infer type from function calls
   if (const auto* func_call = dynamic_cast<const FunctionCall*>(node)) {
     auto it = function_return_types_.find(func_call->function_name());

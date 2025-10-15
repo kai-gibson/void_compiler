@@ -385,11 +385,7 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
   if (const auto* anon_func = dynamic_cast<const AnonymousFunction*>(node)) {
     return generate_anonymous_function(anon_func);
   }
-
-  if (const auto* slice_expr = dynamic_cast<const SliceExpression*>(node)) {
-    return generate_slice_expression(slice_expr);
-  }
-
+  
   if (const auto* member = dynamic_cast<const MemberAccess*>(node)) {
     // Handle fmt.println specifically
     if (member->object_name() == "fmt" && member->member_name() == "println") {
