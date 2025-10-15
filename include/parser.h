@@ -16,7 +16,7 @@ class Parser {
  private:
   Token& peek();
   Token consume(TokenType expected);
-  bool match(TokenType type) const;
+  [[nodiscard]] bool match(TokenType type) const;
   std::unique_ptr<ASTNode> parse_expression();
   std::unique_ptr<ASTNode> parse_logical_or();
   std::unique_ptr<ASTNode> parse_logical_and();

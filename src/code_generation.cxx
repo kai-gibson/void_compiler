@@ -777,13 +777,15 @@ llvm::Type* CodeGenerator::get_llvm_type_from_string(
     std::string element_type = type_str.substr(2);  // Remove the '[]'
     llvm::Type* element_llvm_type = get_llvm_type_from_string(element_type);
     llvm::Type* int32_type = llvm::Type::getInt32Ty(*context_);
-    
+
     // Create slice structure: {element_type*, i32 length, i32 capacity}
-    return llvm::StructType::get(*context_, {
-        llvm::PointerType::get(element_llvm_type, 0),  // base pointer
-        int32_type,  // length
-        int32_type   // capacity
-    });
+    return llvm::StructType::get(
+        *context_,
+        {
+            llvm::PointerType::get(element_llvm_type, 0),  // base pointer
+            int32_type,                                    // length
+            int32_type                                     // capacity
+        });
   } else if (is_function_pointer_type(type_str)) {
     // Parse function pointer type and create LLVM function pointer type
     FunctionType func_type = parse_function_type(type_str);

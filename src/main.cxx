@@ -1,6 +1,5 @@
 #include <cstdlib>
 #include <fstream>
-#include <ios>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -25,9 +24,8 @@ int main(int argc, char** argv) {
   std::cout << "source: " << source << '\n';
 
   void_compiler::Compiler compiler;
-  if (compiler.compile_to_executable(
-          void_compiler::SourcePath{.path = source},
-          void_compiler::OutputPath{"a.out"})) {
+  if (compiler.compile_to_executable(void_compiler::SourcePath{.path = source},
+                                     void_compiler::OutputPath{"a.out"})) {
     std::cout << "Success! Run with: ./a.out" << '\n';
   }
 }
