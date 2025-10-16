@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
   if (argc == 3 && std::string(argv[1]) == "build") {
     filename = argv[2];
   } else {
-    std::cerr << "Usage: " << argv[0] << " [build <source_file>]" << '\n';
+    std::cerr << "Usage: " << argv[0] << " build <source_file>" << '\n';
     return 1;
   }
 
