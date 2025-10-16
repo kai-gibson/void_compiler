@@ -257,6 +257,16 @@ Token Lexer::next_token() {
                    .value = "}",
                    .line = line_,
                    .column = start_column};
+    case '[':
+      return Token{.type = TokenType::LBracket,
+                   .value = "[",
+                   .line = line_,
+                   .column = start_column};
+    case ']':
+      return Token{.type = TokenType::RBracket,
+                   .value = "]",
+                   .line = line_,
+                   .column = start_column};
     case ',':
       return Token{.type = TokenType::Comma,
                    .value = ",",

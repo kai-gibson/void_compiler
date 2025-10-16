@@ -7,6 +7,19 @@
 
 namespace void_compiler {
 
+class ParseException : public std::runtime_error {
+ private:
+  // std::string message;
+ public:
+  ParseException(std::string_view message)
+      : std::runtime_error(std::string(message)) {}
+
+  ParseException(std::string_view message, const Token& token)
+      : std::runtime_error(std::string(message) +
+                           " at line: " + std::to_string(token.line) +
+                           ", column: " + std::to_string(token.column)) {}
+};
+
 std::string join(const std::vector<std::string>& elements,
                  const std::string& delimiter) {
   std::ostringstream os;
@@ -28,7 +41,7 @@ std::unique_ptr<Program> Parser::parse() {
     } else if (match(TokenType::Const)) {
       program->add_function(parse_function());
     } else {
-      throw std::runtime_error("Expected import or function declaration");
+      throw ParseException("Expected import or function declaration", peek());
     }
   }
 
@@ -36,14 +49,14 @@ std::unique_ptr<Program> Parser::parse() {
 }
 Token& Parser::peek() {
   if (current_ >= tokens_.size()) {
-    throw std::runtime_error("Unexpected end of input");
+    throw ParseException("Unexpected end of input");
   }
   return tokens_[current_];
 }
 
 Token Parser::consume(TokenType expected) {
   if (peek().type != expected) {
-    throw std::runtime_error("Expected token type, got: " + peek().value);
+    throw ParseException("Expected token type, got: " + peek().value, peek());
   }
   return tokens_[current_++];
 }
@@ -215,7 +228,7 @@ std::unique_ptr<ASTNode> Parser::parse_primary() {
                                               std::move(arguments));
       }
 
-      throw std::runtime_error("Expected function call after member access");
+      throw ParseException("Expected function call after member access", peek());
     }
 
     // Check for explicit dereference (.*)
@@ -244,7 +257,7 @@ std::unique_ptr<ASTNode> Parser::parse_primary() {
     return std::make_unique<VariableReference>(name);
   }
 
-  throw std::runtime_error("Expected expression");
+  throw ParseException("Expected expression", peek());
 }
 
 std::unique_ptr<ASTNode> Parser::parse_statement() {

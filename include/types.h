@@ -1,6 +1,7 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <array>
 #include <memory>
 #include <string>
 #include <vector>
@@ -16,6 +17,8 @@ enum class TokenType : uint8_t {
   RParen,
   LBrace,
   RBrace,
+  LBracket,
+  RBracket,
   Arrow,
   Return,
   Number,
@@ -61,6 +64,35 @@ enum class TokenType : uint8_t {
   DotStar,  // .* for explicit dereference
   EndOfFile
 };
+
+constexpr std::array<const char*, 54> STRING_TOKEN_TYPES = {
+    "Const",        "Identifier",
+    "Equals",       "Fn",
+    "LParen",       "RParen",
+    "LBrace",       "RBrace",
+    "LBracket",     "RBracket",
+    "Arrow",        "Return",
+    "Number",       "I8",
+    "I16",          "I32",
+    "I64",          "U8",
+    "U16",          "U32",
+    "U64",          "Bool",
+    "True",         "False",
+    "Comma",        "Colon",
+    "ColonEquals",  "Plus",
+    "Minus",        "Multiply",
+    "Divide",       "Import",
+    "Dot",          "StringLiteral",
+    "If",           "Else",
+    "GreaterThan",  "LessThan",
+    "GreaterEqual", "LessEqual",
+    "EqualEqual",   "NotEqual",
+    "And",          "Or",
+    "Not",          "Loop",
+    "In",           "DotDot",
+    "Do",           "Nil",
+    "String",       "Borrow",
+    "DotStar",      "EndOfFile"};
 
 struct Token {
   TokenType type;
@@ -445,5 +477,4 @@ class Program : public ASTNode {
   std::vector<std::unique_ptr<VariableDeclaration>> variables_;
 };
 }  // namespace void_compiler
-
 #endif  // TYPES_H
