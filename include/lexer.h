@@ -22,6 +22,8 @@ class Lexer {
   std::string read_identifier();
   std::string read_number();
   std::string read_string();
+  inline Token make_token(TokenType token_type, std::string value);
+  Token map_identifier(const std::string& identifier);
 
   std::string source_;
   size_t position_{0};

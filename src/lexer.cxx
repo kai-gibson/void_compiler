@@ -5,194 +5,22 @@ namespace void_compiler {
 Token Lexer::next_token() {
   skip_whitespace();
 
-  if (current_char() == '\0') {
-    return Token{.type = TokenType::EndOfFile,
-                 .value = "",
-                 .line = line_,
-                 .column = column_};
-  }
+  if (current_char() == '\0') return make_token(TokenType::EndOfFile, "");
 
   if (std::isdigit(current_char())) {
-    return Token{.type = TokenType::Number,
-                 .value = read_number(),
-                 .line = line_,
-                 .column = column_};
+    return make_token(TokenType::Number, read_number());
   }
 
   if (current_char() == '"') {
-    return Token{.type = TokenType::StringLiteral,
-                 .value = read_string(),
-                 .line = line_,
-                 .column = column_};
+    return make_token(TokenType::StringLiteral, read_string());
   }
 
   if (std::isalpha(current_char()) || current_char() == '_') {
     std::string identifier = read_identifier();
-
-    // Keywords
-    if (identifier == "const") {
-      return Token{.type = TokenType::Const,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "fn") {
-      return Token{.type = TokenType::Fn,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "return") {
-      return Token{.type = TokenType::Return,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "i8") {
-      return Token{.type = TokenType::I8,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "i16") {
-      return Token{.type = TokenType::I16,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "i32") {
-      return Token{.type = TokenType::I32,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "i64") {
-      return Token{.type = TokenType::I64,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "u8") {
-      return Token{.type = TokenType::U8,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "u16") {
-      return Token{.type = TokenType::U16,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "u32") {
-      return Token{.type = TokenType::U32,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "u64") {
-      return Token{.type = TokenType::U64,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "bool") {
-      return Token{.type = TokenType::Bool,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "true") {
-      return Token{.type = TokenType::True,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "false") {
-      return Token{.type = TokenType::False,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "import") {
-      return Token{.type = TokenType::Import,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "if") {
-      return Token{.type = TokenType::If,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "else") {
-      return Token{.type = TokenType::Else,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "and") {
-      return Token{.type = TokenType::And,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "or") {
-      return Token{.type = TokenType::Or,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "not") {
-      return Token{.type = TokenType::Not,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "loop") {
-      return Token{.type = TokenType::Loop,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "in") {
-      return Token{.type = TokenType::In,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "do") {
-      return Token{.type = TokenType::Do,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "void") {
-      return Token{.type = TokenType::Void,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "string") {
-      return Token{.type = TokenType::String,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-    if (identifier == "nil") {
-      return Token{.type = TokenType::Nil,
-                   .value = identifier,
-                   .line = line_,
-                   .column = column_};
-    }
-
-    return Token{.type = TokenType::Identifier,
-                 .value = identifier,
-                 .line = line_,
-                 .column = column_};
+    return map_identifier(identifier);
   }
 
+  // handle symbol tokens
   char ch = current_char();
   int start_column = column_;
   advance();
@@ -451,6 +279,75 @@ std::string Lexer::read_string() {
   }
 
   return result;
+}
+
+inline Token Lexer::make_token(TokenType token_type, std::string value) {
+  return Token{.type = token_type,
+               .value = std::move(value),
+               .line = line_,
+               .column = column_};
+}
+
+Token Lexer::map_identifier(const std::string& identifier) {
+  // default to identifier if no keyword matches
+  TokenType found_type = TokenType::Identifier;
+
+  // Keywords
+  if (identifier == "const") {
+    found_type = TokenType::Const;
+  } else if (identifier == "fn") {
+    found_type = TokenType::Fn;
+  } else if (identifier == "return") {
+    found_type = TokenType::Return;
+  } else if (identifier == "i8") {
+    found_type = TokenType::I8;
+  } else if (identifier == "i16") {
+    found_type = TokenType::I16;
+  } else if (identifier == "i32") {
+    found_type = TokenType::I32;
+  } else if (identifier == "i64") {
+    found_type = TokenType::I64;
+  } else if (identifier == "u8") {
+    found_type = TokenType::U8;
+  } else if (identifier == "u16") {
+    found_type = TokenType::U16;
+  } else if (identifier == "u32") {
+    found_type = TokenType::U32;
+  } else if (identifier == "u64") {
+    found_type = TokenType::U64;
+  } else if (identifier == "bool") {
+    found_type = TokenType::Bool;
+  } else if (identifier == "true") {
+    found_type = TokenType::True;
+  } else if (identifier == "false") {
+    found_type = TokenType::False;
+  } else if (identifier == "import") {
+    found_type = TokenType::Import;
+  } else if (identifier == "if") {
+    found_type = TokenType::If;
+  } else if (identifier == "else") {
+    found_type = TokenType::Else;
+  } else if (identifier == "and") {
+    found_type = TokenType::And;
+  } else if (identifier == "or") {
+    found_type = TokenType::Or;
+  } else if (identifier == "not") {
+    found_type = TokenType::Not;
+  } else if (identifier == "loop") {
+    found_type = TokenType::Loop;
+  } else if (identifier == "in") {
+    found_type = TokenType::In;
+  } else if (identifier == "do") {
+    found_type = TokenType::Do;
+  } else if (identifier == "void") {
+    found_type = TokenType::Void;
+  } else if (identifier == "string") {
+    found_type = TokenType::String;
+  } else if (identifier == "nil") {
+    found_type = TokenType::Nil;
+  }
+
+  return make_token(found_type, identifier);
 }
 
 }  // namespace void_compiler
