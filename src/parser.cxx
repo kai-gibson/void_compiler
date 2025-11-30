@@ -5,17 +5,9 @@
 #include <string>
 #include <vector>
 
-namespace void_compiler {
-class ParseException : public std::runtime_error {
- public:
-  ParseException(std::string_view message)
-      : std::runtime_error(std::string(message)) {}
+#include "parse_exception.h"
 
-  ParseException(std::string_view message, const Token& token)
-      : std::runtime_error(std::string(message) +
-                           " at line: " + std::to_string(token.line) +
-                           ", column: " + std::to_string(token.column)) {}
-};
+namespace void_compiler {
 
 // join a vector of strings with a given delimeter -- string intrinsic function
 std::string join(const std::vector<std::string>& elements,
@@ -44,7 +36,7 @@ std::unique_ptr<Program> Parser::parse() {
     } else if (match(TokenType::Const)) {
       program->add_function(parse_function());
     } else {
-      throw ParseException("Expected import or function declaration", peek());
+      throw ParseError("Expected import or function declaration", peek());
     }
   }
 
@@ -52,14 +44,14 @@ std::unique_ptr<Program> Parser::parse() {
 }
 Token& Parser::peek() {
   if (current_ >= tokens_.size()) {
-    throw ParseException("Unexpected end of input");
+    throw ParseError("Unexpected end of input");
   }
   return tokens_[current_];
 }
 
 Token Parser::consume(TokenType expected) {
   if (peek().type != expected) {
-    throw ParseException("Expected token type, got: " + peek().value, peek());
+    throw ParseError("Expected token type, got: " + peek().value, peek());
   }
   return tokens_[current_++];
 }
@@ -231,8 +223,7 @@ std::unique_ptr<ASTNode> Parser::parse_primary() {
                                               std::move(arguments));
       }
 
-      throw ParseException("Expected function call after member access",
-                           peek());
+      throw ParseError("Expected function call after member access", peek());
     }
 
     // Check for explicit dereference (.*)
@@ -261,7 +252,7 @@ std::unique_ptr<ASTNode> Parser::parse_primary() {
     return std::make_unique<VariableReference>(name);
   }
 
-  throw ParseException("Expected expression", peek());
+  throw ParseError("Expected expression", peek());
 }
 
 std::unique_ptr<ASTNode> Parser::parse_statement() {
@@ -324,7 +315,7 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
                                 // statement
   }
 
-  throw std::runtime_error("Expected statement");
+  throw ParseError("Expected statement", tokens_[current_]);
 }
 
 std::unique_ptr<VariableDeclaration> Parser::parse_variable_declaration() {
@@ -569,7 +560,8 @@ std::string Parser::parse_type() {
       current_++;  // consume 'string'
       return "const string";
     } else {
-      throw std::runtime_error("Expected 'string' after 'const' in type");
+      throw ParseError("Expected 'string' after 'const' in type",
+                       tokens_[current_]);
     }
   } else if (tokens_[current_].type == TokenType::String) {
     current_++;
@@ -593,8 +585,8 @@ std::string Parser::parse_type() {
     std::string return_type = parse_type();
     return "fn(" + join(param_types, ", ") + ") -> " + return_type;
   } else {
-    throw std::runtime_error("Unexpected token in type: " +
-                             tokens_[current_].value);
+    throw ParseError("Unexpected token in type: " + tokens_[current_].value,
+                     tokens_[current_]);
   }
 }
 
@@ -685,8 +677,8 @@ std::string Parser::infer_type(const ASTNode* node) {
     if (it != variable_types_.end()) {
       return it->second;
     }
-    throw std::runtime_error("Cannot infer type from undeclared variable '" +
-                             var_ref->name() + "'");
+    throw ParseError("Cannot infer type from undeclared variable '" +
+                     var_ref->name() + "'");
   }
 
   // Infer type from binary operations
@@ -708,13 +700,13 @@ std::string Parser::infer_type(const ASTNode* node) {
           right_type == "const string") {
         return "const string";
       }
-      throw std::runtime_error(
-          "Type mismatch in arithmetic operation: " + left_type + " " +
-          (op == TokenType::Plus       ? "+"
-           : op == TokenType::Minus    ? "-"
-           : op == TokenType::Asterisk ? "*"
-                                       : "/") +
-          " " + right_type);
+      throw ParseError("Type mismatch in arithmetic operation: " + left_type +
+                       " " +
+                       (op == TokenType::Plus       ? "+"
+                        : op == TokenType::Minus    ? "-"
+                        : op == TokenType::Asterisk ? "*"
+                                                    : "/") +
+                       " " + right_type);
     }
 
     // Comparison operations always return bool

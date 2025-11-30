@@ -99,8 +99,14 @@ constexpr std::array<const char*, 55> STRING_TOKEN_TYPES = {
 struct Token {
   TokenType type;
   std::string value;
-  int line;
-  int column;
+  uint64_t line;
+  uint32_t column;
+};
+
+// A location in void source code
+struct SourceLocation {
+  uint64_t line;
+  uint32_t column;
 };
 
 // Function pointer type representation

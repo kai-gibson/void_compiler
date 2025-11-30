@@ -2,10 +2,13 @@
 
 namespace void_compiler {
 
+// parse the next token
 Token Lexer::next_token() {
   skip_whitespace();
 
-  if (current_char() == '\0') return make_token(TokenType::EndOfFile, "");
+  if (current_char() == '\0') {
+    return make_token(TokenType::EndOfFile, "");
+  }
 
   if (std::isdigit(current_char())) {
     return make_token(TokenType::Number, read_number());
@@ -21,8 +24,8 @@ Token Lexer::next_token() {
   }
 
   // handle symbol tokens
-  char ch = current_char();
-  int start_column = column_;
+  int8_t ch = current_char();
+  uint32_t start_column = column_;
   advance();
 
   switch (ch) {
@@ -281,11 +284,12 @@ std::string Lexer::read_string() {
   return result;
 }
 
-inline Token Lexer::make_token(TokenType token_type, std::string value) {
+inline Token Lexer::make_token(TokenType token_type, std::string value,
+                               uint32_t column) {
   return Token{.type = token_type,
                .value = std::move(value),
                .line = line_,
-               .column = column_};
+               .column = column != 0 ? column : column_};
 }
 
 Token Lexer::map_identifier(const std::string& identifier) {

@@ -22,13 +22,14 @@ class Lexer {
   std::string read_identifier();
   std::string read_number();
   std::string read_string();
-  inline Token make_token(TokenType token_type, std::string value);
+  inline Token make_token(TokenType token_type, std::string value,
+                          uint32_t column = 0);
   Token map_identifier(const std::string& identifier);
 
   std::string source_;
   size_t position_{0};
-  int line_{1};
-  int column_{1};
+  uint64_t line_{1};
+  uint32_t column_{1};
 };
 
 }  // namespace void_compiler
