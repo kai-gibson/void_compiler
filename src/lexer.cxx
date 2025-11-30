@@ -168,14 +168,20 @@ Token Lexer::next_token() {
                    .line = line_,
                    .column = column_};
     }
-    if (identifier == "nil") {
-      return Token{.type = TokenType::Nil,
+    if (identifier == "void") {
+      return Token{.type = TokenType::Void,
                    .value = identifier,
                    .line = line_,
                    .column = column_};
     }
     if (identifier == "string") {
       return Token{.type = TokenType::String,
+                   .value = identifier,
+                   .line = line_,
+                   .column = column_};
+    }
+    if (identifier == "nil") {
+      return Token{.type = TokenType::Nil,
                    .value = identifier,
                    .line = line_,
                    .column = column_};

@@ -479,39 +479,39 @@ TEST_F(LexerTest, TokenizesFunctionDoSyntax) {
   EXPECT_EQ(tokens[8].type, TokenType::EndOfFile);
 }
 
-// Nil keyword tests
-TEST_F(LexerTest, TokenizesNilKeyword) {
-  auto tokens = TokenizeSource("nil");
+// void keyword tests
+TEST_F(LexerTest, TokenizesVoidKeyword) {
+  auto tokens = TokenizeSource("void");
 
-  ASSERT_EQ(tokens.size(), 2);  // nil, EOF
-  EXPECT_EQ(tokens[0].type, TokenType::Nil);
-  EXPECT_EQ(tokens[0].value, "nil");
+  ASSERT_EQ(tokens.size(), 2);  // void, EOF
+  EXPECT_EQ(tokens[0].type, TokenType::Void);
+  EXPECT_EQ(tokens[0].value, "void");
   EXPECT_EQ(tokens[1].type, TokenType::EndOfFile);
 }
 
-TEST_F(LexerTest, TokenizesNilReturnType) {
-  auto tokens = TokenizeSource("fn() -> nil");
+TEST_F(LexerTest, TokenizesVoidReturnType) {
+  auto tokens = TokenizeSource("fn() -> void");
 
-  ASSERT_EQ(tokens.size(), 6);  // fn, (, ), ->, nil, EOF
+  ASSERT_EQ(tokens.size(), 6);  // fn, (, ), ->, void, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Fn);
   EXPECT_EQ(tokens[1].type, TokenType::LParen);
   EXPECT_EQ(tokens[2].type, TokenType::RParen);
   EXPECT_EQ(tokens[3].type, TokenType::Arrow);
-  EXPECT_EQ(tokens[4].type, TokenType::Nil);
-  EXPECT_EQ(tokens[4].value, "nil");
+  EXPECT_EQ(tokens[4].type, TokenType::Void);
+  EXPECT_EQ(tokens[4].value, "void");
   EXPECT_EQ(tokens[5].type, TokenType::EndOfFile);
 }
 
-TEST_F(LexerTest, TokenizesNilFunctionWithDo) {
-  auto tokens = TokenizeSource("fn() -> nil do return");
+TEST_F(LexerTest, TokenizesVoidFunctionWithDo) {
+  auto tokens = TokenizeSource("fn() -> void do return");
 
-  ASSERT_EQ(tokens.size(), 8);  // fn, (, ), ->, nil, do, return, EOF
+  ASSERT_EQ(tokens.size(), 8);  // fn, (, ), ->, void, do, return, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Fn);
   EXPECT_EQ(tokens[1].type, TokenType::LParen);
   EXPECT_EQ(tokens[2].type, TokenType::RParen);
   EXPECT_EQ(tokens[3].type, TokenType::Arrow);
-  EXPECT_EQ(tokens[4].type, TokenType::Nil);
-  EXPECT_EQ(tokens[4].value, "nil");
+  EXPECT_EQ(tokens[4].type, TokenType::Void);
+  EXPECT_EQ(tokens[4].value, "void");
   EXPECT_EQ(tokens[5].type, TokenType::Do);
   EXPECT_EQ(tokens[6].type, TokenType::Return);
   EXPECT_EQ(tokens[7].type, TokenType::EndOfFile);
@@ -543,11 +543,11 @@ TEST_F(LexerTest, SkipsMultipleComments) {
     // First comment
     const x = 42  // Inline comment
     // Another comment
-    fn test() -> nil  // Function comment
+    fn test() -> void  // Function comment
   )");
 
   ASSERT_EQ(tokens.size(),
-            11);  // const, x, =, 42, fn, test, (, ), ->, nil, EOF
+            11);  // const, x, =, 42, fn, test, (, ), ->, void, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Const);
   EXPECT_EQ(tokens[1].type, TokenType::Identifier);
   EXPECT_EQ(tokens[1].value, "x");
@@ -560,7 +560,7 @@ TEST_F(LexerTest, SkipsMultipleComments) {
   EXPECT_EQ(tokens[6].type, TokenType::LParen);
   EXPECT_EQ(tokens[7].type, TokenType::RParen);
   EXPECT_EQ(tokens[8].type, TokenType::Arrow);
-  EXPECT_EQ(tokens[9].type, TokenType::Nil);
+  EXPECT_EQ(tokens[9].type, TokenType::Void);
 }
 
 TEST_F(LexerTest, HandlesCommentWithSpecialCharacters) {

@@ -276,7 +276,7 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
         match(TokenType::Loop) ||    // Next statement (loop statement)
         match(TokenType::Return) ||  // Next statement (another return)
         match(TokenType::Const)) {   // Next declaration (function declaration)
-      // Return without expression for nil functions
+      // Return without expression for void functions
       return std::make_unique<ReturnStatement>(nullptr);
     }
     auto expr = parse_expression();
@@ -443,7 +443,7 @@ std::unique_ptr<FunctionDeclaration> Parser::parse_function() {
     consume(TokenType::Arrow);
     return_type = parse_type();
   } else {
-    return_type = "nil";  // Default to nil if no return type specified
+    return_type = "void";  // Default to void if no return type specified
   }
 
   // Create function with return type
@@ -533,7 +533,10 @@ std::string Parser::parse_type() {
   // Debug log: Trace the type parsing
   std::cout << "Parsing type at token: " << tokens_[current_].value << "\n";
 
-  if (tokens_[current_].type == TokenType::I8) {
+  if (tokens_[current_].type == TokenType::Void) {
+    current_++;
+    return "void";
+  } else if (tokens_[current_].type == TokenType::I8) {
     current_++;
     return "i8";
   } else if (tokens_[current_].type == TokenType::I16) {
@@ -617,7 +620,7 @@ std::unique_ptr<AnonymousFunction> Parser::parse_anonymous_function() {
     consume(TokenType::Arrow);
     return_type = parse_type();
   } else {
-    return_type = "nil";  // Default to nil if no return type specified
+    return_type = "void";  // Default to void if no return type specified
   }
 
   // Create anonymous function with return type
@@ -774,7 +777,7 @@ std::string Parser::infer_type(const ASTNode* node) {
 
     // Handle built-in functions or member access functions
     if (func_call->function_name() == "fmt.println") {
-      return "nil";  // fmt.println returns nothing
+      return "void";  // fmt.println returns nothing
     }
     throw std::runtime_error(
         "Cannot infer return type from undeclared function '" +

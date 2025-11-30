@@ -80,9 +80,8 @@ void CodeGenerator::generate_function(const FunctionDeclaration* func_decl) {
     generate_statement(stmt.get(), function);
   }
 
-  // If this is a void/nil function and there's no terminator, add a void return
-  if ((func_decl->return_type() == "void" ||
-       func_decl->return_type() == "nil") &&
+  // If this is a void function and there's no terminator, add a void return
+  if (func_decl->return_type() == "void" &&
       !builder_->GetInsertBlock()->getTerminator()) {
     builder_->CreateRetVoid();
   }
@@ -476,16 +475,16 @@ void CodeGenerator::generate_statement(const ASTNode* node,
   (void)function;  // Mark as used
   if (const auto* ret = dynamic_cast<const ReturnStatement*>(node)) {
     if (ret->expression() == nullptr) {
-      // Return without value - only allowed for nil functions
-      if (current_function_return_type_ != "nil") {
+      // Return without value - only allowed for void functions
+      if (current_function_return_type_ != "void") {
         throw std::runtime_error(
-            "Cannot use 'return' without value in non-nil function");
+            "Cannot use 'return' without value in non-void function");
       }
       builder_->CreateRetVoid();
     } else {
-      // Return with value - not allowed for nil functions
-      if (current_function_return_type_ == "nil") {
-        throw std::runtime_error("Cannot return a value from a nil function");
+      // Return with value - not allowed for void functions
+      if (current_function_return_type_ == "void") {
+        throw std::runtime_error("Cannot return a value from a void function");
       }
       llvm::Value* ret_val = generate_expression(ret->expression());
 
@@ -581,7 +580,7 @@ void CodeGenerator::generate_statement(const ASTNode* node,
     return;
   }
 
-  // Handle function call as a statement (e.g., nil function calls)
+  // Handle function call as a statement (e.g., void function calls)
   if (const auto* func_call = dynamic_cast<const FunctionCall*>(node)) {
     generate_expression(
         func_call);  // Generate the call and discard the return value
@@ -745,7 +744,7 @@ bool CodeGenerator::is_function_pointer_type(const std::string& type_str) {
 
 llvm::Type* CodeGenerator::get_llvm_type_from_string(
     const std::string& type_str) {
-  if (type_str == "nil" || type_str == "void") {
+  if (type_str == "void") {
     return llvm::Type::getVoidTy(*context_);
   } else if (type_str == "i8") {
     return llvm::Type::getInt8Ty(*context_);
@@ -871,7 +870,7 @@ llvm::Value* CodeGenerator::generate_anonymous_function(
 
   // Create function type
   llvm::Type* return_type;
-  if (anon_func->return_type() == "void" || anon_func->return_type() == "nil") {
+  if (anon_func->return_type() == "void") {
     return_type = llvm::Type::getVoidTy(*context_);
   } else {
     return_type = llvm::Type::getInt32Ty(*context_);
@@ -918,9 +917,8 @@ llvm::Value* CodeGenerator::generate_anonymous_function(
     generate_statement(stmt.get(), function);
   }
 
-  // If this is a void/nil function and there's no terminator, add a void return
-  if ((anon_func->return_type() == "void" ||
-       anon_func->return_type() == "nil") &&
+  // If this is a void function and there's no terminator, add a void return
+  if (anon_func->return_type() == "void" &&
       !builder_->GetInsertBlock()->getTerminator()) {
     builder_->CreateRetVoid();
   }

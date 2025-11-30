@@ -1358,10 +1358,10 @@ const test = fn(x: i32) -> i32 {
   EXPECT_EQ(if_stmt->else_body().size(), 1);
 }
 
-// Nil function tests
-TEST_F(ParserTest, ParsesNilFunctionExplicit) {
+// void function tests
+TEST_F(ParserTest, ParsesVoidFunctionExplicit) {
   const std::string source = R"(
-const nil_func = fn() {
+const void_func = fn() -> void {
 }
 )";
 
@@ -1370,15 +1370,15 @@ const nil_func = fn() {
   ASSERT_EQ(program->functions().size(), 1);
 
   const auto& func = program->functions()[0];
-  EXPECT_EQ(func->name(), "nil_func");
-  EXPECT_EQ(func->return_type(), "nil");
+  EXPECT_EQ(func->name(), "void_func");
+  EXPECT_EQ(func->return_type(), "void");
   EXPECT_EQ(func->parameters().size(), 0);
   EXPECT_EQ(func->body().size(), 0);  // Empty body
 }
 
-TEST_F(ParserTest, ParsesNilFunctionImplicit) {
+TEST_F(ParserTest, ParsesVoidFunctionImplicit) {
   const std::string source = R"(
-const nil_func = fn() {
+const void_func = fn() {
 }
 )";
 
@@ -1387,15 +1387,15 @@ const nil_func = fn() {
   ASSERT_EQ(program->functions().size(), 1);
 
   const auto& func = program->functions()[0];
-  EXPECT_EQ(func->name(), "nil_func");
-  EXPECT_EQ(func->return_type(), "nil");  // Should default to nil
+  EXPECT_EQ(func->name(), "void_func");
+  EXPECT_EQ(func->return_type(), "void");  // Should default to void
   EXPECT_EQ(func->parameters().size(), 0);
   EXPECT_EQ(func->body().size(), 0);  // Empty body
 }
 
-TEST_F(ParserTest, ParsesNilFunctionWithDoSyntax) {
+TEST_F(ParserTest, ParsesVoidFunctionWithDoSyntax) {
   const std::string source = R"(
-const nil_func = fn() do return
+const void_func = fn() do return
 )";
 
   auto program = ParseSource(source);
@@ -1403,8 +1403,8 @@ const nil_func = fn() do return
   ASSERT_EQ(program->functions().size(), 1);
 
   const auto& func = program->functions()[0];
-  EXPECT_EQ(func->name(), "nil_func");
-  EXPECT_EQ(func->return_type(), "nil");  // Should default to nil
+  EXPECT_EQ(func->name(), "void_func");
+  EXPECT_EQ(func->return_type(), "void");  // Should default to void
   EXPECT_EQ(func->parameters().size(), 0);
   EXPECT_EQ(func->body().size(), 1);  // Return statement
 
@@ -1414,7 +1414,7 @@ const nil_func = fn() do return
   EXPECT_EQ(return_stmt->expression(), nullptr);  // Return without value
 }
 
-TEST_F(ParserTest, ParsesNilFunctionWithParameters) {
+TEST_F(ParserTest, ParsesVoidFunctionWithParameters) {
   const std::string source = R"(
 const print_number = fn(x: i32) {
 }
@@ -1426,7 +1426,7 @@ const print_number = fn(x: i32) {
 
   const auto& func = program->functions()[0];
   EXPECT_EQ(func->name(), "print_number");
-  EXPECT_EQ(func->return_type(), "nil");
+  EXPECT_EQ(func->return_type(), "void");
   EXPECT_EQ(func->parameters().size(), 1);
   EXPECT_EQ(func->parameters()[0]->name(), "x");
   EXPECT_EQ(func->parameters()[0]->type(), "i32");
@@ -1434,7 +1434,7 @@ const print_number = fn(x: i32) {
 
 TEST_F(ParserTest, ParsesConstStringVariable) {
   const std::string source = R"(
-const test = fn() -> nil {
+const test = fn() -> void {
   greeting: const string = "Hello"
 }
 )";
@@ -1445,7 +1445,7 @@ const test = fn() -> nil {
 
   const auto& func = program->functions()[0];
   EXPECT_EQ(func->name(), "test");
-  EXPECT_EQ(func->return_type(), "nil");
+  EXPECT_EQ(func->return_type(), "void");
   ASSERT_EQ(func->body().size(), 1);
 
   const auto* var_decl =
@@ -1462,7 +1462,7 @@ const test = fn() -> nil {
 
 TEST_F(ParserTest, ParsesRegularStringVariable) {
   const std::string source = R"(
-const test = fn() -> nil {
+const test = fn() -> void {
   message: string = "World"
 }
 )";
@@ -1488,7 +1488,7 @@ const test = fn() -> nil {
 
 TEST_F(ParserTest, ParsesEmptyStringVariable) {
   const std::string source = R"(
-const test = fn() -> nil {
+const test = fn() -> void {
   empty: const string = ""
 }
 )";
@@ -1513,7 +1513,7 @@ const test = fn() -> nil {
 
 TEST_F(ParserTest, ParsesMultipleStringVariables) {
   const std::string source = R"(
-const test = fn() -> nil {
+const test = fn() -> void {
   greeting: const string = "Hello"
   name: string = "World"
   punctuation: const string = "!"
@@ -1550,7 +1550,7 @@ const test = fn() -> nil {
 
 TEST_F(ParserTest, ParsesFunctionPointerVariable) {
   const std::string source = R"(
-const test = fn() -> nil {
+const test = fn() -> void {
   callback: fn(i32) -> i32 = some_function
 }
 )";
@@ -1576,7 +1576,7 @@ const test = fn() -> nil {
 
 TEST_F(ParserTest, ParsesFunctionPointerWithMultipleParams) {
   const std::string source = R"(
-const test = fn() -> nil {
+const test = fn() -> void {
   operation: fn(i32, i32, i32) -> i32 = add_three
 }
 )";
@@ -1596,7 +1596,7 @@ const test = fn() -> nil {
 
 TEST_F(ParserTest, ParsesFunctionPointerWithNoParams) {
   const std::string source = R"(
-const test = fn() -> nil {
+const test = fn() -> void {
   getter: fn() -> i32 = get_value
 }
 )";
@@ -1616,7 +1616,7 @@ const test = fn() -> nil {
 
 TEST_F(ParserTest, ParsesFunctionPointerWithStringTypes) {
   const std::string source = R"(
-const test = fn() -> nil {
+const test = fn() -> void {
   processor: fn(const string, i32) -> string = process_string
 }
 )";

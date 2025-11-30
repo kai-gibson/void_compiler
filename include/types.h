@@ -58,14 +58,15 @@ enum class TokenType : uint8_t {
   In,
   DotDot,
   Do,
-  Nil,
+  Void,
   String,
   Borrow,   // & for borrowing
   DotStar,  // .* for explicit dereference
-  EndOfFile
+  EndOfFile,
+  Nil
 };
 
-constexpr std::array<const char*, 54> STRING_TOKEN_TYPES = {
+constexpr std::array<const char*, 55> STRING_TOKEN_TYPES = {
     "Const",        "Identifier",
     "Equals",       "Fn",
     "LParen",       "RParen",
@@ -90,9 +91,10 @@ constexpr std::array<const char*, 54> STRING_TOKEN_TYPES = {
     "And",          "Or",
     "Not",          "Loop",
     "In",           "DotDot",
-    "Do",           "Nil",
+    "Do",           "Void",
     "String",       "Borrow",
-    "DotStar",      "EndOfFile"};
+    "DotStar",      "EndOfFile",
+    "Nil"};
 
 struct Token {
   TokenType type;

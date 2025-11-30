@@ -1159,10 +1159,10 @@ const test = fn() -> i32 {
   EXPECT_TRUE(output.find("add i32") != std::string::npos);   // x = x + 1
 }
 
-// Nil function code generation tests
-TEST_F(CodeGenerationTest, GeneratesNilFunctionExplicit) {
+// Void function code generation tests
+TEST_F(CodeGenerationTest, GeneratesVoidFunctionExplicit) {
   const std::string source = R"(
-const nil_func = fn() {
+const void_func = fn() -> void {
   return
 }
 )";
@@ -1177,13 +1177,13 @@ const nil_func = fn() {
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
 
-  EXPECT_TRUE(output.find("define void @nil_func()") != std::string::npos);
+  EXPECT_TRUE(output.find("define void @void_func()") != std::string::npos);
   EXPECT_TRUE(output.find("ret void") != std::string::npos);
 }
 
-TEST_F(CodeGenerationTest, GeneratesNilFunctionImplicit) {
+TEST_F(CodeGenerationTest, GeneratesVoidFunctionImplicit) {
   const std::string source = R"(
-const nil_func = fn() {
+const void_func = fn() {
   return
 }
 )";
@@ -1198,13 +1198,13 @@ const nil_func = fn() {
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
 
-  EXPECT_TRUE(output.find("define void @nil_func()") != std::string::npos);
+  EXPECT_TRUE(output.find("define void @void_func()") != std::string::npos);
   EXPECT_TRUE(output.find("ret void") != std::string::npos);
 }
 
-TEST_F(CodeGenerationTest, GeneratesNilFunctionWithDoSyntax) {
+TEST_F(CodeGenerationTest, GeneratesVoidFunctionWithDoSyntax) {
   const std::string source = R"(
-const nil_func = fn() do return
+const void_func = fn() do return
 )";
 
   auto program = ParseSource(source);
@@ -1217,13 +1217,14 @@ const nil_func = fn() do return
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
 
-  EXPECT_TRUE(output.find("define void @nil_func()") != std::string::npos);
+  EXPECT_TRUE(output.find("define void @void_func()") != std::string::npos);
   EXPECT_TRUE(output.find("ret void") != std::string::npos);
 }
 
-TEST_F(CodeGenerationTest, RejectsValueReturnFromNilFunction) {
+// negative case
+TEST_F(CodeGenerationTest, RejectsValueReturnFromVoidFunction) {
   const std::string source = R"(
-const nil_func = fn() {
+const void_func = fn() {
   return 42
 }
 )";
@@ -1240,7 +1241,7 @@ const nil_func = fn() {
   } catch (const std::runtime_error& e) {
     std::string error_message = e.what();
     EXPECT_TRUE(
-        error_message.find("Cannot return a value from a nil function") !=
+        error_message.find("Cannot return a value from a void function") !=
         std::string::npos);
   }
 }
