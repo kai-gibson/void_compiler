@@ -9,6 +9,7 @@
 #include "lexer.h"
 #include "types.h"
 
+/* TODO: remove this from main */
 // outside namespace so main can use it
 std::ostream& operator<<(std::ostream& os,
                          void_compiler::TokenType token_type) {
@@ -53,7 +54,6 @@ int main(int argc, char** argv) {
   switch (command) {
     case Command::Build: {
       auto source = read_file(filename);
-
       std::cout << "source: " << source << '\n';
 
       void_compiler::Compiler compiler;

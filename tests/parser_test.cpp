@@ -1,7 +1,8 @@
+#include "parser.h"
+
 #include <gtest/gtest.h>
 
 #include "lexer.h"
-#include "parser.h"
 
 namespace void_compiler {
 namespace {
@@ -43,10 +44,12 @@ const test = fn() -> i32 {
   EXPECT_EQ(func->body().size(), 1);
 
   // Check the return statement
-  const auto* ret_stmt = dynamic_cast<const ReturnStatement*>(func->body()[0].get());
+  const auto* ret_stmt =
+      dynamic_cast<const ReturnStatement*>(func->body()[0].get());
   ASSERT_NE(ret_stmt, nullptr);
-  
-  const auto* num_literal = dynamic_cast<const NumberLiteral*>(ret_stmt->expression());
+
+  const auto* num_literal =
+      dynamic_cast<const NumberLiteral*>(ret_stmt->expression());
   ASSERT_NE(num_literal, nullptr);
   EXPECT_EQ(num_literal->value(), 42);
 }
@@ -107,11 +110,13 @@ const calc = fn(x: i32, y: i32) -> i32 {
   const auto& func = program->functions()[0];
   ASSERT_EQ(func->body().size(), 1);
 
-  const auto* ret_stmt = dynamic_cast<const ReturnStatement*>(func->body()[0].get());
+  const auto* ret_stmt =
+      dynamic_cast<const ReturnStatement*>(func->body()[0].get());
   ASSERT_NE(ret_stmt, nullptr);
 
   // The expression should be a binary operation (subtraction at the top level)
-  const auto* binop = dynamic_cast<const BinaryOperation*>(ret_stmt->expression());
+  const auto* binop =
+      dynamic_cast<const BinaryOperation*>(ret_stmt->expression());
   ASSERT_NE(binop, nullptr);
   EXPECT_EQ(binop->operator_type(), TokenType::Minus);
 }
@@ -134,10 +139,12 @@ const main = fn() -> i32 {
   const auto& main_func = program->functions()[1];
   ASSERT_EQ(main_func->body().size(), 1);
 
-  const auto* ret_stmt = dynamic_cast<const ReturnStatement*>(main_func->body()[0].get());
+  const auto* ret_stmt =
+      dynamic_cast<const ReturnStatement*>(main_func->body()[0].get());
   ASSERT_NE(ret_stmt, nullptr);
 
-  const auto* func_call = dynamic_cast<const FunctionCall*>(ret_stmt->expression());
+  const auto* func_call =
+      dynamic_cast<const FunctionCall*>(ret_stmt->expression());
   ASSERT_NE(func_call, nullptr);
   EXPECT_EQ(func_call->function_name(), "helper");
   EXPECT_EQ(func_call->arguments().size(), 0);
@@ -159,17 +166,21 @@ const main = fn() -> i32 {
   ASSERT_EQ(program->functions().size(), 2);
 
   const auto& main_func = program->functions()[1];
-  const auto* ret_stmt = dynamic_cast<const ReturnStatement*>(main_func->body()[0].get());
+  const auto* ret_stmt =
+      dynamic_cast<const ReturnStatement*>(main_func->body()[0].get());
   ASSERT_NE(ret_stmt, nullptr);
 
-  const auto* func_call = dynamic_cast<const FunctionCall*>(ret_stmt->expression());
+  const auto* func_call =
+      dynamic_cast<const FunctionCall*>(ret_stmt->expression());
   ASSERT_NE(func_call, nullptr);
   EXPECT_EQ(func_call->function_name(), "add");
   ASSERT_EQ(func_call->arguments().size(), 2);
 
   // Check arguments
-  const auto* arg1 = dynamic_cast<const NumberLiteral*>(func_call->arguments()[0].get());
-  const auto* arg2 = dynamic_cast<const NumberLiteral*>(func_call->arguments()[1].get());
+  const auto* arg1 =
+      dynamic_cast<const NumberLiteral*>(func_call->arguments()[0].get());
+  const auto* arg2 =
+      dynamic_cast<const NumberLiteral*>(func_call->arguments()[1].get());
   ASSERT_NE(arg1, nullptr);
   ASSERT_NE(arg2, nullptr);
   EXPECT_EQ(arg1->value(), 5);
@@ -188,10 +199,12 @@ const test = fn(x: i32) -> i32 {
   ASSERT_EQ(program->functions().size(), 1);
 
   const auto& func = program->functions()[0];
-  const auto* ret_stmt = dynamic_cast<const ReturnStatement*>(func->body()[0].get());
+  const auto* ret_stmt =
+      dynamic_cast<const ReturnStatement*>(func->body()[0].get());
   ASSERT_NE(ret_stmt, nullptr);
 
-  const auto* var_ref = dynamic_cast<const VariableReference*>(ret_stmt->expression());
+  const auto* var_ref =
+      dynamic_cast<const VariableReference*>(ret_stmt->expression());
   ASSERT_NE(var_ref, nullptr);
   EXPECT_EQ(var_ref->name(), "x");
 }
@@ -208,78 +221,78 @@ const calc = fn(x: i32, y: i32) -> i32 {
   ASSERT_EQ(program->functions().size(), 1);
 
   const auto& func = program->functions()[0];
-  const auto* ret_stmt = dynamic_cast<const ReturnStatement*>(func->body()[0].get());
+  const auto* ret_stmt =
+      dynamic_cast<const ReturnStatement*>(func->body()[0].get());
   ASSERT_NE(ret_stmt, nullptr);
 
   // Should be multiplication at the top level due to parentheses
-  const auto* binop = dynamic_cast<const BinaryOperation*>(ret_stmt->expression());
+  const auto* binop =
+      dynamic_cast<const BinaryOperation*>(ret_stmt->expression());
   ASSERT_NE(binop, nullptr);
-  EXPECT_EQ(binop->operator_type(), TokenType::Multiply);
+  EXPECT_EQ(binop->operator_type(), TokenType::Asterisk);
 }
 
 // Error handling tests
 TEST_F(ParserTest, ThrowsOnMissingConst) {
-  EXPECT_THROW({
-    ParseSource("add = fn() -> i32 { return 1 }");
-  }, std::runtime_error);
+  EXPECT_THROW(
+      { ParseSource("add = fn() -> i32 { return 1 }"); }, std::runtime_error);
 }
 
 TEST_F(ParserTest, ThrowsOnMissingIdentifier) {
-  EXPECT_THROW({
-    ParseSource("const = fn() -> i32 { return 1 }");
-  }, std::runtime_error);
+  EXPECT_THROW(
+      { ParseSource("const = fn() -> i32 { return 1 }"); }, std::runtime_error);
 }
 
 TEST_F(ParserTest, ThrowsOnMissingEquals) {
-  EXPECT_THROW({
-    ParseSource("const add fn() -> i32 { return 1 }");
-  }, std::runtime_error);
+  EXPECT_THROW(
+      { ParseSource("const add fn() -> i32 { return 1 }"); },
+      std::runtime_error);
 }
 
 TEST_F(ParserTest, ThrowsOnMissingFn) {
-  EXPECT_THROW({
-    ParseSource("const add = () -> i32 { return 1 }");
-  }, std::runtime_error);
+  EXPECT_THROW(
+      { ParseSource("const add = () -> i32 { return 1 }"); },
+      std::runtime_error);
 }
 
 TEST_F(ParserTest, ThrowsOnMissingLParen) {
-  EXPECT_THROW({
-    ParseSource("const add = fn) -> i32 { return 1 }");
-  }, std::runtime_error);
+  EXPECT_THROW(
+      { ParseSource("const add = fn) -> i32 { return 1 }"); },
+      std::runtime_error);
 }
 
 TEST_F(ParserTest, ThrowsOnMissingRParen) {
-  EXPECT_THROW({
-    ParseSource("const add = fn( -> i32 { return 1 }");
-  }, std::runtime_error);
+  EXPECT_THROW(
+      { ParseSource("const add = fn( -> i32 { return 1 }"); },
+      std::runtime_error);
 }
 
 TEST_F(ParserTest, ThrowsOnMissingArrow) {
-  EXPECT_THROW({
-    ParseSource("const add = fn() i32 { return 1 }");
-  }, std::runtime_error);
+  EXPECT_THROW(
+      { ParseSource("const add = fn() i32 { return 1 }"); },
+      std::runtime_error);
 }
 
 TEST_F(ParserTest, ThrowsOnMissingReturnType) {
-  EXPECT_THROW({
-    ParseSource("const add = fn() -> { return 1 }");
-  }, std::runtime_error);
+  EXPECT_THROW(
+      { ParseSource("const add = fn() -> { return 1 }"); }, std::runtime_error);
 }
 
 TEST_F(ParserTest, ThrowsOnMissingLBrace) {
-  EXPECT_THROW({
-    ParseSource("const add = fn() -> i32 return 1 }");
-  }, std::runtime_error);
+  EXPECT_THROW(
+      { ParseSource("const add = fn() -> i32 return 1 }"); },
+      std::runtime_error);
 }
 
 TEST_F(ParserTest, ThrowsOnMissingRBrace) {
-  EXPECT_THROW({
-    ParseSource("const add = fn() -> i32 { return 1");
-  }, std::runtime_error);
+  EXPECT_THROW(
+      { ParseSource("const add = fn() -> i32 { return 1"); },
+      std::runtime_error);
 }
 
 TEST_F(ParserTest, ParsesReturnWithoutExpressionForTypeValidation) {
-  // Parser should accept return without expression and let code generation validate types
+  // Parser should accept return without expression and let code generation
+  // validate types
   const std::string source = R"(
 const add = fn() -> i32 {
   return
@@ -289,39 +302,40 @@ const add = fn() -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   EXPECT_EQ(func->name(), "add");
   EXPECT_EQ(func->return_type(), "i32");
   EXPECT_EQ(func->body().size(), 1);
-  
-  const auto* return_stmt = dynamic_cast<const ReturnStatement*>(func->body()[0].get());
+
+  const auto* return_stmt =
+      dynamic_cast<const ReturnStatement*>(func->body()[0].get());
   ASSERT_NE(return_stmt, nullptr);
   EXPECT_EQ(return_stmt->expression(), nullptr);  // Return without value
 }
 
 TEST_F(ParserTest, ThrowsOnUnmatchedParentheses) {
-  EXPECT_THROW({
-    ParseSource("const add = fn() -> i32 { return (1 + 2 }");
-  }, std::runtime_error);
+  EXPECT_THROW(
+      { ParseSource("const add = fn() -> i32 { return (1 + 2 }"); },
+      std::runtime_error);
 }
 
 TEST_F(ParserTest, ThrowsOnMissingParameterType) {
-  EXPECT_THROW({
-    ParseSource("const add = fn(x) -> i32 { return x }");
-  }, std::runtime_error);
+  EXPECT_THROW(
+      { ParseSource("const add = fn(x) -> i32 { return x }"); },
+      std::runtime_error);
 }
 
 TEST_F(ParserTest, ThrowsOnMissingParameterName) {
-  EXPECT_THROW({
-    ParseSource("const add = fn(: i32) -> i32 { return 1 }");
-  }, std::runtime_error);
+  EXPECT_THROW(
+      { ParseSource("const add = fn(: i32) -> i32 { return 1 }"); },
+      std::runtime_error);
 }
 
 TEST_F(ParserTest, ThrowsOnMissingColon) {
-  EXPECT_THROW({
-    ParseSource("const add = fn(x i32) -> i32 { return x }");
-  }, std::runtime_error);
+  EXPECT_THROW(
+      { ParseSource("const add = fn(x i32) -> i32 { return x }"); },
+      std::runtime_error);
 }
 
 TEST_F(ParserTest, HandlesEmptyParameterList) {
@@ -349,11 +363,13 @@ const complex = fn(a: i32, b: i32) -> i32 {
   ASSERT_EQ(program->functions().size(), 1);
 
   const auto& func = program->functions()[0];
-  const auto* ret_stmt = dynamic_cast<const ReturnStatement*>(func->body()[0].get());
+  const auto* ret_stmt =
+      dynamic_cast<const ReturnStatement*>(func->body()[0].get());
   ASSERT_NE(ret_stmt, nullptr);
 
   // Should be division at the top level
-  const auto* binop = dynamic_cast<const BinaryOperation*>(ret_stmt->expression());
+  const auto* binop =
+      dynamic_cast<const BinaryOperation*>(ret_stmt->expression());
   ASSERT_NE(binop, nullptr);
   EXPECT_EQ(binop->operator_type(), TokenType::Divide);
 }
@@ -446,19 +462,26 @@ const test = fn() -> i32 {
 }
 )";
   // Change to test malformed syntax instead since empty body might be valid
-  EXPECT_THROW(ParseSource("const test = fn() -> i32 { const x = 5 }"), std::runtime_error);
+  EXPECT_THROW(ParseSource("const test = fn() -> i32 { const x = 5 }"),
+               std::runtime_error);
 }
 
 TEST_F(ParserTest, ThrowsOnInvalidParameterSyntax) {
-  EXPECT_THROW(ParseSource("const test = fn(a b: i32) -> i32 { return 1 }"), std::runtime_error);
-  EXPECT_THROW(ParseSource("const test = fn(: i32) -> i32 { return 1 }"), std::runtime_error);
-  EXPECT_THROW(ParseSource("const test = fn(a:) -> i32 { return 1 }"), std::runtime_error);
+  EXPECT_THROW(ParseSource("const test = fn(a b: i32) -> i32 { return 1 }"),
+               std::runtime_error);
+  EXPECT_THROW(ParseSource("const test = fn(: i32) -> i32 { return 1 }"),
+               std::runtime_error);
+  EXPECT_THROW(ParseSource("const test = fn(a:) -> i32 { return 1 }"),
+               std::runtime_error);
 }
 
 TEST_F(ParserTest, ThrowsOnInvalidExpressionSequences) {
-  EXPECT_THROW(ParseSource("const test = fn() -> i32 { return 1 + }"), std::runtime_error);
-  EXPECT_THROW(ParseSource("const test = fn() -> i32 { return + 1 }"), std::runtime_error);
-  EXPECT_THROW(ParseSource("const test = fn() -> i32 { return 1 2 }"), std::runtime_error);
+  EXPECT_THROW(ParseSource("const test = fn() -> i32 { return 1 + }"),
+               std::runtime_error);
+  EXPECT_THROW(ParseSource("const test = fn() -> i32 { return + 1 }"),
+               std::runtime_error);
+  EXPECT_THROW(ParseSource("const test = fn() -> i32 { return 1 2 }"),
+               std::runtime_error);
 }
 
 TEST_F(ParserTest, ParsesVariousIdentifierFormats) {
@@ -525,12 +548,13 @@ const main = fn() -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   ASSERT_EQ(func->body().size(), 2);  // variable declaration + return statement
-  
+
   // Check variable declaration
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
   ASSERT_EQ(var_decl->name(), "x");
   ASSERT_EQ(var_decl->type(), "i32");
@@ -549,20 +573,24 @@ const main = fn() -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
-  ASSERT_EQ(func->body().size(), 4);  // 3 variable declarations + return statement
-  
+  ASSERT_EQ(func->body().size(),
+            4);  // 3 variable declarations + return statement
+
   // Check all variable declarations
-  const auto* var_x = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_x =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_x, nullptr);
   ASSERT_EQ(var_x->name(), "x");
-  
-  const auto* var_y = dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
+
+  const auto* var_y =
+      dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
   ASSERT_NE(var_y, nullptr);
   ASSERT_EQ(var_y->name(), "y");
-  
-  const auto* var_z = dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
+
+  const auto* var_z =
+      dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
   ASSERT_NE(var_z, nullptr);
   ASSERT_EQ(var_z->name(), "z");
 }
@@ -578,12 +606,13 @@ const main = fn() -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
   ASSERT_EQ(var_decl->name(), "result");
-  
+
   // Check that the value is a binary operation
   const auto* binop = dynamic_cast<const BinaryOperation*>(var_decl->value());
   ASSERT_NE(binop, nullptr);
@@ -601,9 +630,10 @@ const compute = fn(a: i32, b: i32) -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
-  ASSERT_EQ(func->body().size(), 3);  // 2 variable declarations + return statement
+  ASSERT_EQ(func->body().size(),
+            3);  // 2 variable declarations + return statement
   ASSERT_EQ(func->parameters().size(), 2);  // a and b parameters
 }
 
@@ -619,12 +649,13 @@ const main = fn() -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   ASSERT_EQ(func->body().size(), 3);  // declaration + assignment + return
-  
+
   // Check variable assignment
-  const auto* var_assign = dynamic_cast<const VariableAssignment*>(func->body()[1].get());
+  const auto* var_assign =
+      dynamic_cast<const VariableAssignment*>(func->body()[1].get());
   ASSERT_NE(var_assign, nullptr);
   ASSERT_EQ(var_assign->name(), "x");
 }
@@ -643,16 +674,18 @@ const main = fn() -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   ASSERT_EQ(func->body().size(), 5);  // 2 declarations + 2 assignments + return
-  
+
   // Check both assignments
-  const auto* assign1 = dynamic_cast<const VariableAssignment*>(func->body()[2].get());
+  const auto* assign1 =
+      dynamic_cast<const VariableAssignment*>(func->body()[2].get());
   ASSERT_NE(assign1, nullptr);
   ASSERT_EQ(assign1->name(), "x");
-  
-  const auto* assign2 = dynamic_cast<const VariableAssignment*>(func->body()[3].get());
+
+  const auto* assign2 =
+      dynamic_cast<const VariableAssignment*>(func->body()[3].get());
   ASSERT_NE(assign2, nullptr);
   ASSERT_EQ(assign2->name(), "y");
 }
@@ -669,9 +702,10 @@ const main = fn() -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
-  const auto* var_assign = dynamic_cast<const VariableAssignment*>(func->body()[1].get());
+  const auto* var_assign =
+      dynamic_cast<const VariableAssignment*>(func->body()[1].get());
   ASSERT_NE(var_assign, nullptr);
   ASSERT_EQ(var_assign->name(), "result");
 }
@@ -689,23 +723,25 @@ const test = fn(x: i32) -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   ASSERT_EQ(func->body().size(), 2);  // if statement + return
-  
+
   const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
   ASSERT_NE(if_stmt, nullptr);
-  
+
   // Check condition is a comparison
-  const auto* condition = dynamic_cast<const BinaryOperation*>(if_stmt->condition());
+  const auto* condition =
+      dynamic_cast<const BinaryOperation*>(if_stmt->condition());
   ASSERT_NE(condition, nullptr);
   EXPECT_EQ(condition->operator_type(), TokenType::GreaterThan);
-  
+
   // Check then body has one return statement
   ASSERT_EQ(if_stmt->then_body().size(), 1);
-  const auto* ret_stmt = dynamic_cast<const ReturnStatement*>(if_stmt->then_body()[0].get());
+  const auto* ret_stmt =
+      dynamic_cast<const ReturnStatement*>(if_stmt->then_body()[0].get());
   ASSERT_NE(ret_stmt, nullptr);
-  
+
   // Check else body is empty
   EXPECT_EQ(if_stmt->else_body().size(), 0);
 }
@@ -724,21 +760,23 @@ const test = fn(x: i32) -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   ASSERT_EQ(func->body().size(), 1);  // just if-else statement
-  
+
   const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
   ASSERT_NE(if_stmt, nullptr);
-  
+
   // Check then body
   ASSERT_EQ(if_stmt->then_body().size(), 1);
-  const auto* then_ret = dynamic_cast<const ReturnStatement*>(if_stmt->then_body()[0].get());
+  const auto* then_ret =
+      dynamic_cast<const ReturnStatement*>(if_stmt->then_body()[0].get());
   ASSERT_NE(then_ret, nullptr);
-  
+
   // Check else body
   ASSERT_EQ(if_stmt->else_body().size(), 1);
-  const auto* else_ret = dynamic_cast<const ReturnStatement*>(if_stmt->else_body()[0].get());
+  const auto* else_ret =
+      dynamic_cast<const ReturnStatement*>(if_stmt->else_body()[0].get());
   ASSERT_NE(else_ret, nullptr);
 }
 
@@ -758,26 +796,28 @@ const test = fn(x: i32) -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   ASSERT_EQ(func->body().size(), 1);  // if-else-if-else chain
-  
+
   const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
   ASSERT_NE(if_stmt, nullptr);
-  
+
   // Check condition
-  const auto* condition = dynamic_cast<const BinaryOperation*>(if_stmt->condition());
+  const auto* condition =
+      dynamic_cast<const BinaryOperation*>(if_stmt->condition());
   ASSERT_NE(condition, nullptr);
   EXPECT_EQ(condition->operator_type(), TokenType::GreaterThan);
-  
+
   // Check then body
   ASSERT_EQ(if_stmt->then_body().size(), 1);
-  
+
   // Check else body contains another if statement (else-if)
   ASSERT_EQ(if_stmt->else_body().size(), 1);
-  const auto* nested_if = dynamic_cast<const IfStatement*>(if_stmt->else_body()[0].get());
+  const auto* nested_if =
+      dynamic_cast<const IfStatement*>(if_stmt->else_body()[0].get());
   ASSERT_NE(nested_if, nullptr);
-  
+
   // Check nested if has both then and else
   EXPECT_EQ(nested_if->then_body().size(), 1);
   EXPECT_EQ(nested_if->else_body().size(), 1);
@@ -806,15 +846,16 @@ const test = fn(a: i32, b: i32) -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   ASSERT_EQ(func->body().size(), 2);  // if chain + final return
-  
+
   const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
   ASSERT_NE(if_stmt, nullptr);
-  
+
   // Check first condition (a > b)
-  const auto* condition = dynamic_cast<const BinaryOperation*>(if_stmt->condition());
+  const auto* condition =
+      dynamic_cast<const BinaryOperation*>(if_stmt->condition());
   ASSERT_NE(condition, nullptr);
   EXPECT_EQ(condition->operator_type(), TokenType::GreaterThan);
 }
@@ -832,23 +873,25 @@ const test = fn(a: i32, b: i32) -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
   ASSERT_NE(if_stmt, nullptr);
-  
+
   // Check condition is an AND operation
-  const auto* and_op = dynamic_cast<const BinaryOperation*>(if_stmt->condition());
+  const auto* and_op =
+      dynamic_cast<const BinaryOperation*>(if_stmt->condition());
   ASSERT_NE(and_op, nullptr);
   EXPECT_EQ(and_op->operator_type(), TokenType::And);
-  
+
   // Check left side is a > 10
   const auto* left_comp = dynamic_cast<const BinaryOperation*>(and_op->left());
   ASSERT_NE(left_comp, nullptr);
   EXPECT_EQ(left_comp->operator_type(), TokenType::GreaterThan);
-  
+
   // Check right side is b < 20
-  const auto* right_comp = dynamic_cast<const BinaryOperation*>(and_op->right());
+  const auto* right_comp =
+      dynamic_cast<const BinaryOperation*>(and_op->right());
   ASSERT_NE(right_comp, nullptr);
   EXPECT_EQ(right_comp->operator_type(), TokenType::LessThan);
 }
@@ -866,13 +909,14 @@ const test = fn(a: i32, b: i32) -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
   ASSERT_NE(if_stmt, nullptr);
-  
+
   // Check condition is an OR operation
-  const auto* or_op = dynamic_cast<const BinaryOperation*>(if_stmt->condition());
+  const auto* or_op =
+      dynamic_cast<const BinaryOperation*>(if_stmt->condition());
   ASSERT_NE(or_op, nullptr);
   EXPECT_EQ(or_op->operator_type(), TokenType::Or);
 }
@@ -890,18 +934,20 @@ const test = fn(a: i32) -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
   ASSERT_NE(if_stmt, nullptr);
-  
+
   // Check condition is a NOT operation
-  const auto* not_op = dynamic_cast<const UnaryOperation*>(if_stmt->condition());
+  const auto* not_op =
+      dynamic_cast<const UnaryOperation*>(if_stmt->condition());
   ASSERT_NE(not_op, nullptr);
   EXPECT_EQ(not_op->operator_type(), TokenType::Not);
-  
+
   // Check operand is a > 10
-  const auto* comparison = dynamic_cast<const BinaryOperation*>(not_op->operand());
+  const auto* comparison =
+      dynamic_cast<const BinaryOperation*>(not_op->operand());
   ASSERT_NE(comparison, nullptr);
   EXPECT_EQ(comparison->operator_type(), TokenType::GreaterThan);
 }
@@ -919,21 +965,22 @@ const test = fn(a: i32, b: i32, c: i32) -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
   ASSERT_NE(if_stmt, nullptr);
-  
+
   // Check condition is an OR operation (lowest precedence)
-  const auto* or_op = dynamic_cast<const BinaryOperation*>(if_stmt->condition());
+  const auto* or_op =
+      dynamic_cast<const BinaryOperation*>(if_stmt->condition());
   ASSERT_NE(or_op, nullptr);
   EXPECT_EQ(or_op->operator_type(), TokenType::Or);
-  
+
   // Check left side is AND operation
   const auto* and_op = dynamic_cast<const BinaryOperation*>(or_op->left());
   ASSERT_NE(and_op, nullptr);
   EXPECT_EQ(and_op->operator_type(), TokenType::And);
-  
+
   // Check right side is NOT operation
   const auto* not_op = dynamic_cast<const UnaryOperation*>(or_op->right());
   ASSERT_NE(not_op, nullptr);
@@ -952,22 +999,23 @@ const test = fn(a: i32, b: i32, c: i32) -> i32 {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   const auto& func = program->functions()[0];
   const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
   ASSERT_NE(if_stmt, nullptr);
-  
+
   // Should parse as: (a > 5 and b < 10) or (c == 0)
   // Top level should be OR
-  const auto* or_op = dynamic_cast<const BinaryOperation*>(if_stmt->condition());
+  const auto* or_op =
+      dynamic_cast<const BinaryOperation*>(if_stmt->condition());
   ASSERT_NE(or_op, nullptr);
   EXPECT_EQ(or_op->operator_type(), TokenType::Or);
-  
+
   // Left side should be AND
   const auto* and_op = dynamic_cast<const BinaryOperation*>(or_op->left());
   ASSERT_NE(and_op, nullptr);
   EXPECT_EQ(and_op->operator_type(), TokenType::And);
-  
+
   // Right side should be comparison
   const auto* comp_op = dynamic_cast<const BinaryOperation*>(or_op->right());
   ASSERT_NE(comp_op, nullptr);
@@ -987,22 +1035,24 @@ const test = fn() -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   ASSERT_EQ(func->body().size(), 2);  // loop + return
-  
-  const auto* loop_stmt = dynamic_cast<const LoopStatement*>(func->body()[0].get());
+
+  const auto* loop_stmt =
+      dynamic_cast<const LoopStatement*>(func->body()[0].get());
   ASSERT_NE(loop_stmt, nullptr);
   EXPECT_TRUE(loop_stmt->is_range_loop());
   EXPECT_EQ(loop_stmt->variable_name(), "i");
-  
+
   // Check the range expression
   const auto* range = dynamic_cast<const RangeExpression*>(loop_stmt->range());
   ASSERT_NE(range, nullptr);
-  
+
   // Check loop body
   ASSERT_EQ(loop_stmt->body().size(), 1);
-  const auto* ret_stmt = dynamic_cast<const ReturnStatement*>(loop_stmt->body()[0].get());
+  const auto* ret_stmt =
+      dynamic_cast<const ReturnStatement*>(loop_stmt->body()[0].get());
   ASSERT_NE(ret_stmt, nullptr);
 }
 
@@ -1020,22 +1070,25 @@ const test = fn() -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   ASSERT_EQ(func->body().size(), 3);  // variable declaration + loop + return
-  
-  const auto* loop_stmt = dynamic_cast<const LoopStatement*>(func->body()[1].get());
+
+  const auto* loop_stmt =
+      dynamic_cast<const LoopStatement*>(func->body()[1].get());
   ASSERT_NE(loop_stmt, nullptr);
   EXPECT_FALSE(loop_stmt->is_range_loop());
-  
+
   // Check condition
-  const auto* condition = dynamic_cast<const BinaryOperation*>(loop_stmt->condition());
+  const auto* condition =
+      dynamic_cast<const BinaryOperation*>(loop_stmt->condition());
   ASSERT_NE(condition, nullptr);
   EXPECT_EQ(condition->operator_type(), TokenType::LessThan);
-  
+
   // Check loop body
   ASSERT_EQ(loop_stmt->body().size(), 1);
-  const auto* assign = dynamic_cast<const VariableAssignment*>(loop_stmt->body()[0].get());
+  const auto* assign =
+      dynamic_cast<const VariableAssignment*>(loop_stmt->body()[0].get());
   ASSERT_NE(assign, nullptr);
   EXPECT_EQ(assign->name(), "x");
 }
@@ -1054,21 +1107,22 @@ const test = fn() -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
-  const auto* loop_stmt = dynamic_cast<const LoopStatement*>(func->body()[1].get());
+  const auto* loop_stmt =
+      dynamic_cast<const LoopStatement*>(func->body()[1].get());
   ASSERT_NE(loop_stmt, nullptr);
   EXPECT_TRUE(loop_stmt->is_range_loop());
   EXPECT_EQ(loop_stmt->variable_name(), "i");
-  
+
   // Check range with different start/end
   const auto* range = dynamic_cast<const RangeExpression*>(loop_stmt->range());
   ASSERT_NE(range, nullptr);
-  
+
   const auto* start = dynamic_cast<const NumberLiteral*>(range->start());
   ASSERT_NE(start, nullptr);
   EXPECT_EQ(start->value(), 1);
-  
+
   const auto* end = dynamic_cast<const NumberLiteral*>(range->end());
   ASSERT_NE(end, nullptr);
   EXPECT_EQ(end->value(), 100);
@@ -1091,16 +1145,18 @@ const test = fn() -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
-  const auto* outer_loop = dynamic_cast<const LoopStatement*>(func->body()[0].get());
+  const auto* outer_loop =
+      dynamic_cast<const LoopStatement*>(func->body()[0].get());
   ASSERT_NE(outer_loop, nullptr);
   EXPECT_TRUE(outer_loop->is_range_loop());
   EXPECT_EQ(outer_loop->variable_name(), "i");
-  
+
   // Check inner loop
   ASSERT_EQ(outer_loop->body().size(), 1);
-  const auto* inner_loop = dynamic_cast<const LoopStatement*>(outer_loop->body()[0].get());
+  const auto* inner_loop =
+      dynamic_cast<const LoopStatement*>(outer_loop->body()[0].get());
   ASSERT_NE(inner_loop, nullptr);
   EXPECT_TRUE(inner_loop->is_range_loop());
   EXPECT_EQ(inner_loop->variable_name(), "j");
@@ -1121,16 +1177,19 @@ const test = fn() -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
-  const auto* loop_stmt = dynamic_cast<const LoopStatement*>(func->body()[2].get());
+  const auto* loop_stmt =
+      dynamic_cast<const LoopStatement*>(func->body()[2].get());
   ASSERT_NE(loop_stmt, nullptr);
   EXPECT_FALSE(loop_stmt->is_range_loop());
-  
+
   // Check complex condition is parsed correctly
-  const auto* condition = dynamic_cast<const BinaryOperation*>(loop_stmt->condition());
+  const auto* condition =
+      dynamic_cast<const BinaryOperation*>(loop_stmt->condition());
   ASSERT_NE(condition, nullptr);
-  EXPECT_EQ(condition->operator_type(), TokenType::Or);  // Top level should be OR
+  EXPECT_EQ(condition->operator_type(),
+            TokenType::Or);  // Top level should be OR
 }
 
 TEST_F(ParserTest, ParsesRangeWithVariableExpressions) {
@@ -1147,20 +1206,22 @@ const test = fn(start: i32, end: i32) -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
-  const auto* loop_stmt = dynamic_cast<const LoopStatement*>(func->body()[1].get());
+  const auto* loop_stmt =
+      dynamic_cast<const LoopStatement*>(func->body()[1].get());
   ASSERT_NE(loop_stmt, nullptr);
   EXPECT_TRUE(loop_stmt->is_range_loop());
-  
+
   // Check range uses variable references
   const auto* range = dynamic_cast<const RangeExpression*>(loop_stmt->range());
   ASSERT_NE(range, nullptr);
-  
-  const auto* start_var = dynamic_cast<const VariableReference*>(range->start());
+
+  const auto* start_var =
+      dynamic_cast<const VariableReference*>(range->start());
   ASSERT_NE(start_var, nullptr);
   EXPECT_EQ(start_var->name(), "start");
-  
+
   const auto* end_var = dynamic_cast<const VariableReference*>(range->end());
   ASSERT_NE(end_var, nullptr);
   EXPECT_EQ(end_var->name(), "end");
@@ -1175,16 +1236,17 @@ const simple = fn() -> i32 do return 42
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   EXPECT_EQ(func->name(), "simple");
   EXPECT_EQ(func->return_type(), "i32");
   EXPECT_EQ(func->parameters().size(), 0);
-  
+
   // Should have exactly one statement (return 42)
   EXPECT_EQ(func->body().size(), 1);
-  
-  const auto* return_stmt = dynamic_cast<const ReturnStatement*>(func->body()[0].get());
+
+  const auto* return_stmt =
+      dynamic_cast<const ReturnStatement*>(func->body()[0].get());
   ASSERT_NE(return_stmt, nullptr);
 }
 
@@ -1199,18 +1261,19 @@ const test = fn(x: i32) -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   EXPECT_EQ(func->body().size(), 2);  // if statement + return
-  
+
   const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
   ASSERT_NE(if_stmt, nullptr);
-  
+
   // Then body should have exactly one statement
   EXPECT_EQ(if_stmt->then_body().size(), 1);
   EXPECT_EQ(if_stmt->else_body().size(), 0);
-  
-  const auto* return_stmt = dynamic_cast<const ReturnStatement*>(if_stmt->then_body()[0].get());
+
+  const auto* return_stmt =
+      dynamic_cast<const ReturnStatement*>(if_stmt->then_body()[0].get());
   ASSERT_NE(return_stmt, nullptr);
 }
 
@@ -1226,18 +1289,20 @@ const test = fn() -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   EXPECT_EQ(func->body().size(), 3);  // variable declaration, loop, return
-  
-  const auto* loop_stmt = dynamic_cast<const LoopStatement*>(func->body()[1].get());
+
+  const auto* loop_stmt =
+      dynamic_cast<const LoopStatement*>(func->body()[1].get());
   ASSERT_NE(loop_stmt, nullptr);
-  
+
   // Loop body should have exactly one statement
   EXPECT_EQ(loop_stmt->body().size(), 1);
   EXPECT_TRUE(loop_stmt->is_range_loop());
-  
-  const auto* assignment = dynamic_cast<const VariableAssignment*>(loop_stmt->body()[0].get());
+
+  const auto* assignment =
+      dynamic_cast<const VariableAssignment*>(loop_stmt->body()[0].get());
   ASSERT_NE(assignment, nullptr);
 }
 
@@ -1253,18 +1318,20 @@ const test = fn() -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   EXPECT_EQ(func->body().size(), 3);  // variable declaration, loop, return
-  
-  const auto* loop_stmt = dynamic_cast<const LoopStatement*>(func->body()[1].get());
+
+  const auto* loop_stmt =
+      dynamic_cast<const LoopStatement*>(func->body()[1].get());
   ASSERT_NE(loop_stmt, nullptr);
-  
+
   // Loop body should have exactly one statement
   EXPECT_EQ(loop_stmt->body().size(), 1);
   EXPECT_FALSE(loop_stmt->is_range_loop());
-  
-  const auto* assignment = dynamic_cast<const VariableAssignment*>(loop_stmt->body()[0].get());
+
+  const auto* assignment =
+      dynamic_cast<const VariableAssignment*>(loop_stmt->body()[0].get());
   ASSERT_NE(assignment, nullptr);
 }
 
@@ -1279,13 +1346,13 @@ const test = fn(x: i32) -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   EXPECT_EQ(func->body().size(), 1);  // if-else statement
-  
+
   const auto* if_stmt = dynamic_cast<const IfStatement*>(func->body()[0].get());
   ASSERT_NE(if_stmt, nullptr);
-  
+
   // Both then and else bodies should have exactly one statement
   EXPECT_EQ(if_stmt->then_body().size(), 1);
   EXPECT_EQ(if_stmt->else_body().size(), 1);
@@ -1301,7 +1368,7 @@ const nil_func = fn() {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   EXPECT_EQ(func->name(), "nil_func");
   EXPECT_EQ(func->return_type(), "nil");
@@ -1318,7 +1385,7 @@ const nil_func = fn() {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   EXPECT_EQ(func->name(), "nil_func");
   EXPECT_EQ(func->return_type(), "nil");  // Should default to nil
@@ -1334,14 +1401,15 @@ const nil_func = fn() do return
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   EXPECT_EQ(func->name(), "nil_func");
   EXPECT_EQ(func->return_type(), "nil");  // Should default to nil
   EXPECT_EQ(func->parameters().size(), 0);
   EXPECT_EQ(func->body().size(), 1);  // Return statement
-  
-  const auto* return_stmt = dynamic_cast<const ReturnStatement*>(func->body()[0].get());
+
+  const auto* return_stmt =
+      dynamic_cast<const ReturnStatement*>(func->body()[0].get());
   ASSERT_NE(return_stmt, nullptr);
   EXPECT_EQ(return_stmt->expression(), nullptr);  // Return without value
 }
@@ -1355,7 +1423,7 @@ const print_number = fn(x: i32) {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   EXPECT_EQ(func->name(), "print_number");
   EXPECT_EQ(func->return_type(), "nil");
@@ -1380,12 +1448,14 @@ const test = fn() -> nil {
   EXPECT_EQ(func->return_type(), "nil");
   ASSERT_EQ(func->body().size(), 1);
 
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
   EXPECT_EQ(var_decl->name(), "greeting");
   EXPECT_EQ(var_decl->type(), "const string");
-  
-  const auto* string_literal = dynamic_cast<const StringLiteral*>(var_decl->value());
+
+  const auto* string_literal =
+      dynamic_cast<const StringLiteral*>(var_decl->value());
   ASSERT_NE(string_literal, nullptr);
   EXPECT_EQ(string_literal->value(), "Hello");
 }
@@ -1404,12 +1474,14 @@ const test = fn() -> nil {
   const auto& func = program->functions()[0];
   ASSERT_EQ(func->body().size(), 1);
 
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
   EXPECT_EQ(var_decl->name(), "message");
   EXPECT_EQ(var_decl->type(), "string");
-  
-  const auto* string_literal = dynamic_cast<const StringLiteral*>(var_decl->value());
+
+  const auto* string_literal =
+      dynamic_cast<const StringLiteral*>(var_decl->value());
   ASSERT_NE(string_literal, nullptr);
   EXPECT_EQ(string_literal->value(), "World");
 }
@@ -1423,16 +1495,18 @@ const test = fn() -> nil {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   const auto& func = program->functions()[0];
   ASSERT_EQ(func->body().size(), 1);
 
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
   EXPECT_EQ(var_decl->name(), "empty");
   EXPECT_EQ(var_decl->type(), "const string");
-  
-  const auto* string_literal = dynamic_cast<const StringLiteral*>(var_decl->value());
+
+  const auto* string_literal =
+      dynamic_cast<const StringLiteral*>(var_decl->value());
   ASSERT_NE(string_literal, nullptr);
   EXPECT_EQ(string_literal->value(), "");
 }
@@ -1448,24 +1522,27 @@ const test = fn() -> nil {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   const auto& func = program->functions()[0];
   ASSERT_EQ(func->body().size(), 3);
 
   // Check first variable
-  const auto* var_decl1 = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl1 =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl1, nullptr);
   EXPECT_EQ(var_decl1->name(), "greeting");
   EXPECT_EQ(var_decl1->type(), "const string");
 
   // Check second variable
-  const auto* var_decl2 = dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
+  const auto* var_decl2 =
+      dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
   ASSERT_NE(var_decl2, nullptr);
   EXPECT_EQ(var_decl2->name(), "name");
   EXPECT_EQ(var_decl2->type(), "string");
 
   // Check third variable
-  const auto* var_decl3 = dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
+  const auto* var_decl3 =
+      dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
   ASSERT_NE(var_decl3, nullptr);
   EXPECT_EQ(var_decl3->name(), "punctuation");
   EXPECT_EQ(var_decl3->type(), "const string");
@@ -1485,12 +1562,14 @@ const test = fn() -> nil {
   const auto& func = program->functions()[0];
   ASSERT_EQ(func->body().size(), 1);
 
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
   EXPECT_EQ(var_decl->name(), "callback");
   EXPECT_EQ(var_decl->type(), "fn(i32) -> i32");
-  
-  const auto* var_ref = dynamic_cast<const VariableReference*>(var_decl->value());
+
+  const auto* var_ref =
+      dynamic_cast<const VariableReference*>(var_decl->value());
   ASSERT_NE(var_ref, nullptr);
   EXPECT_EQ(var_ref->name(), "some_function");
 }
@@ -1504,11 +1583,12 @@ const test = fn() -> nil {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   const auto& func = program->functions()[0];
   ASSERT_EQ(func->body().size(), 1);
 
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
   EXPECT_EQ(var_decl->name(), "operation");
   EXPECT_EQ(var_decl->type(), "fn(i32, i32, i32) -> i32");
@@ -1523,11 +1603,12 @@ const test = fn() -> nil {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   const auto& func = program->functions()[0];
   ASSERT_EQ(func->body().size(), 1);
 
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
   EXPECT_EQ(var_decl->name(), "getter");
   EXPECT_EQ(var_decl->type(), "fn() -> i32");
@@ -1542,11 +1623,12 @@ const test = fn() -> nil {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   const auto& func = program->functions()[0];
   ASSERT_EQ(func->body().size(), 1);
 
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
   EXPECT_EQ(var_decl->name(), "processor");
   EXPECT_EQ(var_decl->type(), "fn(const string, i32) -> string");
@@ -1568,13 +1650,15 @@ const main = fn() -> i32 {
   ASSERT_EQ(func->body().size(), 2);
 
   // Check the variable declaration with anonymous function
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
   EXPECT_EQ(var_decl->name(), "operation");
   EXPECT_EQ(var_decl->type(), "fn(i32, i32) -> i32");
 
   // Check that the value is an anonymous function
-  const auto* anon_func = dynamic_cast<const AnonymousFunction*>(var_decl->value());
+  const auto* anon_func =
+      dynamic_cast<const AnonymousFunction*>(var_decl->value());
   ASSERT_NE(anon_func, nullptr);
   EXPECT_EQ(anon_func->return_type(), "i32");
   EXPECT_EQ(anon_func->parameters().size(), 2);
@@ -1594,10 +1678,12 @@ const main = fn() -> i32 {
   ASSERT_EQ(program->functions().size(), 1);
 
   const auto& func = program->functions()[0];
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
 
-  const auto* anon_func = dynamic_cast<const AnonymousFunction*>(var_decl->value());
+  const auto* anon_func =
+      dynamic_cast<const AnonymousFunction*>(var_decl->value());
   ASSERT_NE(anon_func, nullptr);
   EXPECT_EQ(anon_func->return_type(), "i32");
   EXPECT_EQ(anon_func->parameters().size(), 0);
@@ -1616,14 +1702,16 @@ const main = fn() -> i32 {
   ASSERT_NE(program, nullptr);
 
   const auto& func = program->functions()[0];
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
 
-  const auto* anon_func = dynamic_cast<const AnonymousFunction*>(var_decl->value());
+  const auto* anon_func =
+      dynamic_cast<const AnonymousFunction*>(var_decl->value());
   ASSERT_NE(anon_func, nullptr);
   EXPECT_EQ(anon_func->return_type(), "i32");
   EXPECT_EQ(anon_func->parameters().size(), 3);
-  
+
   EXPECT_EQ(anon_func->parameters()[0]->name(), "a");
   EXPECT_EQ(anon_func->parameters()[1]->name(), "b");
   EXPECT_EQ(anon_func->parameters()[2]->name(), "c");
@@ -1644,14 +1732,17 @@ const main = fn() -> i32 {
   ASSERT_NE(program, nullptr);
 
   const auto& func = program->functions()[0];
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
 
-  const auto* anon_func = dynamic_cast<const AnonymousFunction*>(var_decl->value());
+  const auto* anon_func =
+      dynamic_cast<const AnonymousFunction*>(var_decl->value());
   ASSERT_NE(anon_func, nullptr);
   EXPECT_EQ(anon_func->return_type(), "i32");
   EXPECT_EQ(anon_func->parameters().size(), 1);
-  EXPECT_EQ(anon_func->body().size(), 2);  // Variable declaration + return statement
+  EXPECT_EQ(anon_func->body().size(),
+            2);  // Variable declaration + return statement
 }
 
 TEST_F(ParserTest, ParsesTypeInferenceForNumbers) {
@@ -1666,13 +1757,15 @@ const main = fn() -> i32 {
   ASSERT_NE(program, nullptr);
 
   const auto& func = program->functions()[0];
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
-  
+
   EXPECT_EQ(var_decl->name(), "x");
   EXPECT_EQ(var_decl->type(), "i32");
-  
-  const auto* num_literal = dynamic_cast<const NumberLiteral*>(var_decl->value());
+
+  const auto* num_literal =
+      dynamic_cast<const NumberLiteral*>(var_decl->value());
   ASSERT_NE(num_literal, nullptr);
   EXPECT_EQ(num_literal->value(), 42);
 }
@@ -1689,13 +1782,15 @@ const main = fn() -> i32 {
   ASSERT_NE(program, nullptr);
 
   const auto& func = program->functions()[0];
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
-  
+
   EXPECT_EQ(var_decl->name(), "message");
   EXPECT_EQ(var_decl->type(), "const string");
-  
-  const auto* str_literal = dynamic_cast<const StringLiteral*>(var_decl->value());
+
+  const auto* str_literal =
+      dynamic_cast<const StringLiteral*>(var_decl->value());
   ASSERT_NE(str_literal, nullptr);
   EXPECT_EQ(str_literal->value(), "Hello World");
 }
@@ -1712,13 +1807,15 @@ const main = fn() -> i32 {
   ASSERT_NE(program, nullptr);
 
   const auto& func = program->functions()[0];
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
-  
+
   EXPECT_EQ(var_decl->name(), "adder");
   EXPECT_EQ(var_decl->type(), "fn(i32, i32) -> i32");
-  
-  const auto* anon_func = dynamic_cast<const AnonymousFunction*>(var_decl->value());
+
+  const auto* anon_func =
+      dynamic_cast<const AnonymousFunction*>(var_decl->value());
   ASSERT_NE(anon_func, nullptr);
   EXPECT_EQ(anon_func->return_type(), "i32");
   EXPECT_EQ(anon_func->parameters().size(), 2);
@@ -1737,13 +1834,15 @@ const main = fn() -> i32 {
   ASSERT_NE(program, nullptr);
 
   const auto& func = program->functions()[0];
-  
-  const auto* var_decl1 = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+
+  const auto* var_decl1 =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl1, nullptr);
   EXPECT_EQ(var_decl1->name(), "x");
   EXPECT_EQ(var_decl1->type(), "i32");
-  
-  const auto* var_decl2 = dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
+
+  const auto* var_decl2 =
+      dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
   ASSERT_NE(var_decl2, nullptr);
   EXPECT_EQ(var_decl2->name(), "message");
   EXPECT_EQ(var_decl2->type(), "const string");
@@ -1766,27 +1865,31 @@ const main = fn() -> i32 {
   ASSERT_NE(program, nullptr);
 
   const auto& func = program->functions()[0];
-  
+
   // Check sum := x + y (should infer i32)
-  const auto* sum_decl = dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
+  const auto* sum_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
   ASSERT_NE(sum_decl, nullptr);
   EXPECT_EQ(sum_decl->name(), "sum");
   EXPECT_EQ(sum_decl->type(), "i32");
-  
+
   // Check difference := x - y (should infer i32)
-  const auto* diff_decl = dynamic_cast<const VariableDeclaration*>(func->body()[3].get());
+  const auto* diff_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[3].get());
   ASSERT_NE(diff_decl, nullptr);
   EXPECT_EQ(diff_decl->name(), "difference");
   EXPECT_EQ(diff_decl->type(), "i32");
-  
+
   // Check product := x * y (should infer i32)
-  const auto* prod_decl = dynamic_cast<const VariableDeclaration*>(func->body()[4].get());
+  const auto* prod_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[4].get());
   ASSERT_NE(prod_decl, nullptr);
   EXPECT_EQ(prod_decl->name(), "product");
   EXPECT_EQ(prod_decl->type(), "i32");
-  
+
   // Check quotient := x / y (should infer i32)
-  const auto* quot_decl = dynamic_cast<const VariableDeclaration*>(func->body()[5].get());
+  const auto* quot_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[5].get());
   ASSERT_NE(quot_decl, nullptr);
   EXPECT_EQ(quot_decl->name(), "quotient");
   EXPECT_EQ(quot_decl->type(), "i32");
@@ -1806,9 +1909,10 @@ const main = fn() -> i32 {
   ASSERT_NE(program, nullptr);
 
   const auto& func = program->functions()[0];
-  
+
   // Check combined := first + second (should infer const string)
-  const auto* combined_decl = dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
+  const auto* combined_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
   ASSERT_NE(combined_decl, nullptr);
   EXPECT_EQ(combined_decl->name(), "combined");
   EXPECT_EQ(combined_decl->type(), "const string");
@@ -1827,9 +1931,10 @@ const main = fn() -> i32 {
   ASSERT_NE(program, nullptr);
 
   const auto& func = program->functions()[0];
-  
+
   // Check copy := original (should infer i32 from variable reference)
-  const auto* copy_decl = dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
+  const auto* copy_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
   ASSERT_NE(copy_decl, nullptr);
   EXPECT_EQ(copy_decl->name(), "copy");
   EXPECT_EQ(copy_decl->type(), "i32");
@@ -1850,9 +1955,10 @@ const main = fn() -> i32 {
   ASSERT_NE(program, nullptr);
 
   const auto& func = program->functions()[0];
-  
+
   // Check result := a + b * c (should infer i32)
-  const auto* result_decl = dynamic_cast<const VariableDeclaration*>(func->body()[3].get());
+  const auto* result_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[3].get());
   ASSERT_NE(result_decl, nullptr);
   EXPECT_EQ(result_decl->name(), "result");
   EXPECT_EQ(result_decl->type(), "i32");
@@ -1872,24 +1978,28 @@ const main = fn() -> bool {
 
   const auto& func = program->functions()[0];
   EXPECT_EQ(func->return_type(), "bool");
-  
+
   // Check is_true := true
-  const auto* true_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* true_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(true_decl, nullptr);
   EXPECT_EQ(true_decl->name(), "is_true");
   EXPECT_EQ(true_decl->type(), "bool");
-  
-  const auto* true_literal = dynamic_cast<const BooleanLiteral*>(true_decl->value());
+
+  const auto* true_literal =
+      dynamic_cast<const BooleanLiteral*>(true_decl->value());
   ASSERT_NE(true_literal, nullptr);
   EXPECT_TRUE(true_literal->value());
-  
+
   // Check is_false := false
-  const auto* false_decl = dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
+  const auto* false_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
   ASSERT_NE(false_decl, nullptr);
   EXPECT_EQ(false_decl->name(), "is_false");
   EXPECT_EQ(false_decl->type(), "bool");
-  
-  const auto* false_literal = dynamic_cast<const BooleanLiteral*>(false_decl->value());
+
+  const auto* false_literal =
+      dynamic_cast<const BooleanLiteral*>(false_decl->value());
   ASSERT_NE(false_literal, nullptr);
   EXPECT_FALSE(false_literal->value());
 }
@@ -1909,15 +2019,17 @@ const main = fn() -> bool {
   ASSERT_NE(program, nullptr);
 
   const auto& func = program->functions()[0];
-  
+
   // Check and_result := a and b (should infer bool)
-  const auto* and_decl = dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
+  const auto* and_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
   ASSERT_NE(and_decl, nullptr);
   EXPECT_EQ(and_decl->name(), "and_result");
   EXPECT_EQ(and_decl->type(), "bool");
-  
+
   // Check or_result := a or b (should infer bool)
-  const auto* or_decl = dynamic_cast<const VariableDeclaration*>(func->body()[3].get());
+  const auto* or_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[3].get());
   ASSERT_NE(or_decl, nullptr);
   EXPECT_EQ(or_decl->name(), "or_result");
   EXPECT_EQ(or_decl->type(), "bool");
@@ -1942,44 +2054,52 @@ const test_func = fn() -> i32 {
   ASSERT_NE(program, nullptr);
 
   const auto& func = program->functions()[0];
-  
+
   // Check all integer type declarations
-  const auto* i8_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* i8_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(i8_decl, nullptr);
   EXPECT_EQ(i8_decl->name(), "tiny");
   EXPECT_EQ(i8_decl->type(), "i8");
-  
-  const auto* i16_decl = dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
+
+  const auto* i16_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
   ASSERT_NE(i16_decl, nullptr);
   EXPECT_EQ(i16_decl->name(), "small");
   EXPECT_EQ(i16_decl->type(), "i16");
-  
-  const auto* i32_decl = dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
+
+  const auto* i32_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
   ASSERT_NE(i32_decl, nullptr);
   EXPECT_EQ(i32_decl->name(), "medium");
   EXPECT_EQ(i32_decl->type(), "i32");
-  
-  const auto* i64_decl = dynamic_cast<const VariableDeclaration*>(func->body()[3].get());
+
+  const auto* i64_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[3].get());
   ASSERT_NE(i64_decl, nullptr);
   EXPECT_EQ(i64_decl->name(), "large");
   EXPECT_EQ(i64_decl->type(), "i64");
-  
-  const auto* u8_decl = dynamic_cast<const VariableDeclaration*>(func->body()[4].get());
+
+  const auto* u8_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[4].get());
   ASSERT_NE(u8_decl, nullptr);
   EXPECT_EQ(u8_decl->name(), "byte_val");
   EXPECT_EQ(u8_decl->type(), "u8");
-  
-  const auto* u16_decl = dynamic_cast<const VariableDeclaration*>(func->body()[5].get());
+
+  const auto* u16_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[5].get());
   ASSERT_NE(u16_decl, nullptr);
   EXPECT_EQ(u16_decl->name(), "word_val");
   EXPECT_EQ(u16_decl->type(), "u16");
-  
-  const auto* u32_decl = dynamic_cast<const VariableDeclaration*>(func->body()[6].get());
+
+  const auto* u32_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[6].get());
   ASSERT_NE(u32_decl, nullptr);
   EXPECT_EQ(u32_decl->name(), "dword_val");
   EXPECT_EQ(u32_decl->type(), "u32");
-  
-  const auto* u64_decl = dynamic_cast<const VariableDeclaration*>(func->body()[7].get());
+
+  const auto* u64_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[7].get());
   ASSERT_NE(u64_decl, nullptr);
   EXPECT_EQ(u64_decl->name(), "qword_val");
   EXPECT_EQ(u64_decl->type(), "u64");
@@ -2074,10 +2194,12 @@ const test_func = fn() -> i32 {
   ASSERT_NE(program, nullptr);
 
   const auto& func = program->functions()[0];
-  
-  // All should be inferred as i32 for now (since that's the default for number literals)
+
+  // All should be inferred as i32 for now (since that's the default for number
+  // literals)
   for (int i = 0; i < 8; i++) {
-    const auto* decl = dynamic_cast<const VariableDeclaration*>(func->body()[i].get());
+    const auto* decl =
+        dynamic_cast<const VariableDeclaration*>(func->body()[i].get());
     ASSERT_NE(decl, nullptr);
     EXPECT_EQ(decl->type(), "i32");  // Number literals default to i32
   }
@@ -2104,44 +2226,56 @@ const test_func = fn() -> i32 {
   ASSERT_NE(program, nullptr);
 
   const auto& func = program->functions()[0];
-  
+
   // Check original declarations
-  const auto* tiny_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* tiny_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(tiny_decl, nullptr);
   EXPECT_EQ(tiny_decl->type(), "i8");
-  
-  const auto* small_decl = dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
+
+  const auto* small_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
   ASSERT_NE(small_decl, nullptr);
   EXPECT_EQ(small_decl->type(), "i16");
-  
-  const auto* medium_decl = dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
+
+  const auto* medium_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
   ASSERT_NE(medium_decl, nullptr);
   EXPECT_EQ(medium_decl->type(), "i32");
-  
-  const auto* large_decl = dynamic_cast<const VariableDeclaration*>(func->body()[3].get());
+
+  const auto* large_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[3].get());
   ASSERT_NE(large_decl, nullptr);
   EXPECT_EQ(large_decl->type(), "i64");
-  
+
   // Check type inference from variable references
-  const auto* tiny_copy_decl = dynamic_cast<const VariableDeclaration*>(func->body()[4].get());
+  const auto* tiny_copy_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[4].get());
   ASSERT_NE(tiny_copy_decl, nullptr);
   EXPECT_EQ(tiny_copy_decl->name(), "tiny_copy");
-  EXPECT_EQ(tiny_copy_decl->type(), "i8");  // Should infer i8 from tiny variable
-  
-  const auto* small_copy_decl = dynamic_cast<const VariableDeclaration*>(func->body()[5].get());
+  EXPECT_EQ(tiny_copy_decl->type(),
+            "i8");  // Should infer i8 from tiny variable
+
+  const auto* small_copy_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[5].get());
   ASSERT_NE(small_copy_decl, nullptr);
   EXPECT_EQ(small_copy_decl->name(), "small_copy");
-  EXPECT_EQ(small_copy_decl->type(), "i16");  // Should infer i16 from small variable
-  
-  const auto* medium_copy_decl = dynamic_cast<const VariableDeclaration*>(func->body()[6].get());
+  EXPECT_EQ(small_copy_decl->type(),
+            "i16");  // Should infer i16 from small variable
+
+  const auto* medium_copy_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[6].get());
   ASSERT_NE(medium_copy_decl, nullptr);
   EXPECT_EQ(medium_copy_decl->name(), "medium_copy");
-  EXPECT_EQ(medium_copy_decl->type(), "i32");  // Should infer i32 from medium variable
-  
-  const auto* large_copy_decl = dynamic_cast<const VariableDeclaration*>(func->body()[7].get());
+  EXPECT_EQ(medium_copy_decl->type(),
+            "i32");  // Should infer i32 from medium variable
+
+  const auto* large_copy_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[7].get());
   ASSERT_NE(large_copy_decl, nullptr);
   EXPECT_EQ(large_copy_decl->name(), "large_copy");
-  EXPECT_EQ(large_copy_decl->type(), "i64");  // Should infer i64 from large variable
+  EXPECT_EQ(large_copy_decl->type(),
+            "i64");  // Should infer i64 from large variable
 }
 
 TEST_F(ParserTest, ParsesUnaryMinusOperation) {
@@ -2155,22 +2289,24 @@ const test = fn() -> i32 {
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
   ASSERT_EQ(program->functions().size(), 1);
-  
+
   const auto& func = program->functions()[0];
   ASSERT_EQ(func->body().size(), 2);  // var declaration + return
-  
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
   EXPECT_EQ(var_decl->name(), "x");
   EXPECT_EQ(var_decl->type(), "i32");
-  
+
   // Check that the value is a unary minus operation
   const auto* unary_op = dynamic_cast<const UnaryOperation*>(var_decl->value());
   ASSERT_NE(unary_op, nullptr);
   EXPECT_EQ(unary_op->operator_type(), TokenType::Minus);
-  
+
   // Check the operand is the number 42
-  const auto* num_literal = dynamic_cast<const NumberLiteral*>(unary_op->operand());
+  const auto* num_literal =
+      dynamic_cast<const NumberLiteral*>(unary_op->operand());
   ASSERT_NE(num_literal, nullptr);
   EXPECT_EQ(num_literal->value(), 42);
 }
@@ -2185,21 +2321,25 @@ const test = fn() -> i32 {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   const auto& func = program->functions()[0];
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
-  
+
   // Should parse as -(-(42))
-  const auto* outer_unary = dynamic_cast<const UnaryOperation*>(var_decl->value());
+  const auto* outer_unary =
+      dynamic_cast<const UnaryOperation*>(var_decl->value());
   ASSERT_NE(outer_unary, nullptr);
   EXPECT_EQ(outer_unary->operator_type(), TokenType::Minus);
-  
-  const auto* inner_unary = dynamic_cast<const UnaryOperation*>(outer_unary->operand());
+
+  const auto* inner_unary =
+      dynamic_cast<const UnaryOperation*>(outer_unary->operand());
   ASSERT_NE(inner_unary, nullptr);
   EXPECT_EQ(inner_unary->operator_type(), TokenType::Minus);
-  
-  const auto* num_literal = dynamic_cast<const NumberLiteral*>(inner_unary->operand());
+
+  const auto* num_literal =
+      dynamic_cast<const NumberLiteral*>(inner_unary->operand());
   ASSERT_NE(num_literal, nullptr);
   EXPECT_EQ(num_literal->value(), 42);
 }
@@ -2216,33 +2356,39 @@ const test = fn() -> i32 {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   const auto& func = program->functions()[0];
-  
+
   // Check i8 variable
-  const auto* tiny_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* tiny_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(tiny_decl, nullptr);
   EXPECT_EQ(tiny_decl->type(), "i8");
-  
-  const auto* tiny_unary = dynamic_cast<const UnaryOperation*>(tiny_decl->value());
+
+  const auto* tiny_unary =
+      dynamic_cast<const UnaryOperation*>(tiny_decl->value());
   ASSERT_NE(tiny_unary, nullptr);
   EXPECT_EQ(tiny_unary->operator_type(), TokenType::Minus);
-  
+
   // Check i16 variable
-  const auto* small_decl = dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
+  const auto* small_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
   ASSERT_NE(small_decl, nullptr);
   EXPECT_EQ(small_decl->type(), "i16");
-  
-  const auto* small_unary = dynamic_cast<const UnaryOperation*>(small_decl->value());
+
+  const auto* small_unary =
+      dynamic_cast<const UnaryOperation*>(small_decl->value());
   ASSERT_NE(small_unary, nullptr);
   EXPECT_EQ(small_unary->operator_type(), TokenType::Minus);
-  
+
   // Check i64 variable
-  const auto* large_decl = dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
+  const auto* large_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
   ASSERT_NE(large_decl, nullptr);
   EXPECT_EQ(large_decl->type(), "i64");
-  
-  const auto* large_unary = dynamic_cast<const UnaryOperation*>(large_decl->value());
+
+  const auto* large_unary =
+      dynamic_cast<const UnaryOperation*>(large_decl->value());
   ASSERT_NE(large_unary, nullptr);
   EXPECT_EQ(large_unary->operator_type(), TokenType::Minus);
 }
@@ -2257,21 +2403,22 @@ const test = fn() -> i32 {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   const auto& func = program->functions()[0];
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[0].get());
   ASSERT_NE(var_decl, nullptr);
-  
+
   // Should parse as (-10) + 5
   const auto* add_op = dynamic_cast<const BinaryOperation*>(var_decl->value());
   ASSERT_NE(add_op, nullptr);
   EXPECT_EQ(add_op->operator_type(), TokenType::Plus);
-  
+
   // Left side should be unary minus
   const auto* unary_minus = dynamic_cast<const UnaryOperation*>(add_op->left());
   ASSERT_NE(unary_minus, nullptr);
   EXPECT_EQ(unary_minus->operator_type(), TokenType::Minus);
-  
+
   // Right side should be the number 5
   const auto* right_num = dynamic_cast<const NumberLiteral*>(add_op->right());
   ASSERT_NE(right_num, nullptr);
@@ -2311,18 +2458,21 @@ const test = fn() {
   ASSERT_EQ(func->body().size(), 3);  // 2 variable declarations + return
 
   // Check the second variable declaration (ptr: *i32 = &x)
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[1].get());
   ASSERT_NE(var_decl, nullptr);
   EXPECT_EQ(var_decl->name(), "ptr");
   EXPECT_EQ(var_decl->type(), "*i32");
 
   // Check that the value is a borrow operation
-  const auto* borrow_op = dynamic_cast<const UnaryOperation*>(var_decl->value());
+  const auto* borrow_op =
+      dynamic_cast<const UnaryOperation*>(var_decl->value());
   ASSERT_NE(borrow_op, nullptr);
   EXPECT_EQ(borrow_op->operator_type(), TokenType::Borrow);
 
   // Check that the operand is a variable reference to 'x'
-  const auto* var_ref = dynamic_cast<const VariableReference*>(borrow_op->operand());
+  const auto* var_ref =
+      dynamic_cast<const VariableReference*>(borrow_op->operand());
   ASSERT_NE(var_ref, nullptr);
   EXPECT_EQ(var_ref->name(), "x");
 }
@@ -2342,17 +2492,20 @@ const test = fn(ptr: *i32) -> i32 {
   ASSERT_EQ(func->body().size(), 1);  // return statement
 
   // Check the return statement
-  const auto* return_stmt = dynamic_cast<const ReturnStatement*>(func->body()[0].get());
+  const auto* return_stmt =
+      dynamic_cast<const ReturnStatement*>(func->body()[0].get());
   ASSERT_NE(return_stmt, nullptr);
   ASSERT_NE(return_stmt->expression(), nullptr);
 
   // Check that the returned value is a dereference operation
-  const auto* deref_op = dynamic_cast<const UnaryOperation*>(return_stmt->expression());
+  const auto* deref_op =
+      dynamic_cast<const UnaryOperation*>(return_stmt->expression());
   ASSERT_NE(deref_op, nullptr);
   EXPECT_EQ(deref_op->operator_type(), TokenType::DotStar);
 
   // Check that the operand is a variable reference to 'ptr'
-  const auto* var_ref = dynamic_cast<const VariableReference*>(deref_op->operand());
+  const auto* var_ref =
+      dynamic_cast<const VariableReference*>(deref_op->operand());
   ASSERT_NE(var_ref, nullptr);
   EXPECT_EQ(var_ref->name(), "ptr");
 }
@@ -2375,7 +2528,8 @@ const test = fn() -> i32 {
   ASSERT_EQ(func->body().size(), 4);  // 3 variable declarations + return
 
   // Check the third variable declaration (value: i32 = ptr.*)
-  const auto* var_decl = dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
+  const auto* var_decl =
+      dynamic_cast<const VariableDeclaration*>(func->body()[2].get());
   ASSERT_NE(var_decl, nullptr);
   EXPECT_EQ(var_decl->name(), "value");
   EXPECT_EQ(var_decl->type(), "i32");

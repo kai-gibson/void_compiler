@@ -233,7 +233,7 @@ llvm::Value* CodeGenerator::generate_expression(const ASTNode* node) {
         return builder_->CreateAdd(left, right, "addtmp");
       case TokenType::Minus:
         return builder_->CreateSub(left, right, "subtmp");
-      case TokenType::Multiply:
+      case TokenType::Asterisk:
         return builder_->CreateMul(left, right, "multmp");
       case TokenType::Divide:
         return builder_->CreateSDiv(left, right, "divtmp");

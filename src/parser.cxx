@@ -6,10 +6,7 @@
 #include <vector>
 
 namespace void_compiler {
-
 class ParseException : public std::runtime_error {
- private:
-  // std::string message;
  public:
   ParseException(std::string_view message)
       : std::runtime_error(std::string(message)) {}
@@ -20,18 +17,24 @@ class ParseException : public std::runtime_error {
                            ", column: " + std::to_string(token.column)) {}
 };
 
+// join a vector of strings with a given delimeter -- string intrinsic function
 std::string join(const std::vector<std::string>& elements,
                  const std::string& delimiter) {
   std::ostringstream os;
-  for (size_t i = 0; i < elements.size(); ++i) {
+
+  for (size_t i = 0; i < elements.size(); i++) {
     os << elements[i];
-    if (i != elements.size() - 1) {
-      os << delimiter;
-    }
+    if (i != elements.size() - 1) os << delimiter;
   }
+
   return os.str();
 }
 
+/*
+   This is a recursive descent parser
+*/
+
+// entry point to the parser
 std::unique_ptr<Program> Parser::parse() {
   auto program = std::make_unique<Program>();
 
@@ -138,7 +141,7 @@ std::unique_ptr<ASTNode> Parser::parse_additive() {
 std::unique_ptr<ASTNode> Parser::parse_multiplicative() {
   auto left = parse_unary();
 
-  while (match(TokenType::Multiply) || match(TokenType::Divide)) {
+  while (match(TokenType::Asterisk) || match(TokenType::Divide)) {
     TokenType op = peek().type;
     consume(op);
     auto right = parse_unary();
@@ -228,7 +231,8 @@ std::unique_ptr<ASTNode> Parser::parse_primary() {
                                               std::move(arguments));
       }
 
-      throw ParseException("Expected function call after member access", peek());
+      throw ParseException("Expected function call after member access",
+                           peek());
     }
 
     // Check for explicit dereference (.*)
@@ -567,10 +571,7 @@ std::string Parser::parse_type() {
   } else if (tokens_[current_].type == TokenType::String) {
     current_++;
     return "string";
-  } else if (tokens_[current_].type == TokenType::Nil) {
-    current_++;
-    return "nil";
-  } else if (tokens_[current_].type == TokenType::Multiply) {
+  } else if (tokens_[current_].type == TokenType::Asterisk) {  // pointer types
     current_++;
     std::string base_type = parse_type();
     return "*" + base_type;
@@ -695,7 +696,7 @@ std::string Parser::infer_type(const ASTNode* node) {
 
     // Arithmetic operations (i32 + i32 = i32)
     if (op == TokenType::Plus || op == TokenType::Minus ||
-        op == TokenType::Multiply || op == TokenType::Divide) {
+        op == TokenType::Asterisk || op == TokenType::Divide) {
       if (left_type == "i32" && right_type == "i32") {
         return "i32";
       }
@@ -708,7 +709,7 @@ std::string Parser::infer_type(const ASTNode* node) {
           "Type mismatch in arithmetic operation: " + left_type + " " +
           (op == TokenType::Plus       ? "+"
            : op == TokenType::Minus    ? "-"
-           : op == TokenType::Multiply ? "*"
+           : op == TokenType::Asterisk ? "*"
                                        : "/") +
           " " + right_type);
     }

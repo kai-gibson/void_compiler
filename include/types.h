@@ -38,7 +38,7 @@ enum class TokenType : uint8_t {
   ColonEquals,  // := for type inference
   Plus,
   Minus,
-  Multiply,
+  Asterisk,
   Divide,
   Import,
   Dot,
@@ -80,7 +80,7 @@ constexpr std::array<const char*, 54> STRING_TOKEN_TYPES = {
     "True",         "False",
     "Comma",        "Colon",
     "ColonEquals",  "Plus",
-    "Minus",        "Multiply",
+    "Minus",        "Asterisk",
     "Divide",       "Import",
     "Dot",          "StringLiteral",
     "If",           "Else",

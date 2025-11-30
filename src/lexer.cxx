@@ -290,7 +290,7 @@ Token Lexer::next_token() {
                    .line = line_,
                    .column = start_column};
     case '*':
-      return Token{.type = TokenType::Multiply,
+      return Token{.type = TokenType::Asterisk,
                    .value = "*",
                    .line = line_,
                    .column = start_column};

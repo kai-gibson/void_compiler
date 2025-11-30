@@ -1,6 +1,7 @@
+#include "code_generation.h"
+
 #include <gtest/gtest.h>
 
-#include "code_generation.h"
 #include "lexer.h"
 #include "parser.h"
 
@@ -38,12 +39,12 @@ const test = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   // Should not throw and should generate valid IR
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   EXPECT_TRUE(output.find("define i32 @test()") != std::string::npos);
   EXPECT_TRUE(output.find("ret i32 42") != std::string::npos);
 }
@@ -60,12 +61,13 @@ const add = fn(x: i32, y: i32) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
-  EXPECT_TRUE(output.find("define i32 @add(i32 %x, i32 %y)") != std::string::npos);
+
+  EXPECT_TRUE(output.find("define i32 @add(i32 %x, i32 %y)") !=
+              std::string::npos);
   EXPECT_TRUE(output.find("add i32") != std::string::npos);
 }
 
@@ -81,11 +83,11 @@ const calc = fn(a: i32, b: i32) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   EXPECT_TRUE(output.find("add i32") != std::string::npos);
   EXPECT_TRUE(output.find("sub i32") != std::string::npos);
   EXPECT_TRUE(output.find("mul i32") != std::string::npos);
@@ -108,11 +110,11 @@ const main = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   EXPECT_TRUE(output.find("call i32 @helper(i32 42)") != std::string::npos);
 }
 
@@ -128,11 +130,11 @@ const identity = fn(value: i32) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   EXPECT_TRUE(output.find("load i32") != std::string::npos);
   EXPECT_TRUE(output.find("alloca i32") != std::string::npos);
 }
@@ -148,9 +150,8 @@ const test = fn() -> i32 {
   ASSERT_NE(program, nullptr);
 
   CodeGenerator codegen;
-  EXPECT_THROW({
-    codegen.generate_program(program.get());
-  }, std::runtime_error);
+  EXPECT_THROW(
+      { codegen.generate_program(program.get()); }, std::runtime_error);
 }
 
 TEST_F(CodeGenerationTest, ThrowsOnUnknownVariable) {
@@ -164,15 +165,14 @@ const test = fn() -> i32 {
   ASSERT_NE(program, nullptr);
 
   CodeGenerator codegen;
-  EXPECT_THROW({
-    codegen.generate_program(program.get());
-  }, std::runtime_error);
+  EXPECT_THROW(
+      { codegen.generate_program(program.get()); }, std::runtime_error);
 }
 
 TEST_F(CodeGenerationTest, ThrowsOnUnknownBinaryOperator) {
   // This test would require modifying the AST to have an invalid operator
   // For now, we'll test the switch statement default case indirectly
-  
+
   const std::string source = R"(
 const test = fn(x: i32, y: i32) -> i32 {
   return x + y
@@ -184,9 +184,7 @@ const test = fn(x: i32, y: i32) -> i32 {
 
   CodeGenerator codegen;
   // This should not throw for valid operators
-  EXPECT_NO_THROW({
-    codegen.generate_program(program.get());
-  });
+  EXPECT_NO_THROW({ codegen.generate_program(program.get()); });
 }
 
 TEST_F(CodeGenerationTest, GeneratesComplexNestedExpressions) {
@@ -201,11 +199,11 @@ const complex = fn(a: i32, b: i32, c: i32) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should contain all operations
   EXPECT_TRUE(output.find("add i32") != std::string::npos);
   EXPECT_TRUE(output.find("sub i32") != std::string::npos);
@@ -215,15 +213,17 @@ const complex = fn(a: i32, b: i32, c: i32) -> i32 {
 
 TEST_F(CodeGenerationTest, GeneratesMultipleFunctionDefinitions) {
   auto program = std::make_unique<Program>();
-  
+
   auto func1 = std::make_unique<FunctionDeclaration>("first", "i32");
-  func1->add_statement(std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(1)));
+  func1->add_statement(
+      std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(1)));
   program->add_function(std::move(func1));
-  
+
   auto func2 = std::make_unique<FunctionDeclaration>("second", "i32");
-  func2->add_statement(std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(2)));
+  func2->add_statement(
+      std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(2)));
   program->add_function(std::move(func2));
-  
+
   CodeGenerator generator;
   generator.generate_program(program.get());
   // Test passes if no exception is thrown
@@ -235,9 +235,10 @@ TEST_F(CodeGenerationTest, GeneratesParameterFunctions) {
   auto func = std::make_unique<FunctionDeclaration>("test", "i32");
   func->add_parameter(std::make_unique<Parameter>("x", "i32"));
   func->add_parameter(std::make_unique<Parameter>("y", "i32"));
-  func->add_statement(std::make_unique<ReturnStatement>(std::make_unique<VariableReference>("x")));
+  func->add_statement(std::make_unique<ReturnStatement>(
+      std::make_unique<VariableReference>("x")));
   program->add_function(std::move(func));
-  
+
   CodeGenerator generator;
   generator.generate_program(program.get());
   // Test passes if no exception is thrown
@@ -249,14 +250,15 @@ TEST_F(CodeGenerationTest, GeneratesArithmeticExpressions) {
   auto func = std::make_unique<FunctionDeclaration>("arithmetic", "i32");
   func->add_parameter(std::make_unique<Parameter>("a", "i32"));
   func->add_parameter(std::make_unique<Parameter>("b", "i32"));
-  
+
   // Create: a + b
   auto var_a = std::make_unique<VariableReference>("a");
   auto var_b = std::make_unique<VariableReference>("b");
-  auto add_expr = std::make_unique<BinaryOperation>(std::move(var_a), TokenType::Plus, std::move(var_b));
+  auto add_expr = std::make_unique<BinaryOperation>(
+      std::move(var_a), TokenType::Plus, std::move(var_b));
   func->add_statement(std::make_unique<ReturnStatement>(std::move(add_expr)));
   program->add_function(std::move(func));
-  
+
   CodeGenerator generator;
   generator.generate_program(program.get());
   // Test passes if no exception is thrown
@@ -265,19 +267,20 @@ TEST_F(CodeGenerationTest, GeneratesArithmeticExpressions) {
 
 TEST_F(CodeGenerationTest, GeneratesFunctionCallsWithArgs) {
   auto program = std::make_unique<Program>();
-  
+
   auto helper = std::make_unique<FunctionDeclaration>("helper", "i32");
   helper->add_parameter(std::make_unique<Parameter>("x", "i32"));
-  helper->add_statement(std::make_unique<ReturnStatement>(std::make_unique<VariableReference>("x")));
+  helper->add_statement(std::make_unique<ReturnStatement>(
+      std::make_unique<VariableReference>("x")));
   program->add_function(std::move(helper));
-  
+
   auto main = std::make_unique<FunctionDeclaration>("main", "i32");
   std::vector<std::unique_ptr<ASTNode>> args;
   args.push_back(std::make_unique<NumberLiteral>(42));
   auto call = std::make_unique<FunctionCall>("helper", std::move(args));
   main->add_statement(std::make_unique<ReturnStatement>(std::move(call)));
   program->add_function(std::move(main));
-  
+
   CodeGenerator generator;
   generator.generate_program(program.get());
   // Test passes if no exception is thrown
@@ -286,55 +289,51 @@ TEST_F(CodeGenerationTest, GeneratesFunctionCallsWithArgs) {
 
 TEST_F(CodeGenerationTest, HandlesAllArithmeticOperators) {
   auto program = std::make_unique<Program>();
-  
+
   // Test addition
   auto add_func = std::make_unique<FunctionDeclaration>("add_test", "i32");
   add_func->add_parameter(std::make_unique<Parameter>("a", "i32"));
   add_func->add_parameter(std::make_unique<Parameter>("b", "i32"));
   auto add_expr = std::make_unique<BinaryOperation>(
-    std::make_unique<VariableReference>("a"), 
-    TokenType::Plus, 
-    std::make_unique<VariableReference>("b")
-  );
-  add_func->add_statement(std::make_unique<ReturnStatement>(std::move(add_expr)));
+      std::make_unique<VariableReference>("a"), TokenType::Plus,
+      std::make_unique<VariableReference>("b"));
+  add_func->add_statement(
+      std::make_unique<ReturnStatement>(std::move(add_expr)));
   program->add_function(std::move(add_func));
-  
+
   // Test subtraction
   auto sub_func = std::make_unique<FunctionDeclaration>("sub_test", "i32");
   sub_func->add_parameter(std::make_unique<Parameter>("a", "i32"));
   sub_func->add_parameter(std::make_unique<Parameter>("b", "i32"));
   auto sub_expr = std::make_unique<BinaryOperation>(
-    std::make_unique<VariableReference>("a"), 
-    TokenType::Minus, 
-    std::make_unique<VariableReference>("b")
-  );
-  sub_func->add_statement(std::make_unique<ReturnStatement>(std::move(sub_expr)));
+      std::make_unique<VariableReference>("a"), TokenType::Minus,
+      std::make_unique<VariableReference>("b"));
+  sub_func->add_statement(
+      std::make_unique<ReturnStatement>(std::move(sub_expr)));
   program->add_function(std::move(sub_func));
-  
+
   // Test multiplication
   auto mul_func = std::make_unique<FunctionDeclaration>("mul_test", "i32");
   mul_func->add_parameter(std::make_unique<Parameter>("a", "i32"));
   mul_func->add_parameter(std::make_unique<Parameter>("b", "i32"));
   auto mul_expr = std::make_unique<BinaryOperation>(
-    std::make_unique<VariableReference>("a"), 
-    TokenType::Multiply, 
-    std::make_unique<VariableReference>("b")
-  );
-  mul_func->add_statement(std::make_unique<ReturnStatement>(std::move(mul_expr)));
+      std::make_unique<VariableReference>("a"), TokenType::Asterisk,
+      std::make_unique<VariableReference>("b"));
+  mul_func->add_statement(
+      std::make_unique<ReturnStatement>(std::move(mul_expr)));
   program->add_function(std::move(mul_func));
-  
+
   // Test division
   auto div_func = std::make_unique<FunctionDeclaration>("div_test", "i32");
   div_func->add_parameter(std::make_unique<Parameter>("a", "i32"));
   div_func->add_parameter(std::make_unique<Parameter>("b", "i32"));
   auto div_expr = std::make_unique<BinaryOperation>(
-    std::make_unique<VariableReference>("a"), 
-    TokenType::Divide, 
-    std::make_unique<VariableReference>("b")
-  );
-  div_func->add_statement(std::make_unique<ReturnStatement>(std::move(div_expr)));
+      std::make_unique<VariableReference>("a"), TokenType::Divide,
+      std::make_unique<VariableReference>("b"));
+  div_func->add_statement(
+      std::make_unique<ReturnStatement>(std::move(div_expr)));
   program->add_function(std::move(div_func));
-  
+
   CodeGenerator generator;
   generator.generate_program(program.get());
   // Test passes if no exception is thrown
@@ -347,21 +346,17 @@ TEST_F(CodeGenerationTest, HandlesComplexNestedStructures) {
   func->add_parameter(std::make_unique<Parameter>("a", "i32"));
   func->add_parameter(std::make_unique<Parameter>("b", "i32"));
   func->add_parameter(std::make_unique<Parameter>("c", "i32"));
-  
+
   // Create: (a + b) * c
   auto add_expr = std::make_unique<BinaryOperation>(
-    std::make_unique<VariableReference>("a"), 
-    TokenType::Plus, 
-    std::make_unique<VariableReference>("b")
-  );
+      std::make_unique<VariableReference>("a"), TokenType::Plus,
+      std::make_unique<VariableReference>("b"));
   auto mul_expr = std::make_unique<BinaryOperation>(
-    std::move(add_expr), 
-    TokenType::Multiply, 
-    std::make_unique<VariableReference>("c")
-  );
+      std::move(add_expr), TokenType::Asterisk,
+      std::make_unique<VariableReference>("c"));
   func->add_statement(std::make_unique<ReturnStatement>(std::move(mul_expr)));
   program->add_function(std::move(func));
-  
+
   CodeGenerator generator;
   generator.generate_program(program.get());
   // Test passes if no exception is thrown
@@ -371,9 +366,10 @@ TEST_F(CodeGenerationTest, HandlesComplexNestedStructures) {
 TEST_F(CodeGenerationTest, HandlesLargeNumbers) {
   auto program = std::make_unique<Program>();
   auto func = std::make_unique<FunctionDeclaration>("large", "i32");
-  func->add_statement(std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(999999)));
+  func->add_statement(std::make_unique<ReturnStatement>(
+      std::make_unique<NumberLiteral>(999999)));
   program->add_function(std::move(func));
-  
+
   CodeGenerator generator;
   generator.generate_program(program.get());
   // Test passes if no exception is thrown
@@ -383,9 +379,10 @@ TEST_F(CodeGenerationTest, HandlesLargeNumbers) {
 TEST_F(CodeGenerationTest, HandlesZeroValues) {
   auto program = std::make_unique<Program>();
   auto func = std::make_unique<FunctionDeclaration>("zero", "i32");
-  func->add_statement(std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(0)));
+  func->add_statement(
+      std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(0)));
   program->add_function(std::move(func));
-  
+
   CodeGenerator generator;
   generator.generate_program(program.get());
   // Test passes if no exception is thrown
@@ -400,9 +397,10 @@ TEST_F(CodeGenerationTest, HandlesManyParameters) {
   func->add_parameter(std::make_unique<Parameter>("c", "i32"));
   func->add_parameter(std::make_unique<Parameter>("d", "i32"));
   func->add_parameter(std::make_unique<Parameter>("e", "i32"));
-  func->add_statement(std::make_unique<ReturnStatement>(std::make_unique<VariableReference>("a")));
+  func->add_statement(std::make_unique<ReturnStatement>(
+      std::make_unique<VariableReference>("a")));
   program->add_function(std::move(func));
-  
+
   CodeGenerator generator;
   generator.generate_program(program.get());
   // Test passes if no exception is thrown
@@ -411,27 +409,30 @@ TEST_F(CodeGenerationTest, HandlesManyParameters) {
 
 TEST_F(CodeGenerationTest, HandlesChainedFunctionCalls) {
   auto program = std::make_unique<Program>();
-  
+
   auto helper1 = std::make_unique<FunctionDeclaration>("helper1", "i32");
-  helper1->add_statement(std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(10)));
+  helper1->add_statement(
+      std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(10)));
   program->add_function(std::move(helper1));
-  
+
   auto helper2 = std::make_unique<FunctionDeclaration>("helper2", "i32");
-  helper2->add_statement(std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(20)));
+  helper2->add_statement(
+      std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(20)));
   program->add_function(std::move(helper2));
-  
+
   auto main = std::make_unique<FunctionDeclaration>("main", "i32");
-  
+
   std::vector<std::unique_ptr<ASTNode>> args1;
   auto call1 = std::make_unique<FunctionCall>("helper1", std::move(args1));
-  
+
   std::vector<std::unique_ptr<ASTNode>> args2;
   auto call2 = std::make_unique<FunctionCall>("helper2", std::move(args2));
-  
-  auto add_calls = std::make_unique<BinaryOperation>(std::move(call1), TokenType::Plus, std::move(call2));
+
+  auto add_calls = std::make_unique<BinaryOperation>(
+      std::move(call1), TokenType::Plus, std::move(call2));
   main->add_statement(std::make_unique<ReturnStatement>(std::move(add_calls)));
   program->add_function(std::move(main));
-  
+
   CodeGenerator generator;
   generator.generate_program(program.get());
   // Test passes if no exception is thrown
@@ -448,7 +449,7 @@ const main = fn() -> i32 {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   CodeGenerator generator;
   ASSERT_NO_THROW(generator.generate_program(program.get()));
 }
@@ -465,7 +466,7 @@ const main = fn() -> i32 {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   CodeGenerator generator;
   ASSERT_NO_THROW(generator.generate_program(program.get()));
 }
@@ -481,7 +482,7 @@ const calculate = fn(a: i32) -> i32 {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   CodeGenerator generator;
   ASSERT_NO_THROW(generator.generate_program(program.get()));
 }
@@ -498,7 +499,7 @@ const complex = fn(x: i32, y: i32) -> i32 {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   CodeGenerator generator;
   ASSERT_NO_THROW(generator.generate_program(program.get()));
 }
@@ -507,12 +508,13 @@ TEST_F(CodeGenerationTest, ThrowsOnUndefinedVariableReference) {
   // Manually create AST with undefined variable reference
   auto program = std::make_unique<Program>();
   auto func = std::make_unique<FunctionDeclaration>("main", "i32");
-  
+
   // Create a return statement that references an undefined variable
   auto undefined_var = std::make_unique<VariableReference>("undefined_var");
-  func->add_statement(std::make_unique<ReturnStatement>(std::move(undefined_var)));
+  func->add_statement(
+      std::make_unique<ReturnStatement>(std::move(undefined_var)));
   program->add_function(std::move(func));
-  
+
   CodeGenerator generator;
   ASSERT_THROW(generator.generate_program(program.get()), std::runtime_error);
 }
@@ -528,7 +530,7 @@ const main = fn() -> i32 {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   CodeGenerator generator;
   ASSERT_NO_THROW(generator.generate_program(program.get()));
 }
@@ -546,7 +548,7 @@ const main = fn() -> i32 {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   CodeGenerator generator;
   ASSERT_NO_THROW(generator.generate_program(program.get()));
 }
@@ -561,7 +563,7 @@ const modify = fn(x: i32) -> i32 {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   CodeGenerator generator;
   ASSERT_NO_THROW(generator.generate_program(program.get()));
 }
@@ -570,13 +572,15 @@ TEST_F(CodeGenerationTest, ThrowsOnUndefinedVariableAssignment) {
   // Manually create AST with assignment to undefined variable
   auto program = std::make_unique<Program>();
   auto func = std::make_unique<FunctionDeclaration>("main", "i32");
-  
+
   // Create assignment to undefined variable
-  auto undefined_assign = std::make_unique<VariableAssignment>("undefined_var", std::make_unique<NumberLiteral>(42));
+  auto undefined_assign = std::make_unique<VariableAssignment>(
+      "undefined_var", std::make_unique<NumberLiteral>(42));
   func->add_statement(std::move(undefined_assign));
-  func->add_statement(std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(0)));
+  func->add_statement(
+      std::make_unique<ReturnStatement>(std::make_unique<NumberLiteral>(0)));
   program->add_function(std::move(func));
-  
+
   CodeGenerator generator;
   ASSERT_THROW(generator.generate_program(program.get()), std::runtime_error);
 }
@@ -591,7 +595,7 @@ const main = fn() -> i32 {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   CodeGenerator generator;
   ASSERT_THROW(generator.generate_program(program.get()), std::runtime_error);
 }
@@ -606,7 +610,7 @@ const main = fn() -> i32 {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   CodeGenerator generator;
   ASSERT_THROW(generator.generate_program(program.get()), std::runtime_error);
 }
@@ -621,7 +625,7 @@ const main = fn() -> i32 {
 
   auto program = ParseSource(source);
   ASSERT_NE(program, nullptr);
-  
+
   CodeGenerator generator;
   ASSERT_THROW(generator.generate_program(program.get()), std::runtime_error);
 }
@@ -641,14 +645,15 @@ const test = fn(x: i32) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate basic blocks for conditional branching
   EXPECT_TRUE(output.find("br i1") != std::string::npos);  // conditional branch
-  EXPECT_TRUE(output.find("icmp") != std::string::npos);   // comparison instruction
+  EXPECT_TRUE(output.find("icmp") !=
+              std::string::npos);  // comparison instruction
   EXPECT_TRUE(output.find("then:") != std::string::npos);  // then label
 }
 
@@ -668,11 +673,11 @@ const test = fn(x: i32) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate both then and else blocks
   EXPECT_TRUE(output.find("then:") != std::string::npos);
   EXPECT_TRUE(output.find("else:") != std::string::npos);
@@ -704,11 +709,11 @@ const test = fn(a: i32, b: i32) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate icmp instructions for all comparison types
   EXPECT_TRUE(output.find("icmp sgt") != std::string::npos);  // >
   EXPECT_TRUE(output.find("icmp slt") != std::string::npos);  // <
@@ -733,11 +738,11 @@ const test = fn(a: i32, b: i32) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate logical AND instruction
   EXPECT_TRUE(output.find("and i1") != std::string::npos);
   EXPECT_TRUE(output.find("icmp") != std::string::npos);
@@ -758,11 +763,11 @@ const test = fn(a: i32, b: i32) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate logical OR instruction
   EXPECT_TRUE(output.find("or i1") != std::string::npos);
   EXPECT_TRUE(output.find("icmp") != std::string::npos);
@@ -783,11 +788,11 @@ const test = fn(a: i32) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate logical NOT instruction (XOR with true)
   EXPECT_TRUE(output.find("xor i1") != std::string::npos);
   EXPECT_TRUE(output.find(", true") != std::string::npos);
@@ -809,11 +814,11 @@ const test = fn(a: i32, b: i32, c: i32) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate all logical operations in correct order
   EXPECT_TRUE(output.find("and i1") != std::string::npos);
   EXPECT_TRUE(output.find("or i1") != std::string::npos);
@@ -841,27 +846,27 @@ const test = fn(x: i32, y: i32) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate multiple conditional branches and blocks
   size_t then_count = 0;
   size_t else_count = 0;
   size_t pos = 0;
-  
+
   while ((pos = output.find("then", pos)) != std::string::npos) {
     then_count++;
     pos += 4;
   }
-  
+
   pos = 0;
   while ((pos = output.find("else", pos)) != std::string::npos) {
     else_count++;
     pos += 4;
   }
-  
+
   EXPECT_GE(then_count, 2);  // At least 2 then blocks
   EXPECT_GE(else_count, 2);  // At least 2 else blocks
 }
@@ -882,17 +887,20 @@ const test = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate loop structure with basic blocks
-  EXPECT_TRUE(output.find("loop.cond:") != std::string::npos);  // Loop condition block
-  EXPECT_TRUE(output.find("loop.body:") != std::string::npos);  // Loop body block
-  EXPECT_TRUE(output.find("loop.end:") != std::string::npos);   // Loop end block
-  EXPECT_TRUE(output.find("br i1") != std::string::npos);       // Conditional branch
-  EXPECT_TRUE(output.find("icmp") != std::string::npos);        // Comparison instruction
+  EXPECT_TRUE(output.find("loop.cond:") !=
+              std::string::npos);  // Loop condition block
+  EXPECT_TRUE(output.find("loop.body:") !=
+              std::string::npos);  // Loop body block
+  EXPECT_TRUE(output.find("loop.end:") != std::string::npos);  // Loop end block
+  EXPECT_TRUE(output.find("br i1") != std::string::npos);  // Conditional branch
+  EXPECT_TRUE(output.find("icmp") !=
+              std::string::npos);  // Comparison instruction
 }
 
 TEST_F(CodeGenerationTest, GeneratesConditionalLoop) {
@@ -911,16 +919,17 @@ const test = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate conditional loop structure
   EXPECT_TRUE(output.find("loop.cond:") != std::string::npos);
   EXPECT_TRUE(output.find("loop.body:") != std::string::npos);
   EXPECT_TRUE(output.find("loop.end:") != std::string::npos);
-  EXPECT_TRUE(output.find("icmp slt") != std::string::npos);    // Less than comparison
+  EXPECT_TRUE(output.find("icmp slt") !=
+              std::string::npos);  // Less than comparison
 }
 
 TEST_F(CodeGenerationTest, GeneratesLoopVariableAllocation) {
@@ -938,11 +947,11 @@ const test = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should allocate space for loop variable
   EXPECT_TRUE(output.find("alloca i32") != std::string::npos);
   EXPECT_TRUE(output.find("store i32") != std::string::npos);
@@ -968,27 +977,27 @@ const test = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate multiple loop structures
   size_t loop_cond_count = 0;
   size_t loop_body_count = 0;
   size_t pos = 0;
-  
+
   while ((pos = output.find("loop.cond", pos)) != std::string::npos) {
     loop_cond_count++;
     pos += 9;  // length of "loop.cond"
   }
-  
+
   pos = 0;
   while ((pos = output.find("loop.body", pos)) != std::string::npos) {
     loop_body_count++;
     pos += 9;  // length of "loop.body"
   }
-  
+
   EXPECT_GE(loop_cond_count, 2);  // At least 2 loop condition blocks
   EXPECT_GE(loop_body_count, 2);  // At least 2 loop body blocks
 }
@@ -1010,11 +1019,11 @@ const test = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate logical operations in loop condition
   EXPECT_TRUE(output.find("and i1") != std::string::npos);
   EXPECT_TRUE(output.find("icmp slt") != std::string::npos);
@@ -1037,11 +1046,11 @@ const test = fn(start: i32, end: i32) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should load start and end variables for range
   EXPECT_TRUE(output.find("loop.cond:") != std::string::npos);
   EXPECT_TRUE(output.find("load i32") != std::string::npos);
@@ -1059,15 +1068,15 @@ const simple = fn() -> i32 do return 42
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate function with simple return
   EXPECT_TRUE(output.find("define i32 @simple()") != std::string::npos);
   EXPECT_TRUE(output.find("ret i32 42") != std::string::npos);
-  
+
   // Should be minimal IR - no unnecessary basic blocks
   EXPECT_TRUE(output.find("entry:") != std::string::npos);
 }
@@ -1085,11 +1094,11 @@ const test = fn(x: i32) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate conditional branch structure
   EXPECT_TRUE(output.find("icmp sgt") != std::string::npos);
   EXPECT_TRUE(output.find("br i1") != std::string::npos);
@@ -1111,11 +1120,11 @@ const test = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate loop structure
   EXPECT_TRUE(output.find("loop.cond:") != std::string::npos);
   EXPECT_TRUE(output.find("loop.body:") != std::string::npos);
@@ -1137,11 +1146,11 @@ const test = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate conditional loop structure
   EXPECT_TRUE(output.find("loop.cond:") != std::string::npos);
   EXPECT_TRUE(output.find("loop.body:") != std::string::npos);
@@ -1163,11 +1172,11 @@ const nil_func = fn() {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   EXPECT_TRUE(output.find("define void @nil_func()") != std::string::npos);
   EXPECT_TRUE(output.find("ret void") != std::string::npos);
 }
@@ -1184,11 +1193,11 @@ const nil_func = fn() {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   EXPECT_TRUE(output.find("define void @nil_func()") != std::string::npos);
   EXPECT_TRUE(output.find("ret void") != std::string::npos);
 }
@@ -1203,11 +1212,11 @@ const nil_func = fn() do return
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   EXPECT_TRUE(output.find("define void @nil_func()") != std::string::npos);
   EXPECT_TRUE(output.find("ret void") != std::string::npos);
 }
@@ -1223,14 +1232,16 @@ const nil_func = fn() {
   ASSERT_NE(program, nullptr);
 
   CodeGenerator codegen;
-  
+
   // This should throw an error due to validation
   try {
     codegen.generate_program(program.get());
     FAIL() << "Expected exception to be thrown";
   } catch (const std::runtime_error& e) {
     std::string error_message = e.what();
-    EXPECT_TRUE(error_message.find("Cannot return a value from a nil function") != std::string::npos);
+    EXPECT_TRUE(
+        error_message.find("Cannot return a value from a nil function") !=
+        std::string::npos);
   }
 }
 
@@ -1249,11 +1260,11 @@ const test = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate string constants
   EXPECT_TRUE(output.find("Hello, world!") != std::string::npos);
   EXPECT_TRUE(output.find("@printf") != std::string::npos);
@@ -1275,17 +1286,19 @@ const test = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Format strings should be converted from {:d} to %d and {:s} to %s
   EXPECT_TRUE(output.find("Number: %d") != std::string::npos);
   EXPECT_TRUE(output.find("String: %s") != std::string::npos);
   EXPECT_TRUE(output.find("hello") != std::string::npos);
-  EXPECT_FALSE(output.find("{:d}") != std::string::npos);  // Should not contain original format
-  EXPECT_FALSE(output.find("{:s}") != std::string::npos);  // Should not contain original format
+  EXPECT_FALSE(output.find("{:d}") !=
+               std::string::npos);  // Should not contain original format
+  EXPECT_FALSE(output.find("{:s}") !=
+               std::string::npos);  // Should not contain original format
 }
 
 TEST_F(CodeGenerationTest, GeneratesEmptyStringLiteral) {
@@ -1303,12 +1316,12 @@ const test = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   // Should not throw and should generate valid IR for empty strings
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   EXPECT_TRUE(output.find("@printf") != std::string::npos);
 }
 
@@ -1329,12 +1342,12 @@ const test = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   // Should not throw and should generate valid IR for function pointers
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Check that function pointer allocation is generated
   EXPECT_TRUE(output.find("alloca") != std::string::npos);
 }
@@ -1351,7 +1364,7 @@ const dummy = fn() -> i32 {
   ASSERT_NE(program, nullptr);
 
   CodeGenerator codegen;
-  
+
   // Test that function pointer type parsing works
   EXPECT_NO_THROW(codegen.generate_program(program.get()));
 }
@@ -1393,12 +1406,12 @@ const test = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   // Should generate valid IR including indirect call
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Check that indirect call is generated
   EXPECT_TRUE(output.find("call") != std::string::npos);
   EXPECT_TRUE(output.find("alloca") != std::string::npos);
@@ -1457,12 +1470,12 @@ const main = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   // Should not throw and should generate valid IR for anonymous functions
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Check that anonymous function is generated
   EXPECT_TRUE(output.find("@anon_") != std::string::npos);
   EXPECT_TRUE(output.find("define internal i32 @anon_") != std::string::npos);
@@ -1482,12 +1495,12 @@ const main = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   // Should generate valid IR including anonymous function and call
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Check that anonymous function is generated and called
   EXPECT_TRUE(output.find("@anon_") != std::string::npos);
   EXPECT_TRUE(output.find("call i32") != std::string::npos);
@@ -1538,12 +1551,12 @@ const main = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   // Should generate valid IR for type-inferred variables
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Check that both variables are allocated correctly
   EXPECT_TRUE(output.find("%number = alloca i32") != std::string::npos);
   EXPECT_TRUE(output.find("%message = alloca ptr") != std::string::npos);
@@ -1565,13 +1578,14 @@ const main = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   // Should generate valid IR including anonymous function and type inference
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
-  // Check that anonymous function is generated and function pointer is allocated
+
+  // Check that anonymous function is generated and function pointer is
+  // allocated
   EXPECT_TRUE(output.find("@anon_") != std::string::npos);
   EXPECT_TRUE(output.find("%adder = alloca ptr") != std::string::npos);
   EXPECT_TRUE(output.find("call i32") != std::string::npos);
@@ -1593,17 +1607,17 @@ const main = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Check that all variables are allocated as i32
   EXPECT_TRUE(output.find("%x = alloca i32") != std::string::npos);
   EXPECT_TRUE(output.find("%y = alloca i32") != std::string::npos);
   EXPECT_TRUE(output.find("%sum = alloca i32") != std::string::npos);
   EXPECT_TRUE(output.find("%product = alloca i32") != std::string::npos);
-  
+
   // Check arithmetic operations
   EXPECT_TRUE(output.find("add i32") != std::string::npos);
   EXPECT_TRUE(output.find("mul i32") != std::string::npos);
@@ -1624,16 +1638,16 @@ const main = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Check that string variables are allocated as pointers
   EXPECT_TRUE(output.find("%first = alloca ptr") != std::string::npos);
   EXPECT_TRUE(output.find("%second = alloca ptr") != std::string::npos);
   EXPECT_TRUE(output.find("%combined = alloca ptr") != std::string::npos);
-  
+
   // Check string constants
   EXPECT_TRUE(output.find("Hello") != std::string::npos);
   EXPECT_TRUE(output.find("World") != std::string::npos);
@@ -1653,15 +1667,15 @@ const main = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Check that both variables are allocated as i32
   EXPECT_TRUE(output.find("%original = alloca i32") != std::string::npos);
   EXPECT_TRUE(output.find("%copy = alloca i32") != std::string::npos);
-  
+
   // Check load and store operations
   EXPECT_TRUE(output.find("load i32") != std::string::npos);
   EXPECT_TRUE(output.find("store i32") != std::string::npos);
@@ -1681,15 +1695,15 @@ const main = fn() -> bool {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Check that boolean variables are allocated as i1
   EXPECT_TRUE(output.find("%is_true = alloca i1") != std::string::npos);
   EXPECT_TRUE(output.find("%is_false = alloca i1") != std::string::npos);
-  
+
   // Check boolean constants
   EXPECT_TRUE(output.find("store i1 true") != std::string::npos);
   EXPECT_TRUE(output.find("store i1 false") != std::string::npos);
@@ -1710,11 +1724,11 @@ const main = fn() -> bool {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Check boolean operations
   EXPECT_TRUE(output.find("or i1") != std::string::npos);
   EXPECT_TRUE(output.find("%result = alloca i1") != std::string::npos);
@@ -1738,11 +1752,11 @@ const main = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Check that different integer sizes are allocated correctly
   EXPECT_TRUE(output.find("%tiny = alloca i8") != std::string::npos);
   EXPECT_TRUE(output.find("%small = alloca i16") != std::string::npos);
@@ -1772,29 +1786,35 @@ const main = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Check that all integer sizes are allocated with correct LLVM types
   EXPECT_TRUE(output.find("%i8_val = alloca i8") != std::string::npos);
   EXPECT_TRUE(output.find("%i16_val = alloca i16") != std::string::npos);
   EXPECT_TRUE(output.find("%i32_val = alloca i32") != std::string::npos);
   EXPECT_TRUE(output.find("%i64_val = alloca i64") != std::string::npos);
-  EXPECT_TRUE(output.find("%u8_val = alloca i8") != std::string::npos);   // u8 maps to i8
-  EXPECT_TRUE(output.find("%u16_val = alloca i16") != std::string::npos); // u16 maps to i16
-  EXPECT_TRUE(output.find("%u32_val = alloca i32") != std::string::npos); // u32 maps to i32
-  EXPECT_TRUE(output.find("%u64_val = alloca i64") != std::string::npos); // u64 maps to i64
-  
+  EXPECT_TRUE(output.find("%u8_val = alloca i8") !=
+              std::string::npos);  // u8 maps to i8
+  EXPECT_TRUE(output.find("%u16_val = alloca i16") !=
+              std::string::npos);  // u16 maps to i16
+  EXPECT_TRUE(output.find("%u32_val = alloca i32") !=
+              std::string::npos);  // u32 maps to i32
+  EXPECT_TRUE(output.find("%u64_val = alloca i64") !=
+              std::string::npos);  // u64 maps to i64
+
   // Check that values are stored correctly
   EXPECT_TRUE(output.find("store i8 127") != std::string::npos);
   EXPECT_TRUE(output.find("store i16 32767") != std::string::npos);
   EXPECT_TRUE(output.find("store i32 42") != std::string::npos);
   EXPECT_TRUE(output.find("store i64 1000000") != std::string::npos);
-  EXPECT_TRUE(output.find("store i8 -1") != std::string::npos);    // 255 as i8
-  EXPECT_TRUE(output.find("store i16 -1") != std::string::npos);   // 65535 as i16
-  EXPECT_TRUE(output.find("store i32 12345") != std::string::npos); // 12345 as i32
+  EXPECT_TRUE(output.find("store i8 -1") != std::string::npos);  // 255 as i8
+  EXPECT_TRUE(output.find("store i16 -1") !=
+              std::string::npos);  // 65535 as i16
+  EXPECT_TRUE(output.find("store i32 12345") !=
+              std::string::npos);  // 12345 as i32
   EXPECT_TRUE(output.find("store i64 2000000") != std::string::npos);
 }
 
@@ -1838,21 +1858,29 @@ const add_u64 = fn(a: u64, b: u64) -> u64 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Check function signatures are generated correctly
-  EXPECT_TRUE(output.find("define i8 @add_i8(i8 %a, i8 %b)") != std::string::npos);
-  EXPECT_TRUE(output.find("define i16 @add_i16(i16 %a, i16 %b)") != std::string::npos);
-  EXPECT_TRUE(output.find("define i32 @add_i32(i32 %a, i32 %b)") != std::string::npos);
-  EXPECT_TRUE(output.find("define i64 @add_i64(i64 %a, i64 %b)") != std::string::npos);
-  EXPECT_TRUE(output.find("define i8 @add_u8(i8 %a, i8 %b)") != std::string::npos);   // u8 -> i8
-  EXPECT_TRUE(output.find("define i16 @add_u16(i16 %a, i16 %b)") != std::string::npos); // u16 -> i16
-  EXPECT_TRUE(output.find("define i32 @add_u32(i32 %a, i32 %b)") != std::string::npos); // u32 -> i32
-  EXPECT_TRUE(output.find("define i64 @add_u64(i64 %a, i64 %b)") != std::string::npos); // u64 -> i64
-  
+  EXPECT_TRUE(output.find("define i8 @add_i8(i8 %a, i8 %b)") !=
+              std::string::npos);
+  EXPECT_TRUE(output.find("define i16 @add_i16(i16 %a, i16 %b)") !=
+              std::string::npos);
+  EXPECT_TRUE(output.find("define i32 @add_i32(i32 %a, i32 %b)") !=
+              std::string::npos);
+  EXPECT_TRUE(output.find("define i64 @add_i64(i64 %a, i64 %b)") !=
+              std::string::npos);
+  EXPECT_TRUE(output.find("define i8 @add_u8(i8 %a, i8 %b)") !=
+              std::string::npos);  // u8 -> i8
+  EXPECT_TRUE(output.find("define i16 @add_u16(i16 %a, i16 %b)") !=
+              std::string::npos);  // u16 -> i16
+  EXPECT_TRUE(output.find("define i32 @add_u32(i32 %a, i32 %b)") !=
+              std::string::npos);  // u32 -> i32
+  EXPECT_TRUE(output.find("define i64 @add_u64(i64 %a, i64 %b)") !=
+              std::string::npos);  // u64 -> i64
+
   // Check return values are correct type
   EXPECT_TRUE(output.find("ret i8 42") != std::string::npos);
   EXPECT_TRUE(output.find("ret i16 42") != std::string::npos);
@@ -1872,12 +1900,13 @@ const test = fn(x: i32) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
-  // Should generate sub instruction for unary minus (LLVM CreateNeg generates sub i32 0, %operand)
+
+  // Should generate sub instruction for unary minus (LLVM CreateNeg generates
+  // sub i32 0, %operand)
   EXPECT_TRUE(output.find("sub i32 0,") != std::string::npos);
   EXPECT_TRUE(output.find("negtmp") != std::string::npos);
 }
@@ -1898,15 +1927,16 @@ const test = fn(a: i8, b: i16, c: i32, d: i64) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate sub operations for unary minus (all promoted to i32)
   EXPECT_TRUE(output.find("sub i32 0,") != std::string::npos);
   // Should have truncation/extension operations for type conversions
-  EXPECT_TRUE(output.find("trunc i32") != std::string::npos || output.find("sext i32") != std::string::npos);
+  EXPECT_TRUE(output.find("trunc i32") != std::string::npos ||
+              output.find("sext i32") != std::string::npos);
   // Should allocate variables of correct types
   EXPECT_TRUE(output.find("alloca i8") != std::string::npos);
   EXPECT_TRUE(output.find("alloca i16") != std::string::npos);
@@ -1926,11 +1956,11 @@ const test = fn(x: i32) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate two sub instructions for double negation
   size_t first_sub = output.find("sub i32 0,");
   EXPECT_NE(first_sub, std::string::npos);
@@ -1951,11 +1981,11 @@ const test = fn(x: i32) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate sub instruction for unary minus and add for addition
   EXPECT_TRUE(output.find("sub i32 0,") != std::string::npos);
   EXPECT_TRUE(output.find("add i32") != std::string::npos);
@@ -1975,14 +2005,16 @@ const test = fn(x: i8) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
-  // Should generate sub for unary minus (promoted to i32) and sign extension for type conversion
+
+  // Should generate sub for unary minus (promoted to i32) and sign extension
+  // for type conversion
   EXPECT_TRUE(output.find("sub i32 0,") != std::string::npos);
-  EXPECT_TRUE(output.find("sext i8") != std::string::npos || output.find("trunc i32") != std::string::npos);
+  EXPECT_TRUE(output.find("sext i8") != std::string::npos ||
+              output.find("trunc i32") != std::string::npos);
 }
 
 TEST_F(CodeGenerationTest, GeneratesPointerType) {
@@ -1997,11 +2029,11 @@ const test = fn(ptr: *i32) {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should generate pointer type parameter
   EXPECT_TRUE(output.find("ptr %") != std::string::npos);
 }
@@ -2019,11 +2051,11 @@ const test = fn() -> *i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should allocate variable and return its address
   EXPECT_TRUE(output.find("alloca i32") != std::string::npos);
   EXPECT_TRUE(output.find("store i32 42") != std::string::npos);
@@ -2043,11 +2075,11 @@ const test = fn(ptr: *i32) -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should load from the pointer
   EXPECT_TRUE(output.find("load i32") != std::string::npos);
   EXPECT_TRUE(output.find("ret i32") != std::string::npos);
@@ -2068,16 +2100,17 @@ const test = fn() -> i32 {
 
   CodeGenerator codegen;
   codegen.generate_program(program.get());
-  
+
   testing::internal::CaptureStdout();
   codegen.print_ir();
   std::string output = testing::internal::GetCapturedStdout();
-  
+
   // Should have variable allocation, borrowing, and dereferencing
   EXPECT_TRUE(output.find("alloca i32") != std::string::npos);  // x allocation
-  EXPECT_TRUE(output.find("alloca ptr") != std::string::npos);  // ptr allocation
-  EXPECT_TRUE(output.find("store i32 42") != std::string::npos); // store to x
-  EXPECT_TRUE(output.find("load i32") != std::string::npos);     // dereference
+  EXPECT_TRUE(output.find("alloca ptr") !=
+              std::string::npos);  // ptr allocation
+  EXPECT_TRUE(output.find("store i32 42") != std::string::npos);  // store to x
+  EXPECT_TRUE(output.find("load i32") != std::string::npos);      // dereference
 }
 
 }  // namespace

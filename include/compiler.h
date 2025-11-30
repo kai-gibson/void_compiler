@@ -5,7 +5,6 @@
 #include "types.h"
 
 namespace void_compiler {
-// Compiler class that ties everything together
 
 struct SourcePath {
   std::string path;
@@ -15,6 +14,7 @@ struct OutputPath {
   std::string path;
 };
 
+// compiler class to string together the lexer, parser, and code generator
 class Compiler {
  public:
   int compile_and_run(const std::string& source);

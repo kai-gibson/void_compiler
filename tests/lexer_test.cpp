@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
-
 #include "lexer.h"
+
+#include <gtest/gtest.h>
 
 namespace void_compiler {
 namespace {
@@ -24,7 +24,7 @@ class LexerTest : public ::testing::Test {
 
 TEST_F(LexerTest, TokenizesNumbers) {
   auto tokens = TokenizeSource("42 123 0");
-  
+
   ASSERT_EQ(tokens.size(), 4);  // 3 numbers + EOF
   EXPECT_EQ(tokens[0].type, TokenType::Number);
   EXPECT_EQ(tokens[0].value, "42");
@@ -37,7 +37,7 @@ TEST_F(LexerTest, TokenizesNumbers) {
 
 TEST_F(LexerTest, TokenizesKeywords) {
   auto tokens = TokenizeSource("const fn return i32");
-  
+
   ASSERT_EQ(tokens.size(), 5);  // 4 keywords + EOF
   EXPECT_EQ(tokens[0].type, TokenType::Const);
   EXPECT_EQ(tokens[0].value, "const");
@@ -52,7 +52,7 @@ TEST_F(LexerTest, TokenizesKeywords) {
 
 TEST_F(LexerTest, TokenizesIdentifiers) {
   auto tokens = TokenizeSource("variable_name another_var");
-  
+
   ASSERT_EQ(tokens.size(), 3);  // 2 identifiers + EOF
   EXPECT_EQ(tokens[0].type, TokenType::Identifier);
   EXPECT_EQ(tokens[0].value, "variable_name");
@@ -63,11 +63,11 @@ TEST_F(LexerTest, TokenizesIdentifiers) {
 
 TEST_F(LexerTest, TokenizesOperators) {
   auto tokens = TokenizeSource("+ - * / = -> , :");
-  
+
   ASSERT_EQ(tokens.size(), 9);  // 8 operators + EOF
   EXPECT_EQ(tokens[0].type, TokenType::Plus);
   EXPECT_EQ(tokens[1].type, TokenType::Minus);
-  EXPECT_EQ(tokens[2].type, TokenType::Multiply);
+  EXPECT_EQ(tokens[2].type, TokenType::Asterisk);
   EXPECT_EQ(tokens[3].type, TokenType::Divide);
   EXPECT_EQ(tokens[4].type, TokenType::Equals);
   EXPECT_EQ(tokens[5].type, TokenType::Arrow);
@@ -78,7 +78,7 @@ TEST_F(LexerTest, TokenizesOperators) {
 
 TEST_F(LexerTest, TokenizesDelimiters) {
   auto tokens = TokenizeSource("( ) { }");
-  
+
   ASSERT_EQ(tokens.size(), 5);  // 4 delimiters + EOF
   EXPECT_EQ(tokens[0].type, TokenType::LParen);
   EXPECT_EQ(tokens[1].type, TokenType::RParen);
@@ -93,9 +93,9 @@ const add = fn(x: i32, y: i32) -> i32 {
   return x + y
 }
 )";
-  
+
   auto tokens = TokenizeSource(source);
-  
+
   // Verify key tokens (not exhaustive, but ensures basic structure)
   EXPECT_EQ(tokens[0].type, TokenType::Const);
   EXPECT_EQ(tokens[1].type, TokenType::Identifier);
@@ -109,7 +109,7 @@ const add = fn(x: i32, y: i32) -> i32 {
 
 TEST_F(LexerTest, SkipsWhitespace) {
   auto tokens = TokenizeSource("  \t\n  const  \n\t  fn  ");
-  
+
   ASSERT_EQ(tokens.size(), 3);  // 2 keywords + EOF
   EXPECT_EQ(tokens[0].type, TokenType::Const);
   EXPECT_EQ(tokens[1].type, TokenType::Fn);
@@ -118,7 +118,7 @@ TEST_F(LexerTest, SkipsWhitespace) {
 
 TEST_F(LexerTest, HandlesArrowOperator) {
   auto tokens = TokenizeSource("- -> ->");
-  
+
   ASSERT_EQ(tokens.size(), 4);  // minus, arrow, arrow, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Minus);
   EXPECT_EQ(tokens[1].type, TokenType::Arrow);
@@ -128,25 +128,25 @@ TEST_F(LexerTest, HandlesArrowOperator) {
 
 // Error handling tests
 TEST_F(LexerTest, ThrowsOnInvalidCharacter) {
-  EXPECT_THROW({
-    try {
-      TokenizeSource("const x = @");
-    } catch (const std::runtime_error& e) {
-      EXPECT_STREQ("Unknown character: @", e.what());
-      throw;
-    }
-  }, std::runtime_error);
+  EXPECT_THROW(
+      {
+        try {
+          TokenizeSource("const x = @");
+        } catch (const std::runtime_error& e) {
+          EXPECT_STREQ("Unknown character: @", e.what());
+          throw;
+        }
+      },
+      std::runtime_error);
 }
 
 TEST_F(LexerTest, ThrowsOnInvalidSymbol) {
-  EXPECT_THROW({
-    TokenizeSource("const x = #");
-  }, std::runtime_error);
+  EXPECT_THROW({ TokenizeSource("const x = #"); }, std::runtime_error);
 }
 
 TEST_F(LexerTest, HandlesSingleCharacterTokens) {
   auto tokens = TokenizeSource("(){}");
-  
+
   ASSERT_EQ(tokens.size(), 5);  // 4 tokens + EOF
   EXPECT_EQ(tokens[0].type, TokenType::LParen);
   EXPECT_EQ(tokens[1].type, TokenType::RParen);
@@ -159,7 +159,7 @@ TEST_F(LexerTest, HandlesLineAndColumnNumbers) {
   Lexer lexer("const\nfn");
   auto token1 = lexer.next_token();
   auto token2 = lexer.next_token();
-  
+
   EXPECT_EQ(token1.line, 1);
   EXPECT_EQ(token1.column, 6);  // Column after reading "const"
   EXPECT_EQ(token2.line, 2);
@@ -168,21 +168,21 @@ TEST_F(LexerTest, HandlesLineAndColumnNumbers) {
 
 TEST_F(LexerTest, HandlesEmptyInput) {
   auto tokens = TokenizeSource("");
-  
+
   ASSERT_EQ(tokens.size(), 1);
   EXPECT_EQ(tokens[0].type, TokenType::EndOfFile);
 }
 
 TEST_F(LexerTest, HandlesOnlyWhitespace) {
   auto tokens = TokenizeSource("   \t\n\r  ");
-  
+
   ASSERT_EQ(tokens.size(), 1);
   EXPECT_EQ(tokens[0].type, TokenType::EndOfFile);
 }
 
 TEST_F(LexerTest, HandlesNumbersAtEndOfInput) {
   auto tokens = TokenizeSource("42");
-  
+
   ASSERT_EQ(tokens.size(), 2);
   EXPECT_EQ(tokens[0].type, TokenType::Number);
   EXPECT_EQ(tokens[0].value, "42");
@@ -191,7 +191,7 @@ TEST_F(LexerTest, HandlesNumbersAtEndOfInput) {
 
 TEST_F(LexerTest, HandlesIdentifierAtEndOfInput) {
   auto tokens = TokenizeSource("variable");
-  
+
   ASSERT_EQ(tokens.size(), 2);
   EXPECT_EQ(tokens[0].type, TokenType::Identifier);
   EXPECT_EQ(tokens[0].value, "variable");
@@ -216,7 +216,7 @@ TEST_F(LexerTest, HandlesMultipleConsecutiveOperators) {
   ASSERT_EQ(tokens.size(), 7);  // 5 operators + RParen + EOF
   EXPECT_EQ(tokens[0].type, TokenType::Plus);
   EXPECT_EQ(tokens[1].type, TokenType::Minus);
-  EXPECT_EQ(tokens[2].type, TokenType::Multiply);
+  EXPECT_EQ(tokens[2].type, TokenType::Asterisk);
   EXPECT_EQ(tokens[3].type, TokenType::Divide);
   EXPECT_EQ(tokens[4].type, TokenType::LParen);
   EXPECT_EQ(tokens[5].type, TokenType::RParen);
@@ -233,7 +233,8 @@ TEST_F(LexerTest, HandlesNumbersWithWhitespace) {
 }
 
 TEST_F(LexerTest, HandlesAllKeywordCombinations) {
-  auto tokens = TokenizeSource("const fn return i32 const_fn fn_const return_type i32_value");
+  auto tokens = TokenizeSource(
+      "const fn return i32 const_fn fn_const return_type i32_value");
   EXPECT_EQ(tokens[0].type, TokenType::Const);
   EXPECT_EQ(tokens[1].type, TokenType::Fn);
   EXPECT_EQ(tokens[2].type, TokenType::Return);
@@ -272,7 +273,7 @@ TEST_F(LexerTest, HandlesAlphanumericIdentifiers) {
 
 TEST_F(LexerTest, HandlesEdgeCaseTokenSequences) {
   auto tokens = TokenizeSource("123abc");  // number followed by identifier
-  ASSERT_EQ(tokens.size(), 3);  // number, identifier, EOF
+  ASSERT_EQ(tokens.size(), 3);             // number, identifier, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Number);
   EXPECT_EQ(tokens[0].value, "123");
   EXPECT_EQ(tokens[1].type, TokenType::Identifier);
@@ -298,7 +299,7 @@ TEST_F(LexerTest, HandlesCarriageReturnAndMixedLineEndings) {
 
 TEST_F(LexerTest, TokenizesControlFlowKeywords) {
   auto tokens = TokenizeSource("if else and or not");
-  
+
   ASSERT_EQ(tokens.size(), 6);  // 5 keywords + EOF
   EXPECT_EQ(tokens[0].type, TokenType::If);
   EXPECT_EQ(tokens[0].value, "if");
@@ -315,7 +316,7 @@ TEST_F(LexerTest, TokenizesControlFlowKeywords) {
 
 TEST_F(LexerTest, TokenizesComparisonOperators) {
   auto tokens = TokenizeSource("> < >= <= == !=");
-  
+
   ASSERT_EQ(tokens.size(), 7);  // 6 operators + EOF
   EXPECT_EQ(tokens[0].type, TokenType::GreaterThan);
   EXPECT_EQ(tokens[0].value, ">");
@@ -334,7 +335,7 @@ TEST_F(LexerTest, TokenizesComparisonOperators) {
 
 TEST_F(LexerTest, HandlesComparisonOperatorEdgeCases) {
   auto tokens = TokenizeSource("=== !== >>= <<=");
-  
+
   ASSERT_EQ(tokens.size(), 9);  // ==, =, !=, =, >, >=, <, <=, EOF
   EXPECT_EQ(tokens[0].type, TokenType::EqualEqual);
   EXPECT_EQ(tokens[1].type, TokenType::Equals);
@@ -348,7 +349,7 @@ TEST_F(LexerTest, HandlesComparisonOperatorEdgeCases) {
 
 TEST_F(LexerTest, TokenizesComplexControlFlowExpression) {
   auto tokens = TokenizeSource("if x > 10 and y <= 20 or not z == 5");
-  
+
   // Verify key tokens in the expression
   EXPECT_EQ(tokens[0].type, TokenType::If);
   EXPECT_EQ(tokens[1].type, TokenType::Identifier);
@@ -373,7 +374,7 @@ TEST_F(LexerTest, TokenizesComplexControlFlowExpression) {
 
 TEST_F(LexerTest, TokenizesLoopKeywords) {
   auto tokens = TokenizeSource("loop in");
-  
+
   ASSERT_EQ(tokens.size(), 3);  // loop, in, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Loop);
   EXPECT_EQ(tokens[0].value, "loop");
@@ -384,7 +385,7 @@ TEST_F(LexerTest, TokenizesLoopKeywords) {
 
 TEST_F(LexerTest, TokenizesRangeOperator) {
   auto tokens = TokenizeSource("0..10");
-  
+
   ASSERT_EQ(tokens.size(), 4);  // 0, .., 10, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Number);
   EXPECT_EQ(tokens[0].value, "0");
@@ -397,7 +398,7 @@ TEST_F(LexerTest, TokenizesRangeOperator) {
 
 TEST_F(LexerTest, TokenizesRangeLoopExpression) {
   auto tokens = TokenizeSource("loop i in 0..10");
-  
+
   ASSERT_EQ(tokens.size(), 7);  // loop, i, in, 0, .., 10, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Loop);
   EXPECT_EQ(tokens[1].type, TokenType::Identifier);
@@ -413,7 +414,7 @@ TEST_F(LexerTest, TokenizesRangeLoopExpression) {
 
 TEST_F(LexerTest, TokenizesConditionalLoopExpression) {
   auto tokens = TokenizeSource("loop if x < 10");
-  
+
   ASSERT_EQ(tokens.size(), 6);  // loop, if, x, <, 10, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Loop);
   EXPECT_EQ(tokens[1].type, TokenType::If);
@@ -427,8 +428,8 @@ TEST_F(LexerTest, TokenizesConditionalLoopExpression) {
 
 TEST_F(LexerTest, HandlesDotVsDotDotDistinction) {
   auto tokens = TokenizeSource(". .. .");
-  
-  ASSERT_EQ(tokens.size(), 4);  // ., .., ., EOF  
+
+  ASSERT_EQ(tokens.size(), 4);  // ., .., ., EOF
   EXPECT_EQ(tokens[0].type, TokenType::Dot);
   EXPECT_EQ(tokens[0].value, ".");
   EXPECT_EQ(tokens[1].type, TokenType::DotDot);
@@ -441,7 +442,7 @@ TEST_F(LexerTest, HandlesDotVsDotDotDistinction) {
 // Do keyword tests
 TEST_F(LexerTest, TokenizesDoKeyword) {
   auto tokens = TokenizeSource("do");
-  
+
   ASSERT_EQ(tokens.size(), 2);  // do, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Do);
   EXPECT_EQ(tokens[0].value, "do");
@@ -450,7 +451,7 @@ TEST_F(LexerTest, TokenizesDoKeyword) {
 
 TEST_F(LexerTest, TokenizesDoWithOtherKeywords) {
   auto tokens = TokenizeSource("if condition do return");
-  
+
   ASSERT_EQ(tokens.size(), 5);  // if, condition, do, return, EOF
   EXPECT_EQ(tokens[0].type, TokenType::If);
   EXPECT_EQ(tokens[1].type, TokenType::Identifier);
@@ -463,7 +464,7 @@ TEST_F(LexerTest, TokenizesDoWithOtherKeywords) {
 
 TEST_F(LexerTest, TokenizesFunctionDoSyntax) {
   auto tokens = TokenizeSource("fn() -> i32 do return 42");
-  
+
   ASSERT_EQ(tokens.size(), 9);  // fn, (, ), ->, i32, do, return, 42, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Fn);
   EXPECT_EQ(tokens[1].type, TokenType::LParen);
@@ -481,7 +482,7 @@ TEST_F(LexerTest, TokenizesFunctionDoSyntax) {
 // Nil keyword tests
 TEST_F(LexerTest, TokenizesNilKeyword) {
   auto tokens = TokenizeSource("nil");
-  
+
   ASSERT_EQ(tokens.size(), 2);  // nil, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Nil);
   EXPECT_EQ(tokens[0].value, "nil");
@@ -490,7 +491,7 @@ TEST_F(LexerTest, TokenizesNilKeyword) {
 
 TEST_F(LexerTest, TokenizesNilReturnType) {
   auto tokens = TokenizeSource("fn() -> nil");
-  
+
   ASSERT_EQ(tokens.size(), 6);  // fn, (, ), ->, nil, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Fn);
   EXPECT_EQ(tokens[1].type, TokenType::LParen);
@@ -503,7 +504,7 @@ TEST_F(LexerTest, TokenizesNilReturnType) {
 
 TEST_F(LexerTest, TokenizesNilFunctionWithDo) {
   auto tokens = TokenizeSource("fn() -> nil do return");
-  
+
   ASSERT_EQ(tokens.size(), 8);  // fn, (, ), ->, nil, do, return, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Fn);
   EXPECT_EQ(tokens[1].type, TokenType::LParen);
@@ -519,7 +520,7 @@ TEST_F(LexerTest, TokenizesNilFunctionWithDo) {
 // Single-line comment tests
 TEST_F(LexerTest, SkipsSingleLineComment) {
   auto tokens = TokenizeSource("const x // this is a comment");
-  
+
   ASSERT_EQ(tokens.size(), 3);  // const, x, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Const);
   EXPECT_EQ(tokens[1].type, TokenType::Identifier);
@@ -529,7 +530,7 @@ TEST_F(LexerTest, SkipsSingleLineComment) {
 
 TEST_F(LexerTest, SkipsCommentAtStartOfLine) {
   auto tokens = TokenizeSource("// this is a comment\nconst x");
-  
+
   ASSERT_EQ(tokens.size(), 3);  // const, x, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Const);
   EXPECT_EQ(tokens[1].type, TokenType::Identifier);
@@ -544,8 +545,9 @@ TEST_F(LexerTest, SkipsMultipleComments) {
     // Another comment
     fn test() -> nil  // Function comment
   )");
-  
-  ASSERT_EQ(tokens.size(), 11);  // const, x, =, 42, fn, test, (, ), ->, nil, EOF
+
+  ASSERT_EQ(tokens.size(),
+            11);  // const, x, =, 42, fn, test, (, ), ->, nil, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Const);
   EXPECT_EQ(tokens[1].type, TokenType::Identifier);
   EXPECT_EQ(tokens[1].value, "x");
@@ -563,7 +565,7 @@ TEST_F(LexerTest, SkipsMultipleComments) {
 
 TEST_F(LexerTest, HandlesCommentWithSpecialCharacters) {
   auto tokens = TokenizeSource("const x // Comment with @#$%^&*(){}[]");
-  
+
   ASSERT_EQ(tokens.size(), 3);  // const, x, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Const);
   EXPECT_EQ(tokens[1].type, TokenType::Identifier);
@@ -573,7 +575,7 @@ TEST_F(LexerTest, HandlesCommentWithSpecialCharacters) {
 
 TEST_F(LexerTest, HandlesCommentAtEndOfFile) {
   auto tokens = TokenizeSource("const x // comment at end");
-  
+
   ASSERT_EQ(tokens.size(), 3);  // const, x, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Const);
   EXPECT_EQ(tokens[1].type, TokenType::Identifier);
@@ -583,7 +585,7 @@ TEST_F(LexerTest, HandlesCommentAtEndOfFile) {
 
 TEST_F(LexerTest, HandlesEmptyComment) {
   auto tokens = TokenizeSource("const x //");
-  
+
   ASSERT_EQ(tokens.size(), 3);  // const, x, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Const);
   EXPECT_EQ(tokens[1].type, TokenType::Identifier);
@@ -593,7 +595,7 @@ TEST_F(LexerTest, HandlesEmptyComment) {
 
 TEST_F(LexerTest, HandlesCommentWithNewlines) {
   auto tokens = TokenizeSource("const x // comment\nfn y // another\n");
-  
+
   ASSERT_EQ(tokens.size(), 5);  // const, x, fn, y, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Const);
   EXPECT_EQ(tokens[1].type, TokenType::Identifier);
@@ -606,7 +608,7 @@ TEST_F(LexerTest, HandlesCommentWithNewlines) {
 
 TEST_F(LexerTest, DoesNotTreatSingleSlashAsComment) {
   auto tokens = TokenizeSource("x / y");
-  
+
   ASSERT_EQ(tokens.size(), 4);  // x, /, y, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Identifier);
   EXPECT_EQ(tokens[0].value, "x");
@@ -618,7 +620,7 @@ TEST_F(LexerTest, DoesNotTreatSingleSlashAsComment) {
 
 TEST_F(LexerTest, HandlesCommentImmediatelyAfterToken) {
   auto tokens = TokenizeSource("const//comment\nfn");
-  
+
   ASSERT_EQ(tokens.size(), 3);  // const, fn, EOF
   EXPECT_EQ(tokens[0].type, TokenType::Const);
   EXPECT_EQ(tokens[1].type, TokenType::Fn);
@@ -628,7 +630,7 @@ TEST_F(LexerTest, HandlesCommentImmediatelyAfterToken) {
 // String literal tests
 TEST_F(LexerTest, TokenizesSimpleStringLiteral) {
   auto tokens = TokenizeSource("\"hello\"");
-  
+
   ASSERT_EQ(tokens.size(), 2);  // string, EOF
   EXPECT_EQ(tokens[0].type, TokenType::StringLiteral);
   EXPECT_EQ(tokens[0].value, "hello");
@@ -637,7 +639,7 @@ TEST_F(LexerTest, TokenizesSimpleStringLiteral) {
 
 TEST_F(LexerTest, TokenizesEmptyStringLiteral) {
   auto tokens = TokenizeSource("\"\"");
-  
+
   ASSERT_EQ(tokens.size(), 2);  // string, EOF
   EXPECT_EQ(tokens[0].type, TokenType::StringLiteral);
   EXPECT_EQ(tokens[0].value, "");
@@ -646,7 +648,7 @@ TEST_F(LexerTest, TokenizesEmptyStringLiteral) {
 
 TEST_F(LexerTest, TokenizesStringWithEscapes) {
   auto tokens = TokenizeSource("\"hello\\nworld\\t!\\\"quote\\\"\"");
-  
+
   ASSERT_EQ(tokens.size(), 2);  // string, EOF
   EXPECT_EQ(tokens[0].type, TokenType::StringLiteral);
   EXPECT_EQ(tokens[0].value, "hello\nworld\t!\"quote\"");
@@ -655,7 +657,7 @@ TEST_F(LexerTest, TokenizesStringWithEscapes) {
 
 TEST_F(LexerTest, TokenizesStringWithSpecialCharacters) {
   auto tokens = TokenizeSource("\"Hello, {:s}! Number: {:d}\"");
-  
+
   ASSERT_EQ(tokens.size(), 2);  // string, EOF
   EXPECT_EQ(tokens[0].type, TokenType::StringLiteral);
   EXPECT_EQ(tokens[0].value, "Hello, {:s}! Number: {:d}");
@@ -664,7 +666,7 @@ TEST_F(LexerTest, TokenizesStringWithSpecialCharacters) {
 
 TEST_F(LexerTest, TokenizesMultipleStringLiterals) {
   auto tokens = TokenizeSource("\"first\" \"second\" \"third\"");
-  
+
   ASSERT_EQ(tokens.size(), 4);  // 3 strings + EOF
   EXPECT_EQ(tokens[0].type, TokenType::StringLiteral);
   EXPECT_EQ(tokens[0].value, "first");
@@ -677,7 +679,7 @@ TEST_F(LexerTest, TokenizesMultipleStringLiterals) {
 
 TEST_F(LexerTest, TokenizesStringInFunctionCall) {
   auto tokens = TokenizeSource("fmt.println(\"Hello, {:s}!\", \"world\")");
-  
+
   // fmt, ., println, (, "Hello, {:s}!", ,, "world", ), EOF
   ASSERT_EQ(tokens.size(), 9);
   EXPECT_EQ(tokens[0].type, TokenType::Identifier);
@@ -697,7 +699,7 @@ TEST_F(LexerTest, TokenizesStringInFunctionCall) {
 
 TEST_F(LexerTest, TokenizesSizedIntegerKeywords) {
   auto tokens = TokenizeSource("i8 i16 i32 i64 u8 u16 u32 u64");
-  
+
   ASSERT_EQ(tokens.size(), 9);  // 8 integer types + EOF
   EXPECT_EQ(tokens[0].type, TokenType::I8);
   EXPECT_EQ(tokens[0].value, "i8");
@@ -720,7 +722,7 @@ TEST_F(LexerTest, TokenizesSizedIntegerKeywords) {
 
 TEST_F(LexerTest, TokenizesSizedIntegerVariableDeclarations) {
   auto tokens = TokenizeSource("tiny: i8 = 42 large: u64 = 1000");
-  
+
   // tiny : i8 = 42 large : u64 = 1000 EOF
   ASSERT_EQ(tokens.size(), 11);  // 10 tokens + EOF
   EXPECT_EQ(tokens[0].type, TokenType::Identifier);
@@ -744,7 +746,7 @@ TEST_F(LexerTest, TokenizesSizedIntegerVariableDeclarations) {
 
 TEST_F(LexerTest, TokenizesSizedIntegerFunctionSignatures) {
   auto tokens = TokenizeSource("fn(x: i16, y: u32) -> i64");
-  
+
   // fn ( x : i16 , y : u32 ) -> i64 EOF
   ASSERT_EQ(tokens.size(), 13);  // 12 tokens + EOF
   EXPECT_EQ(tokens[0].type, TokenType::Fn);
@@ -768,21 +770,25 @@ TEST_F(LexerTest, TokenizesSizedIntegerFunctionSignatures) {
 }
 
 TEST_F(LexerTest, ThrowsOnUnterminatedString) {
-  EXPECT_THROW({
-    try {
-      TokenizeSource("\"unterminated string");
-    } catch (const std::runtime_error& e) {
-      EXPECT_STREQ("Unterminated string literal", e.what());
-      throw;
-    }
-  }, std::runtime_error);
+  EXPECT_THROW(
+      {
+        try {
+          TokenizeSource("\"unterminated string");
+        } catch (const std::runtime_error& e) {
+          EXPECT_STREQ("Unterminated string literal", e.what());
+          throw;
+        }
+      },
+      std::runtime_error);
 }
 
 TEST_F(LexerTest, TokenizesPointerOperators) {
   auto tokens = TokenizeSource("* & .*");
-  
+
   ASSERT_EQ(tokens.size(), 4);  // 3 operators + EOF
-  EXPECT_EQ(tokens[0].type, TokenType::Multiply);  // * is multiply token, context determines usage
+  EXPECT_EQ(
+      tokens[0].type,
+      TokenType::Asterisk);  // * is multiply token, context determines usage
   EXPECT_EQ(tokens[0].value, "*");
   EXPECT_EQ(tokens[1].type, TokenType::Borrow);
   EXPECT_EQ(tokens[1].value, "&");
@@ -792,13 +798,17 @@ TEST_F(LexerTest, TokenizesPointerOperators) {
 
 TEST_F(LexerTest, TokenizesPointerTypes) {
   auto tokens = TokenizeSource("*i32 *string");
-  
+
   ASSERT_EQ(tokens.size(), 5);  // * i32 * string EOF
-  EXPECT_EQ(tokens[0].type, TokenType::Multiply);  // * is multiply token, context determines usage
+  EXPECT_EQ(
+      tokens[0].type,
+      TokenType::Asterisk);  // * is multiply token, context determines usage
   EXPECT_EQ(tokens[0].value, "*");
   EXPECT_EQ(tokens[1].type, TokenType::I32);
   EXPECT_EQ(tokens[1].value, "i32");
-  EXPECT_EQ(tokens[2].type, TokenType::Multiply);  // * is multiply token, context determines usage
+  EXPECT_EQ(
+      tokens[2].type,
+      TokenType::Asterisk);  // * is multiply token, context determines usage
   EXPECT_EQ(tokens[2].value, "*");
   EXPECT_EQ(tokens[3].type, TokenType::String);
   EXPECT_EQ(tokens[3].value, "string");
@@ -806,7 +816,7 @@ TEST_F(LexerTest, TokenizesPointerTypes) {
 
 TEST_F(LexerTest, TokenizesBorrowExpression) {
   auto tokens = TokenizeSource("&variable");
-  
+
   ASSERT_EQ(tokens.size(), 3);  // & variable EOF
   EXPECT_EQ(tokens[0].type, TokenType::Borrow);
   EXPECT_EQ(tokens[0].value, "&");
@@ -816,7 +826,7 @@ TEST_F(LexerTest, TokenizesBorrowExpression) {
 
 TEST_F(LexerTest, TokenizesDereferenceExpression) {
   auto tokens = TokenizeSource("ptr.*");
-  
+
   ASSERT_EQ(tokens.size(), 3);  // ptr .* EOF
   EXPECT_EQ(tokens[0].type, TokenType::Identifier);
   EXPECT_EQ(tokens[0].value, "ptr");
