@@ -502,6 +502,25 @@ const Matrix.add = fn(
     }
   }
 }
-
 ```
+
+#### Pure Functions
+void has a `pure` keyword which guarantees at compile time 2 features of a function:
+1. It only calls functions also marked `pure`
+2. It does not modify its arguments
+
+For example:
+```void
+
+const add = pure fn(a: i32, b: i32) -> i32 {
+  return a + b
+}
+
+const some_logic = pure fn(a: i32, readonly b: *i32) -> i32 {
+  if b.* > 10 do return a * b else do return a / b
+}
+```
+
+The benefit of marking a function `pure` isn't an abstract ode to Functional Programming - it's a guarantee that this function is deterministic, and so also simple and testable. Having `pure` functions also nudges you towards thinking in terms of "functional core, imperative shell".
+
 
